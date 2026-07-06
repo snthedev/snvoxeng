@@ -102,15 +102,23 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include=".def\vk\CommandBuffersContainer.h" />
+    <ClInclude Include=".def\vk\CommandPool.h" />
     <ClInclude Include=".def\vk\Device.h" />
+    <ClInclude Include=".def\vk\Fence.h" />
     <ClInclude Include=".def\vk\Image.h" />
     <ClInclude Include=".def\vk\ImageView.h" />
     <ClInclude Include=".def\vk\Instance.h" />
+    <ClInclude Include=".def\vk\Semaphore.h" />
     <ClInclude Include=".def\vk\SurfaceKHR.h" />
     <ClInclude Include=".def\vk\SwapchainKHR.h" />
     <ClInclude Include="snvoxeng.hpp" />
     <ClInclude Include="snvoxeng\dll-defines.hpp" />
+    <ClInclude Include="snvoxeng\vk\CommandBuffer.hpp" />
+    <ClInclude Include="snvoxeng\vk\CommandBuffersContainer.hpp" />
+    <ClInclude Include="snvoxeng\vk\CommandPool.hpp" />
     <ClInclude Include="snvoxeng\vk\Device.hpp" />
+    <ClInclude Include="snvoxeng\vk\Fence.hpp" />
     <ClInclude Include="snvoxeng\vk\Image.hpp" />
     <ClInclude Include="snvoxeng\vk\ImageView.hpp" />
     <ClInclude Include="snvoxeng\vk\Instance.hpp" />
@@ -118,13 +126,18 @@
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceRegistry.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceSelector.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceSet.hpp" />
+    <ClInclude Include="snvoxeng\vk\Semaphore.hpp" />
     <ClInclude Include="snvoxeng\vk\SurfaceKHR.hpp" />
     <ClInclude Include="snvoxeng\vk\SwapchainKHR.hpp" />
     <ClInclude Include="snvoxeng\vk\VkMinimal.hpp" />
     <ClInclude Include="snvoxeng\WindowDescription.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include=".src\vk\CommandBuffer.cpp" />
+    <ClCompile Include=".src\vk\CommandBuffersContainer.cpp" />
+    <ClCompile Include=".src\vk\CommandPool.cpp" />
     <ClCompile Include=".src\vk\Device.cpp" />
+    <ClCompile Include=".src\vk\Fence.cpp" />
     <ClCompile Include=".src\vk\Image.cpp" />
     <ClCompile Include=".src\vk\ImageView.cpp" />
     <ClCompile Include=".src\vk\Instance.cpp" />
@@ -132,6 +145,7 @@
     <ClCompile Include=".src\vk\PhysicalDeviceRegistry.cpp" />
     <ClCompile Include=".src\vk\PhysicalDeviceSelector.cpp" />
     <ClCompile Include=".src\vk\PhysicalDeviceSet.cpp" />
+    <ClCompile Include=".src\vk\Semaphore.cpp" />
     <ClCompile Include=".src\vk\SurfaceKHR.cpp" />
     <ClCompile Include=".src\vk\SwapchainKHR.cpp" />
   </ItemGroup>

@@ -1,5 +1,4 @@
 #include <snvoxeng/snvoxeng/vk/PhysicalDevice.hpp>
-
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 
 #include <snassert/snassert.hpp>
@@ -25,7 +24,8 @@ VkSurfaceCapabilitiesKHR PhysicalDevice::getSurfaceCapabilities(VkSurfaceKHR sur
 }
 
 VkPhysicalDevice PhysicalDevice::getHandle() const noexcept { return m_pRegistry->getHandle(m_registryIdx); }
-size_t PhysicalDevice::getRegistryIndex() const noexcept { return m_registryIdx; }
+const PhysicalDeviceRegistry& PhysicalDevice::getRegistry() const noexcept { return *m_pRegistry; }
+size_t PhysicalDevice::getRegistryIdx() const noexcept { return m_registryIdx; }
 
 
 const VkPhysicalDeviceProperties& PhysicalDevice::getProperties() const noexcept

@@ -51,6 +51,22 @@ namespace sn::voxeng::vk
 		VkResult createImageView(const VkImageViewCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImageView* pView) const;
 		void destroyImageView(VkImageView imageView, const VkAllocationCallbacks* pAllocator) const;
 
+		VkResult createFence(const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence) const;
+		void destroyFence(VkFence fence, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult waitForFences(uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout) const;
+		VkResult resetFences(uint32_t fenceCount, const VkFence* pFences) const;
+
+		VkResult createSemaphore(const VkSemaphoreCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSemaphore* pSemaphore) const;
+		void destroySemaphore(VkSemaphore semaphore, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult createCommandPool(const VkCommandPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkCommandPool* pCommandPool) const;
+		void destroyCommandPool(VkCommandPool commandPool, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult allocateCommandBuffers(const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers) const;
+		void freeCommandBuffers(VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers) const;
+
+
 		VkDevice getHandle() const noexcept;
 		operator VkDevice() const noexcept;
 

@@ -22,7 +22,8 @@ namespace sn::voxeng::vk
         VkSurfaceCapabilitiesKHR getSurfaceCapabilities(VkSurfaceKHR surface) const;
 
         VkPhysicalDevice getHandle() const noexcept;
-        size_t getRegistryIndex() const noexcept;
+        const PhysicalDeviceRegistry& getRegistry() const noexcept;
+        size_t getRegistryIdx() const noexcept;
 
         const VkPhysicalDeviceProperties& getProperties() const noexcept;
         const VkPhysicalDeviceFeatures& getFeatures() const noexcept;
