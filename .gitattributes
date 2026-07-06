@@ -1,3 +1,6 @@
+# defs
+snvoxeng/.def/vk/*.h linguist-language=C++
+
 ###############################################################################
 # Set default behavior to automatically normalize line endings.
 ###############################################################################
