@@ -75,6 +75,18 @@
     <ClInclude Include=".def\vk\Image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="snvoxeng\vk\Fence.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="snvoxeng\vk\Semaphore.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include=".def\vk\Semaphore.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include=".def\vk\Fence.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include=".src\vk\Instance.cpp">
@@ -105,6 +117,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include=".src\vk\Image.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include=".src\vk\Semaphore.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include=".src\vk\Fence.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

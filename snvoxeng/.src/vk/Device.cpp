@@ -175,6 +175,34 @@ void Device::destroyImageView(VkImageView imageView, const VkAllocationCallbacks
 	vkDestroyImageView(getHandle(), imageView, pAllocator);
 }
 
+VkResult Device::createFence(const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence) const
+{
+	return vkCreateFence(getHandle(), pCreateInfo, pAllocator, pFence);
+}
+void Device::destroyFence(VkFence fence, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyFence(getHandle(), fence, pAllocator);
+}
+
+VkResult Device::waitForFences(uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout)
+{
+	return vkWaitForFences(getHandle(), fenceCount, pFences, waitAll, timeout);
+}
+
+VkResult Device::resetFences(uint32_t fenceCount, const VkFence* pFences)
+{
+	return vkResetFences(getHandle(), fenceCount, pFences);
+}
+
+VkResult Device::createSemaphore(const VkSemaphoreCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSemaphore* pSemaphore) const
+{
+	return vkCreateSemaphore(getHandle(), pCreateInfo, pAllocator, pSemaphore);
+}
+void Device::destroySemaphore(VkSemaphore semaphore, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroySemaphore(getHandle(), semaphore, pAllocator);
+}
+
 VkDevice Device::getHandle() const noexcept
 {
 	return m_pData->vkDevice;
