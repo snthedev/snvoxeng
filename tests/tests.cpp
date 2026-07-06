@@ -257,6 +257,12 @@ int main()
 			.sbuild();
 
 		std::cout << "VkSwapchainKHR: 0x" << std::hex << swapchain_khr.getHandle() << std::dec << "\n";
+		std::cout << "Swapchain image count: " << swapchain_khr.getImagesCount() << "\n";
+		for (const auto& image : swapchain_khr.getImages())
+			std::cout << "- 0x" << std::hex << image.getHandle() << std::dec << "\n";
+		std::cout << "Swapchain image view count: " << swapchain_khr.getImageViewsCount() << "\n";
+		for (const auto& image_view : swapchain_khr.getImageViews())
+			std::cout << "- 0x" << std::hex << image_view.getHandle() << std::dec << "\n";
 
 		std::cout << "[main()]: OK\n";
 	}

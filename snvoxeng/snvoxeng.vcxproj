@@ -103,12 +103,16 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include=".def\vk\Device.h" />
+    <ClInclude Include=".def\vk\Image.h" />
+    <ClInclude Include=".def\vk\ImageView.h" />
     <ClInclude Include=".def\vk\Instance.h" />
     <ClInclude Include=".def\vk\SurfaceKHR.h" />
     <ClInclude Include=".def\vk\SwapchainKHR.h" />
     <ClInclude Include="snvoxeng.hpp" />
     <ClInclude Include="snvoxeng\dll-defines.hpp" />
     <ClInclude Include="snvoxeng\vk\Device.hpp" />
+    <ClInclude Include="snvoxeng\vk\Image.hpp" />
+    <ClInclude Include="snvoxeng\vk\ImageView.hpp" />
     <ClInclude Include="snvoxeng\vk\Instance.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDevice.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceRegistry.hpp" />
@@ -121,6 +125,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include=".src\vk\Device.cpp" />
+    <ClCompile Include=".src\vk\Image.cpp" />
+    <ClCompile Include=".src\vk\ImageView.cpp" />
     <ClCompile Include=".src\vk\Instance.cpp" />
     <ClCompile Include=".src\vk\PhysicalDevice.cpp" />
     <ClCompile Include=".src\vk\PhysicalDeviceRegistry.cpp" />

@@ -5,44 +5,27 @@
 #include <vector>
 
 #define _INCLUDE
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+#include <snvoxeng\.def\vk\ImageView.h>
 
 namespace sn::voxeng::vk
 {
-	class Image;
-	class ImageView;
-
-	// Use SwapchainKHR::Builder for build
-	class SNVOXENG_API SwapchainKHR
+	// Use ImageView::Builder for build
+	class SNVOXENG_API ImageView
 	{
 		struct Data;
 		Data* m_pData;
 
 	public:
-		SwapchainKHR(Data*& pData);
-		~SwapchainKHR() noexcept;
+		ImageView(Data*& pData);
+		~ImageView() noexcept;
 
-		uint32_t getMinImageCount() const noexcept;
-		VkExtent2D getImageExtent() const noexcept;
-		VkSurfaceTransformFlagBitsKHR getPreTransform() const noexcept;
+		VkImageView getHandle() const noexcept;
+		operator VkImageView() const noexcept;
 
-		const std::vector<Image>& getImages() const noexcept;
-		std::vector<Image>::size_type getImagesCount() const noexcept;
-		const std::vector<Image>::value_type* getImagesData() const noexcept;
-		const std::vector<Image>::value_type& getImages(size_t idx) const noexcept;
-
-		const std::vector<ImageView>& getImageViews() const noexcept;
-		std::vector<ImageView>::size_type getImageViewsCount() const noexcept;
-		const std::vector<ImageView>::value_type* getImageViewsData() const noexcept;
-		const std::vector<ImageView>::value_type& getImageViews(size_t idx) const noexcept;
-
-		VkSwapchainKHR getHandle() const noexcept;
-		operator VkSwapchainKHR() const noexcept;
-
-		SwapchainKHR(const SwapchainKHR&) = delete;
-		SwapchainKHR& operator=(const SwapchainKHR&) = delete;
-		SwapchainKHR(SwapchainKHR&& other) noexcept;
-		SwapchainKHR& operator=(SwapchainKHR&& other) noexcept;
+		ImageView(const ImageView&) = delete;
+		ImageView& operator=(const ImageView&) = delete;
+		ImageView(ImageView&& other) noexcept;
+		ImageView& operator=(ImageView&& other) noexcept;
 
 #define _RVAR(storetype, argtype, name) argtype get##name() const noexcept;
 #define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
@@ -53,7 +36,7 @@ namespace sn::voxeng::vk
 		const std::vector<type>::value_type& get##name(size_t idx) const noexcept;
 #define _OARR(type, name, ...) _RARR(type, name)
 #define _FLG(name) bool is##name() const noexcept;
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+#include <snvoxeng\.def\vk\ImageView.h>
 
 		class SNVOXENG_API Builder
 		{
@@ -80,14 +63,14 @@ namespace sn::voxeng::vk
 			Builder& add##name(const std::vector<type>& name);
 #define _OARR(type, name, ...) _RARR(type, name)
 #define _FLG(name) Builder& set##name();
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+#include <snvoxeng\.def\vk\ImageView.h>
 
 			// Builder is invalid after .sbuild()
-			// Creates SwapchainKHR on stack
-			SwapchainKHR sbuild();
+			// Creates ImageView on stack
+			ImageView sbuild();
 			// Builder is invalid after .build()
-			// Creates SwapchainKHR on heap
-			SwapchainKHR* build();
+			// Creates ImageView on heap
+			ImageView* build();
 		};
 	};
 }

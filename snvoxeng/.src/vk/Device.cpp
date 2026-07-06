@@ -147,15 +147,32 @@ VkResult Device::createSwapchainKHR(const VkSwapchainCreateInfoKHR* pCreateInfo,
 {
 	return vkCreateSwapchainKHR(getHandle(), pCreateInfo, pAllocator, pSwapchain);
 }
-
 void Device::destoySwapchainKHR(VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator) const
 {
-	return vkDestroySwapchainKHR(getHandle(), swapchain, pAllocator);
+	vkDestroySwapchainKHR(getHandle(), swapchain, pAllocator);
 }
 
-VkResult Device::getSwapchainImagesKHR(VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages)
+VkResult Device::getSwapchainImagesKHR(VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages) const
 {
 	return vkGetSwapchainImagesKHR(getHandle(), swapchain, pSwapchainImageCount, pSwapchainImages);
+}
+
+VkResult Device::createImage(const VkImageCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImage* pImage) const
+{
+	return vkCreateImage(getHandle(), pCreateInfo, pAllocator, pImage);
+}
+void Device::destroyImage(VkImage image, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyImage(getHandle(), image, pAllocator);
+}
+
+VkResult Device::createImageView(const VkImageViewCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImageView* pView) const
+{
+	return vkCreateImageView(getHandle(), pCreateInfo, pAllocator, pView);
+}
+void Device::destroyImageView(VkImageView imageView, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyImageView(getHandle(), imageView, pAllocator);
 }
 
 VkDevice Device::getHandle() const noexcept

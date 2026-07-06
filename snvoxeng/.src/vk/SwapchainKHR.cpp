@@ -1,5 +1,8 @@
 #include <snvoxeng\snvoxeng\vk\SwapchainKHR.hpp>
 
+#include <snvoxeng/snvoxeng/vk/Image.hpp>
+#include <snvoxeng/snvoxeng/vk/ImageView.hpp>
+
 #include <snassert/snassert.hpp>
 
 using namespace sn::voxeng::vk;
@@ -17,8 +20,12 @@ struct SwapchainKHR::Data
 #include <snvoxeng\.def\vk\SwapchainKHR.h>
 
 	VkSwapchainKHR vkSwapchainKHR;
-	std::vector<VkImage> vkImages;
-	std::vector<VkImageView> vkImageViews;
+	std::vector<Image> images;
+	std::vector<ImageView> imageViews;
+
+	uint32_t minImageCount;
+	VkExtent2D imageExtent;
+	VkSurfaceTransformFlagBitsKHR preTransform;
 };
 
 //  > Init
@@ -28,24 +35,28 @@ SwapchainKHR::SwapchainKHR(Data*& pData)
 	pData = nullptr;
 
 	auto capabilities = m_pData->Device->getPhysicalDevice()->getSurfaceCapabilities(m_pData->SurfaceKHR->getHandle());
+	m_pData->minImageCount = capabilities.minImageCount + 1u;
+	m_pData->imageExtent = capabilities.currentExtent;
+	m_pData->preTransform = capabilities.currentTransform;
+
 	VkSwapchainCreateInfoKHR createInfo{
 		.sType{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR },
 		.pNext{ nullptr },
 		.flags{},
 		.surface{ m_pData->SurfaceKHR->getHandle() },
 		//.minImageCount{ m_pData->MinImageCount },
-		.minImageCount{ capabilities.minImageCount + 1u },
+		.minImageCount{ m_pData->minImageCount },
 		.imageFormat{ m_pData->ImageFormat },
 		.imageColorSpace{ m_pData->ImageColorSpace },
 		//.imageExtent{ m_pData->ImageExtent },
-		.imageExtent{ capabilities.currentExtent },
+		.imageExtent{ m_pData->imageExtent },
 		.imageArrayLayers{ m_pData->ImageArrayLayers },
 		.imageUsage{ m_pData->ImageUsage },
 		.imageSharingMode{ m_pData->ImageSharingMode },
 		.queueFamilyIndexCount{ static_cast<uint32_t>(m_pData->QueueFamilyIndices.size()) },
 		.pQueueFamilyIndices{ m_pData->QueueFamilyIndices.data() },
 		//.preTransform{ m_pData->PreTransform },
-		.preTransform{ capabilities.currentTransform },
+		.preTransform{ m_pData->preTransform },
 		.compositeAlpha{ m_pData->CompositeAlpha },
 		.presentMode{ m_pData->PresentMode },
 		.clipped{ m_pData->Clipped ? VK_TRUE : VK_FALSE },
@@ -60,9 +71,45 @@ SwapchainKHR::SwapchainKHR(Data*& pData)
 		snassert(m_pData->Device->getSwapchainImagesKHR(getHandle(), &imageCount, nullptr) == VK_SUCCESS,
 			"Failed to get swapchain images", "Check builder settings");
 
-		m_pData->vkImages.resize(imageCount);
-		snassert(m_pData->Device->getSwapchainImagesKHR(getHandle(), &imageCount, m_pData->vkImages.data()) == VK_SUCCESS,
+		std::vector<VkImage> vkImages(imageCount);
+		snassert(m_pData->Device->getSwapchainImagesKHR(getHandle(), &imageCount, vkImages.data()) == VK_SUCCESS,
 			"Failed to get swapchain images", "Check builder settings");
+
+		m_pData->images.reserve(vkImages.size());
+		m_pData->imageViews.reserve(vkImages.size());
+		for (VkImage vkImage : vkImages)
+		{
+			m_pData->images.emplace_back(std::move(Image::Builder()
+				.withViewHandle(vkImage)
+				.withDevice(getDevice())
+				.withImageType(VK_IMAGE_TYPE_2D)
+				.withFormat(getImageFormat())
+				.withExtent(VkExtent3D{
+					.width = m_pData->imageExtent.width,
+					.height = m_pData->imageExtent.height,
+					.depth = 1u,
+					})
+				.withMipLevels(1u)
+				.withArrayLevels(getImageArrayLayers())
+				.withSamples({})
+				.withTiling({})
+				.withUsage(getImageUsage())
+				.withSharingMode(getImageSharingMode())
+				.withInitialLayout({})
+				.withQueueFamilyIndices(m_pData->QueueFamilyIndices)
+				.sbuild()));
+			m_pData->imageViews.emplace_back(std::move(ImageView::Builder()
+				.withImage(&m_pData->images.back())
+				.withViewType(VK_IMAGE_VIEW_TYPE_2D)
+				.withSubresourceRange({
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1,
+					})
+				.sbuild()));
+		}
 	}
 }
 SwapchainKHR::~SwapchainKHR() noexcept
@@ -73,6 +120,20 @@ SwapchainKHR::~SwapchainKHR() noexcept
 		delete m_pData;
 	}
 }
+
+uint32_t SwapchainKHR::getMinImageCount() const noexcept { return m_pData->minImageCount; }
+VkExtent2D SwapchainKHR::getImageExtent() const noexcept { return m_pData->imageExtent; }
+VkSurfaceTransformFlagBitsKHR SwapchainKHR::getPreTransform() const noexcept { return m_pData->preTransform; }
+
+const std::vector<Image>& SwapchainKHR::getImages() const noexcept { return m_pData->images; }
+std::vector<Image>::size_type SwapchainKHR::getImagesCount() const noexcept { return m_pData->images.size(); }
+const std::vector<Image>::value_type* SwapchainKHR::getImagesData() const noexcept { return m_pData->images.data(); }
+const std::vector<Image>::value_type& SwapchainKHR::getImages(size_t idx) const noexcept { return m_pData->images[idx]; }
+
+const std::vector<ImageView>& SwapchainKHR::getImageViews() const noexcept { return m_pData->imageViews; }
+std::vector<ImageView>::size_type SwapchainKHR::getImageViewsCount() const noexcept { return m_pData->imageViews.size(); }
+const std::vector<ImageView>::value_type* SwapchainKHR::getImageViewsData() const noexcept { return m_pData->imageViews.data(); }
+const std::vector<ImageView>::value_type& SwapchainKHR::getImageViews(size_t idx) const noexcept { return m_pData->imageViews[idx]; }
 
 VkSwapchainKHR SwapchainKHR::getHandle() const noexcept
 {

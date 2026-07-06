@@ -53,31 +53,6 @@
 #include <snvoxeng/snvoxeng/vk/SurfaceKHR.hpp>
 #endif
 
-/*
-typedef struct VkSwapchainCreateInfoKHR {
-    VkStructureType                  sType;
-    const void*                      pNext;
-    VkSwapchainCreateFlagsKHR        flags;
-
-    VkSurfaceKHR                     surface;
-    uint32_t                         minImageCount;
-    VkFormat                         imageFormat;
-    VkColorSpaceKHR                  imageColorSpace;
-    VkExtent2D                       imageExtent;
-    uint32_t                         imageArrayLayers;
-    VkImageUsageFlags                imageUsage;
-    VkSharingMode                    imageSharingMode;
-    uint32_t                         queueFamilyIndexCount;
-    const uint32_t*                  pQueueFamilyIndices;
-    VkSurfaceTransformFlagBitsKHR    preTransform;
-    VkCompositeAlphaFlagBitsKHR      compositeAlpha;
-    VkPresentModeKHR                 presentMode;
-    VkBool32                         clipped;
-    VkSwapchainKHR                   oldSwapchain;
-} VkSwapchainCreateInfoKHR;
-
-*/
-
 #ifdef _RVAR
 /* ====== Required variables ====== */
 _RVAR(sn::voxeng::vk::Device*, sn::voxeng::vk::Device*, Device)
