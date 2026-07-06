@@ -184,12 +184,11 @@ void Device::destroyFence(VkFence fence, const VkAllocationCallbacks* pAllocator
 	vkDestroyFence(getHandle(), fence, pAllocator);
 }
 
-VkResult Device::waitForFences(uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout)
+VkResult Device::waitForFences(uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout) const
 {
 	return vkWaitForFences(getHandle(), fenceCount, pFences, waitAll, timeout);
 }
-
-VkResult Device::resetFences(uint32_t fenceCount, const VkFence* pFences)
+VkResult Device::resetFences(uint32_t fenceCount, const VkFence* pFences) const
 {
 	return vkResetFences(getHandle(), fenceCount, pFences);
 }
@@ -201,6 +200,24 @@ VkResult Device::createSemaphore(const VkSemaphoreCreateInfo* pCreateInfo, const
 void Device::destroySemaphore(VkSemaphore semaphore, const VkAllocationCallbacks* pAllocator) const
 {
 	vkDestroySemaphore(getHandle(), semaphore, pAllocator);
+}
+
+VkResult Device::createCommandPool(const VkCommandPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkCommandPool* pCommandPool) const
+{
+	return vkCreateCommandPool(getHandle(), pCreateInfo, pAllocator, pCommandPool);
+}
+void Device::destroyCommandPool(VkCommandPool commandPool, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyCommandPool(getHandle(), commandPool, pAllocator);
+}
+
+VkResult Device::allocateCommandBuffers(const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers) const
+{
+	return vkAllocateCommandBuffers(getHandle(), pAllocateInfo, pCommandBuffers);
+}
+void Device::freeCommandBuffers(VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers) const
+{
+	vkFreeCommandBuffers(getHandle(), commandPool, commandBufferCount, pCommandBuffers);
 }
 
 VkDevice Device::getHandle() const noexcept

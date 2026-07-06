@@ -264,6 +264,21 @@ int main()
 		for (const auto& image_view : swapchain_khr.getImageViews())
 			std::cout << "- 0x" << std::hex << image_view.getHandle() << std::dec << "\n";
 
+		auto command_pool = sn::voxeng::vk::CommandPool::Builder()
+			.withDevice(&device)
+			.withQueueFamilyIndex(device.findQueueInfo("compute")->index)
+			.withFlags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
+			.sbuild();
+		std::cout << "VkCommandPool (Compute) 0x" << std::hex << command_pool.getHandle() << std::dec << "\n";
+
+		auto command_buffers = command_pool.allocateCommandBuffers(1u);
+		std::cout << "Command buffers (Compute) count: " << command_buffers.count() << "\n";
+		for (size_t i = 0; i < command_buffers.count(); ++i)
+		{
+			auto buf = command_buffers.get(i);
+			std::cout << "Command buffer " << buf.getContainerIdx() << " (Compute): 0x" << std::hex << buf.getHandle() << std::dec << "\n";
+		}
+
 		std::cout << "[main()]: OK\n";
 	}
 	catch (const std::exception& e)
