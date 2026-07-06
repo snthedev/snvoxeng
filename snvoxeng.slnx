@@ -1,0 +1,9 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+  </Configurations>
+  <Project Path="snvoxeng/snvoxeng.vcxproj" Id="f0897e85-f3a9-4f56-9cc0-0a0a4c72aa46" />
+  <Project Path="tests/tests.vcxproj" Id="6091b089-9b66-4620-8e53-aa143045b379">
+    <BuildDependency Project="snvoxeng/snvoxeng.vcxproj" />
+  </Project>
+</Solution>
