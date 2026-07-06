@@ -5,3 +5,4 @@
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceSelector.hpp>
 #include <snvoxeng/snvoxeng/vk/Device.hpp>
+#include <snvoxeng/snvoxeng/vk/SwapchainKHR.hpp>

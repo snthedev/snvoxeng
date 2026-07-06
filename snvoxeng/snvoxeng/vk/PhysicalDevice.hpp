@@ -19,6 +19,7 @@ namespace sn::voxeng::vk
         PhysicalDevice(const PhysicalDeviceRegistry& registry, size_t idx) noexcept;
 
         VkResult createDevice(const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) const;
+        VkSurfaceCapabilitiesKHR getSurfaceCapabilities(VkSurfaceKHR surface) const;
 
         VkPhysicalDevice getHandle() const noexcept;
         size_t getRegistryIndex() const noexcept;

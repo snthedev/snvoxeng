@@ -59,13 +59,14 @@ _RVAR(const PhysicalDevice*, const PhysicalDevice*, PhysicalDevice)
 
 #ifdef _OVAR
 /* ====== Optional variables ====== */
-_OVAR(VkPhysicalDeviceVulkan13Features, const VkPhysicalDeviceVulkan13Features&, Vk13Features)
+_OVAR(VkPhysicalDeviceFeatures, const VkPhysicalDeviceFeatures&, PhysicalDeviceFeatures)
+_OVAR(VkPhysicalDeviceVulkan13Features, const VkPhysicalDeviceVulkan13Features&, PhysicalDevice13Features)
 // TODO: withNext() builder's method
 #endif
 
 #ifdef _RARR
 /* ======   Required arrays  ====== */
-_RARR(Device::QueueRequest, QueueRequests, )
+_RARR(sn::voxeng::vk::Device::QueueRequest, QueueRequests, )
 #endif
 
 #ifdef _OARR

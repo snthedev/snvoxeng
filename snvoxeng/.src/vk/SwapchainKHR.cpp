@@ -1,87 +1,96 @@
-#include <snvoxeng\snvoxeng\vk\SurfaceKHR.hpp>
-
-#ifdef _WIN32
-#include <windows.h>
-#define VK_USE_PLATFORM_WIN32_KHR
-#include <vulkan/vulkan_win32.h>
-#endif
+#include <snvoxeng\snvoxeng\vk\SwapchainKHR.hpp>
 
 #include <snassert/snassert.hpp>
 
 using namespace sn::voxeng::vk;
 
-// === SurfaceKHR ===
+// === SwapchainKHR ===
 
 //  > Data
-struct SurfaceKHR::Data
+struct SwapchainKHR::Data
 {
 #define _RVAR(storetype, argtype, name) storetype name;
 #define _OVAR(storetype, argtype, name, value) storetype name{ value };
 #define _RARR(type, name) std::vector<type> name;
 #define _OARR(type, name, ...) std::vector<type> name{ __VA_ARGS__ };
 #define _FLG(name) bool name{ false };
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#include <snvoxeng\.def\vk\SwapchainKHR.h>
 
-	VkSurfaceKHR vkSurfaceKHR;
+	VkSwapchainKHR vkSwapchainKHR;
+	std::vector<VkImage> vkImages;
+	std::vector<VkImageView> vkImageViews;
 };
 
 //  > Init
-SurfaceKHR::SurfaceKHR(Data*& pData)
+SwapchainKHR::SwapchainKHR(Data*& pData)
 	: m_pData(pData)
 {
 	pData = nullptr;
 
-	VkResult result = VK_SUCCESS;
-	switch (m_pData->WindowDescription.platform)
-	{
-	case WindowDescription_t::platform_type::headless:
-		m_pData->vkSurfaceKHR = VK_NULL_HANDLE;
-		return;
-#ifdef VK_USE_PLATFORM_WIN32_KHR
-	case WindowDescription_t::platform_type::win32:
-	{
-		VkWin32SurfaceCreateInfoKHR createInfo{
-			.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-			.hinstance = static_cast<HINSTANCE>(m_pData->WindowDescription.handle_param1),
-			.hwnd = static_cast<HWND>(m_pData->WindowDescription.handle_param2),
-		};
+	auto capabilities = m_pData->Device->getPhysicalDevice()->getSurfaceCapabilities(m_pData->SurfaceKHR->getHandle());
+	VkSwapchainCreateInfoKHR createInfo{
+		.sType{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR },
+		.pNext{ nullptr },
+		.flags{},
+		.surface{ m_pData->SurfaceKHR->getHandle() },
+		//.minImageCount{ m_pData->MinImageCount },
+		.minImageCount{ capabilities.minImageCount + 1u },
+		.imageFormat{ m_pData->ImageFormat },
+		.imageColorSpace{ m_pData->ImageColorSpace },
+		//.imageExtent{ m_pData->ImageExtent },
+		.imageExtent{ capabilities.currentExtent },
+		.imageArrayLayers{ m_pData->ImageArrayLayers },
+		.imageUsage{ m_pData->ImageUsage },
+		.imageSharingMode{ m_pData->ImageSharingMode },
+		.queueFamilyIndexCount{ static_cast<uint32_t>(m_pData->QueueFamilyIndices.size()) },
+		.pQueueFamilyIndices{ m_pData->QueueFamilyIndices.data() },
+		//.preTransform{ m_pData->PreTransform },
+		.preTransform{ capabilities.currentTransform },
+		.compositeAlpha{ m_pData->CompositeAlpha },
+		.presentMode{ m_pData->PresentMode },
+		.clipped{ m_pData->Clipped ? VK_TRUE : VK_FALSE },
+		.oldSwapchain{ m_pData->OldSwapchain },
+	};
 
-		result = vkCreateWin32SurfaceKHR(*m_pData->Instance, &createInfo, nullptr, &m_pData->vkSurfaceKHR);
-		break;
-	}
-#endif
-	default:
-		throw std::invalid_argument("Unsupported or unimplemented platform type.");
-	}
+	snassert(m_pData->Device->createSwapchainKHR(&createInfo, nullptr, &m_pData->vkSwapchainKHR) == VK_SUCCESS,
+		"Failed to create swapchain", "Check builder settings");
 
-	if (result != VK_SUCCESS) throw std::runtime_error("Failed to create window surface.");
+	{
+		uint32_t imageCount;
+		snassert(m_pData->Device->getSwapchainImagesKHR(getHandle(), &imageCount, nullptr) == VK_SUCCESS,
+			"Failed to get swapchain images", "Check builder settings");
+
+		m_pData->vkImages.resize(imageCount);
+		snassert(m_pData->Device->getSwapchainImagesKHR(getHandle(), &imageCount, m_pData->vkImages.data()) == VK_SUCCESS,
+			"Failed to get swapchain images", "Check builder settings");
+	}
 }
-SurfaceKHR::~SurfaceKHR() noexcept
+SwapchainKHR::~SwapchainKHR() noexcept
 {
 	if (m_pData)
 	{
-		vkDestroySurfaceKHR(*m_pData->Instance, m_pData->vkSurfaceKHR, nullptr);
+		m_pData->Device->destoySwapchainKHR(getHandle(), nullptr);
 		delete m_pData;
 	}
 }
 
-VkSurfaceKHR SurfaceKHR::getHandle() const noexcept
+VkSwapchainKHR SwapchainKHR::getHandle() const noexcept
 {
-	return m_pData->vkSurfaceKHR;
+	return m_pData->vkSwapchainKHR;
 }
 
-SurfaceKHR::operator VkSurfaceKHR() const noexcept
+SwapchainKHR::operator VkSwapchainKHR() const noexcept
 {
 	return getHandle();
 }
 
 //  > Move
-SurfaceKHR::SurfaceKHR(SurfaceKHR&& other) noexcept
+SwapchainKHR::SwapchainKHR(SwapchainKHR&& other) noexcept
 	: m_pData(other.m_pData)
 {
 	other.m_pData = nullptr;
 }
-SurfaceKHR& SurfaceKHR::operator=(SurfaceKHR&& other) noexcept
+SwapchainKHR& SwapchainKHR::operator=(SwapchainKHR&& other) noexcept
 {
 	if (this != &other) [[likely]]
 	{
@@ -93,23 +102,23 @@ SurfaceKHR& SurfaceKHR::operator=(SurfaceKHR&& other) noexcept
 }
 
 //  > Methods
-#define _RVAR(storetype, argtype, name) argtype SurfaceKHR::get##name() const noexcept { return m_pData->name; }
+#define _RVAR(storetype, argtype, name) argtype SwapchainKHR::get##name() const noexcept { return m_pData->name; }
 #define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
 #define _RARR(type, name)\
-	const std::vector<type>& SurfaceKHR::get##name() const noexcept { return m_pData->name; }\
-	std::vector<type>::size_type SurfaceKHR::get##name##Size() const noexcept { return m_pData->name.size(); }\
-	const std::vector<type>::value_type* SurfaceKHR::get##name##Data() const noexcept { return m_pData->name.data(); }\
-	const std::vector<type>::value_type& SurfaceKHR::get##name(size_t idx) const noexcept { return m_pData->name[idx]; }
+	const std::vector<type>& SwapchainKHR::get##name() const noexcept { return m_pData->name; }\
+	std::vector<type>::size_type SwapchainKHR::get##name##Size() const noexcept { return m_pData->name.size(); }\
+	const std::vector<type>::value_type* SwapchainKHR::get##name##Data() const noexcept { return m_pData->name.data(); }\
+	const std::vector<type>::value_type& SwapchainKHR::get##name(size_t idx) const noexcept { return m_pData->name[idx]; }
 #define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) bool SurfaceKHR::is##name() const noexcept { return m_pData->name; }
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#define _FLG(name) bool SwapchainKHR::is##name() const noexcept { return m_pData->name; }
+#include <snvoxeng\.def\vk\SwapchainKHR.h>
 
 
 
 // === Builder ===
 #include <snassert/snassert.hpp>
 
-typedef SurfaceKHR::Builder Builder;
+typedef SwapchainKHR::Builder Builder;
 
 //  > Data
 #ifdef _DEBUG
@@ -126,7 +135,7 @@ struct Builder::Temp
 #define _RARR(type, name) _RVAR(std::vector<type>, const std::vector<type>&, name)
 #define _OARR(type, name, ...) _RVAR(std::vector<type>, const std::vector<type>&, name)
 #define _FLG(name) _RVAR(bool, bool, name)
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#include <snvoxeng\.def\vk\SwapchainKHR.h>
 
 	void validate() const;
 };
@@ -134,7 +143,7 @@ struct Builder::Temp
 
 //  > Init
 Builder::Builder()
-	: m_pData(new SurfaceKHR::Data{})
+	: m_pData(new SwapchainKHR::Data{})
 #ifdef _DEBUG
 	, m_pTemp(new Temp{})
 #endif
@@ -185,19 +194,19 @@ Builder& Builder::operator=(Builder&& other) noexcept
 }
 
 //  > Build
-SurfaceKHR Builder::sbuild()
+SwapchainKHR Builder::sbuild()
 {
 #ifdef _DEBUG
 	m_pTemp->validate();
 #endif
-	return SurfaceKHR{ m_pData };
+	return SwapchainKHR{ m_pData };
 }
-SurfaceKHR* Builder::build()
+SwapchainKHR* Builder::build()
 {
 #ifdef _DEBUG
 	m_pTemp->validate();
 #endif
-	return new SurfaceKHR{ m_pData };
+	return new SwapchainKHR{ m_pData };
 }
 
 #ifdef _DEBUG
@@ -216,7 +225,7 @@ void Builder::Temp::validate() const
 		"Try to call .with" #name "(...)\n"\
 		"or          .add" #name "(...)"\
 	);
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#include <snvoxeng\.def\vk\SwapchainKHR.h>
 }
 
 #define _SET_DEF_FLAG_ADD(name) { m_pTemp->f##name = Temp::eDefFlag::eAddCalled; }
@@ -282,4 +291,4 @@ void Builder::Temp::validate() const
 		return *this;\
 	}
 	
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#include <snvoxeng\.def\vk\SwapchainKHR.h>

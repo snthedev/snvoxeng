@@ -5,52 +5,27 @@
 #include <vector>
 
 #define _INCLUDE
-#include <snvoxeng\.def\vk\Device.h>
+#include <snvoxeng\.def\vk\SwapchainKHR.h>
 
 namespace sn::voxeng::vk
 {
-	// Use Device::Builder for build
-	class SNVOXENG_API Device
+	// Use SwapchainKHR::Builder for build
+	class SNVOXENG_API SwapchainKHR
 	{
-	public:
-		struct QueueRequest final
-		{
-			const char* name = nullptr;
-			uint32_t familyIndex = ~(uint32_t)(0);
-			float priority = 1.0f;
-		};
-		
-		struct NamedQueue
-		{
-			const char* name = nullptr;
-			VkQueue handle = VK_NULL_HANDLE;
-			uint32_t family = ~(uint32_t)(0);
-			uint32_t index = 0;
-		};
-
-	private:
 		struct Data;
 		Data* m_pData;
 
 	public:
-		Device(Data*& pData);
-		~Device() noexcept;
+		SwapchainKHR(Data*& pData);
+		~SwapchainKHR() noexcept;
 
-		void getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const;
+		VkSwapchainKHR getHandle() const noexcept;
+		operator VkSwapchainKHR() const noexcept;
 
-		VkQueue getQueue(const char* name) const noexcept;
-		const NamedQueue* findQueueInfo(const char* name) const noexcept;
-
-		VkResult createSwapchainKHR(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) const;
-		void destoySwapchainKHR(VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator) const;
-
-		VkDevice getHandle() const noexcept;
-		operator VkDevice() const noexcept;
-
-		Device(const Device&) = delete;
-		Device& operator=(const Device&) = delete;
-		Device(Device&& other) noexcept;
-		Device& operator=(Device&& other) noexcept;
+		SwapchainKHR(const SwapchainKHR&) = delete;
+		SwapchainKHR& operator=(const SwapchainKHR&) = delete;
+		SwapchainKHR(SwapchainKHR&& other) noexcept;
+		SwapchainKHR& operator=(SwapchainKHR&& other) noexcept;
 
 #define _RVAR(storetype, argtype, name) argtype get##name() const noexcept;
 #define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
@@ -61,7 +36,7 @@ namespace sn::voxeng::vk
 		const std::vector<type>::value_type& get##name(size_t idx) const noexcept;
 #define _OARR(type, name, ...) _RARR(type, name)
 #define _FLG(name) bool is##name() const noexcept;
-#include <snvoxeng\.def\vk\Device.h>
+#include <snvoxeng\.def\vk\SwapchainKHR.h>
 
 		class SNVOXENG_API Builder
 		{
@@ -88,14 +63,14 @@ namespace sn::voxeng::vk
 			Builder& add##name(const std::vector<type>& name);
 #define _OARR(type, name, ...) _RARR(type, name)
 #define _FLG(name) Builder& set##name();
-#include <snvoxeng\.def\vk\Device.h>
+#include <snvoxeng\.def\vk\SwapchainKHR.h>
 
 			// Builder is invalid after .sbuild()
-			// Creates Device on stack
-			Device sbuild();
+			// Creates SwapchainKHR on stack
+			SwapchainKHR sbuild();
 			// Builder is invalid after .build()
-			// Creates Device on heap
-			Device* build();
+			// Creates SwapchainKHR on heap
+			SwapchainKHR* build();
 		};
 	};
 }
