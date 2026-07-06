@@ -41,6 +41,16 @@ namespace sn::voxeng::vk
 		VkQueue getQueue(const char* name) const noexcept;
 		const NamedQueue* findQueueInfo(const char* name) const noexcept;
 
+		VkResult createSwapchainKHR(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) const;
+		void destoySwapchainKHR(VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator) const;
+		VkResult getSwapchainImagesKHR(VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages) const;
+
+		VkResult createImage(const VkImageCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImage* pImage) const;
+		void destroyImage(VkImage image, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult createImageView(const VkImageViewCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImageView* pView) const;
+		void destroyImageView(VkImageView imageView, const VkAllocationCallbacks* pAllocator) const;
+
 		VkDevice getHandle() const noexcept;
 		operator VkDevice() const noexcept;
 

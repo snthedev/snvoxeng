@@ -103,28 +103,37 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include=".def\vk\Device.h" />
+    <ClInclude Include=".def\vk\Image.h" />
+    <ClInclude Include=".def\vk\ImageView.h" />
     <ClInclude Include=".def\vk\Instance.h" />
     <ClInclude Include=".def\vk\SurfaceKHR.h" />
+    <ClInclude Include=".def\vk\SwapchainKHR.h" />
     <ClInclude Include="snvoxeng.hpp" />
     <ClInclude Include="snvoxeng\dll-defines.hpp" />
     <ClInclude Include="snvoxeng\vk\Device.hpp" />
+    <ClInclude Include="snvoxeng\vk\Image.hpp" />
+    <ClInclude Include="snvoxeng\vk\ImageView.hpp" />
     <ClInclude Include="snvoxeng\vk\Instance.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDevice.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceRegistry.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceSelector.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceSet.hpp" />
     <ClInclude Include="snvoxeng\vk\SurfaceKHR.hpp" />
+    <ClInclude Include="snvoxeng\vk\SwapchainKHR.hpp" />
     <ClInclude Include="snvoxeng\vk\VkMinimal.hpp" />
     <ClInclude Include="snvoxeng\WindowDescription.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include=".src\vk\Device.cpp" />
+    <ClCompile Include=".src\vk\Image.cpp" />
+    <ClCompile Include=".src\vk\ImageView.cpp" />
     <ClCompile Include=".src\vk\Instance.cpp" />
     <ClCompile Include=".src\vk\PhysicalDevice.cpp" />
     <ClCompile Include=".src\vk\PhysicalDeviceRegistry.cpp" />
     <ClCompile Include=".src\vk\PhysicalDeviceSelector.cpp" />
     <ClCompile Include=".src\vk\PhysicalDeviceSet.cpp" />
     <ClCompile Include=".src\vk\SurfaceKHR.cpp" />
+    <ClCompile Include=".src\vk\SwapchainKHR.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -74,17 +74,19 @@ Device::Device(Data*& pData)
 			});
 	}
 
-	m_pData->Vk13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+	m_pData->PhysicalDevice13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
 
+	m_pData->PhysicalDeviceFeatures.samplerAnisotropy = VK_TRUE;
 	VkDeviceCreateInfo deviceCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		// TODO: withNext() builder's method
-		.pNext = &m_pData->Vk13Features,
-
-		.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
-		.pQueueCreateInfos = queueCreateInfos.data(),
-		.enabledExtensionCount = static_cast<uint32_t>(m_pData->Extensions.size()),
-		.ppEnabledExtensionNames = m_pData->Extensions.data(),
+		.pNext = &m_pData->PhysicalDevice13Features,
+		.flags{},
+		.queueCreateInfoCount{ static_cast<uint32_t>(queueCreateInfos.size()) },
+		.pQueueCreateInfos{ queueCreateInfos.data() },
+		.enabledExtensionCount{ static_cast<uint32_t>(m_pData->Extensions.size()) },
+		.ppEnabledExtensionNames{ m_pData->Extensions.data() },
+		.pEnabledFeatures{ &m_pData->PhysicalDeviceFeatures },
 	};
 
 	if (m_pData->PhysicalDevice->createDevice(&deviceCreateInfo, nullptr, &m_pData->vkDevice) != VK_SUCCESS)
@@ -139,6 +141,38 @@ const Device::NamedQueue* Device::findQueueInfo(const char* name) const noexcept
 		});
 	if (it == m_pData->namedQueues.end()) return nullptr;
 	return &(*it);
+}
+
+VkResult Device::createSwapchainKHR(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) const
+{
+	return vkCreateSwapchainKHR(getHandle(), pCreateInfo, pAllocator, pSwapchain);
+}
+void Device::destoySwapchainKHR(VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroySwapchainKHR(getHandle(), swapchain, pAllocator);
+}
+
+VkResult Device::getSwapchainImagesKHR(VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages) const
+{
+	return vkGetSwapchainImagesKHR(getHandle(), swapchain, pSwapchainImageCount, pSwapchainImages);
+}
+
+VkResult Device::createImage(const VkImageCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImage* pImage) const
+{
+	return vkCreateImage(getHandle(), pCreateInfo, pAllocator, pImage);
+}
+void Device::destroyImage(VkImage image, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyImage(getHandle(), image, pAllocator);
+}
+
+VkResult Device::createImageView(const VkImageViewCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImageView* pView) const
+{
+	return vkCreateImageView(getHandle(), pCreateInfo, pAllocator, pView);
+}
+void Device::destroyImageView(VkImageView imageView, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyImageView(getHandle(), imageView, pAllocator);
 }
 
 VkDevice Device::getHandle() const noexcept

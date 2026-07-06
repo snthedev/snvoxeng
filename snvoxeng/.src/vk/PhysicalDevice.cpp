@@ -17,6 +17,13 @@ VkResult PhysicalDevice::createDevice(const VkDeviceCreateInfo* pCreateInfo, con
     return vkCreateDevice(getHandle(), pCreateInfo, pAllocator, pDevice);
 }
 
+VkSurfaceCapabilitiesKHR PhysicalDevice::getSurfaceCapabilities(VkSurfaceKHR surface) const
+{
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(getHandle(), surface, &surfaceCapabilities);
+    return surfaceCapabilities;
+}
+
 VkPhysicalDevice PhysicalDevice::getHandle() const noexcept { return m_pRegistry->getHandle(m_registryIdx); }
 size_t PhysicalDevice::getRegistryIndex() const noexcept { return m_registryIdx; }
 

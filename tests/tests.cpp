@@ -239,7 +239,7 @@ int main()
 				{ .name = "transfer", .familyIndex = transfer_family, .priority = 0.5f },
 				})
 			.addExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME })
-			.withVk13Features({ .dynamicRendering = VK_TRUE })
+			.withPhysicalDevice13Features({ .dynamicRendering = VK_TRUE })
 			.sbuild();
 
 		VkQueue mainGraphics = device.getQueue("graphics");
@@ -249,6 +249,20 @@ int main()
 		std::cout << "mainGraphics VkQueue 0x" << std::hex << mainGraphics << std::dec << "\n";
 		std::cout << "asyncCompute VkQueue 0x" << std::hex << asyncCompute << std::dec << "\n";
 		std::cout << "asyncTransfer VkQueue 0x" << std::hex << asyncTransfer << std::dec << "\n";
+
+		auto swapchain_khr = sn::voxeng::vk::SwapchainKHR::Builder()
+			.withDevice(&device)
+			.withSurfaceKHR(&surface_khr)
+			.addQueueFamilyIndices({ device.findQueueInfo("graphics")->index })
+			.sbuild();
+
+		std::cout << "VkSwapchainKHR: 0x" << std::hex << swapchain_khr.getHandle() << std::dec << "\n";
+		std::cout << "Swapchain image count: " << swapchain_khr.getImagesCount() << "\n";
+		for (const auto& image : swapchain_khr.getImages())
+			std::cout << "- 0x" << std::hex << image.getHandle() << std::dec << "\n";
+		std::cout << "Swapchain image view count: " << swapchain_khr.getImageViewsCount() << "\n";
+		for (const auto& image_view : swapchain_khr.getImageViews())
+			std::cout << "- 0x" << std::hex << image_view.getHandle() << std::dec << "\n";
 
 		std::cout << "[main()]: OK\n";
 	}

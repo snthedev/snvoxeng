@@ -1,87 +1,83 @@
-#include <snvoxeng\snvoxeng\vk\SurfaceKHR.hpp>
-
-#ifdef _WIN32
-#include <windows.h>
-#define VK_USE_PLATFORM_WIN32_KHR
-#include <vulkan/vulkan_win32.h>
-#endif
+#include <snvoxeng\snvoxeng\vk\Image.hpp>
 
 #include <snassert/snassert.hpp>
 
 using namespace sn::voxeng::vk;
 
-// === SurfaceKHR ===
+// === Image ===
 
 //  > Data
-struct SurfaceKHR::Data
+struct Image::Data
 {
 #define _RVAR(storetype, argtype, name) storetype name;
 #define _OVAR(storetype, argtype, name, value) storetype name{ value };
 #define _RARR(type, name) std::vector<type> name;
 #define _OARR(type, name, ...) std::vector<type> name{ __VA_ARGS__ };
 #define _FLG(name) bool name{ false };
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#include <snvoxeng\.def\vk\Image.h>
 
-	VkSurfaceKHR vkSurfaceKHR;
+	VkImage vkImage;
 };
 
 //  > Init
-SurfaceKHR::SurfaceKHR(Data*& pData)
+Image::Image(Data*& pData)
 	: m_pData(pData)
 {
 	pData = nullptr;
 
-	VkResult result = VK_SUCCESS;
-	switch (m_pData->WindowDescription.platform)
+	if (m_pData->ViewHandle != VK_NULL_HANDLE)
 	{
-	case WindowDescription_t::platform_type::headless:
-		m_pData->vkSurfaceKHR = VK_NULL_HANDLE;
+		m_pData->vkImage = m_pData->ViewHandle;
 		return;
-#ifdef VK_USE_PLATFORM_WIN32_KHR
-	case WindowDescription_t::platform_type::win32:
-	{
-		VkWin32SurfaceCreateInfoKHR createInfo{
-			.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-			.hinstance = static_cast<HINSTANCE>(m_pData->WindowDescription.handle_param1),
-			.hwnd = static_cast<HWND>(m_pData->WindowDescription.handle_param2),
-		};
-
-		result = vkCreateWin32SurfaceKHR(*m_pData->Instance, &createInfo, nullptr, &m_pData->vkSurfaceKHR);
-		break;
-	}
-#endif
-	default:
-		throw std::invalid_argument("Unsupported or unimplemented platform type.");
 	}
 
-	if (result != VK_SUCCESS) throw std::runtime_error("Failed to create window surface.");
+	VkImageCreateInfo createInfo{
+		.sType{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO },
+		.pNext{ nullptr },
+		.flags{},
+		.imageType{ m_pData->ImageType },
+		.format{ m_pData->Format },
+		.extent{ m_pData->Extent },
+		.mipLevels{ m_pData->MipLevels },
+		.arrayLayers{ m_pData->ArrayLevels },
+		.samples{ m_pData->Samples },
+		.tiling{ m_pData->Tiling },
+		.usage{ m_pData->Usage },
+		.sharingMode{ m_pData->SharingMode },
+		.queueFamilyIndexCount{ static_cast<uint32_t>(m_pData->QueueFamilyIndices.size()) },
+		.pQueueFamilyIndices{ m_pData->QueueFamilyIndices.data() },
+		.initialLayout{ m_pData->InitialLayout },
+	};
+	snassert(m_pData->Device->createImage(&createInfo, nullptr, &m_pData->vkImage) == VK_SUCCESS,
+		"Failed to create image", "Check builder settings");
 }
-SurfaceKHR::~SurfaceKHR() noexcept
+Image::~Image() noexcept
 {
 	if (m_pData)
 	{
-		vkDestroySurfaceKHR(*m_pData->Instance, m_pData->vkSurfaceKHR, nullptr);
+		if (m_pData->ViewHandle == VK_NULL_HANDLE)
+			m_pData->Device->destroyImage(getHandle(), nullptr);
 		delete m_pData;
 	}
 }
 
-VkSurfaceKHR SurfaceKHR::getHandle() const noexcept
+VkImage Image::getHandle() const noexcept
 {
-	return m_pData->vkSurfaceKHR;
+	return m_pData->vkImage;
 }
 
-SurfaceKHR::operator VkSurfaceKHR() const noexcept
+Image::operator VkImage() const noexcept
 {
 	return getHandle();
 }
 
 //  > Move
-SurfaceKHR::SurfaceKHR(SurfaceKHR&& other) noexcept
+Image::Image(Image&& other) noexcept
 	: m_pData(other.m_pData)
 {
 	other.m_pData = nullptr;
 }
-SurfaceKHR& SurfaceKHR::operator=(SurfaceKHR&& other) noexcept
+Image& Image::operator=(Image&& other) noexcept
 {
 	if (this != &other) [[likely]]
 	{
@@ -93,23 +89,23 @@ SurfaceKHR& SurfaceKHR::operator=(SurfaceKHR&& other) noexcept
 }
 
 //  > Methods
-#define _RVAR(storetype, argtype, name) argtype SurfaceKHR::get##name() const noexcept { return m_pData->name; }
+#define _RVAR(storetype, argtype, name) argtype Image::get##name() const noexcept { return m_pData->name; }
 #define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
 #define _RARR(type, name)\
-	const std::vector<type>& SurfaceKHR::get##name() const noexcept { return m_pData->name; }\
-	std::vector<type>::size_type SurfaceKHR::get##name##Size() const noexcept { return m_pData->name.size(); }\
-	const std::vector<type>::value_type* SurfaceKHR::get##name##Data() const noexcept { return m_pData->name.data(); }\
-	const std::vector<type>::value_type& SurfaceKHR::get##name(size_t idx) const noexcept { return m_pData->name[idx]; }
+	const std::vector<type>& Image::get##name() const noexcept { return m_pData->name; }\
+	std::vector<type>::size_type Image::get##name##Size() const noexcept { return m_pData->name.size(); }\
+	const std::vector<type>::value_type* Image::get##name##Data() const noexcept { return m_pData->name.data(); }\
+	const std::vector<type>::value_type& Image::get##name(size_t idx) const noexcept { return m_pData->name[idx]; }
 #define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) bool SurfaceKHR::is##name() const noexcept { return m_pData->name; }
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#define _FLG(name) bool Image::is##name() const noexcept { return m_pData->name; }
+#include <snvoxeng\.def\vk\Image.h>
 
 
 
 // === Builder ===
 #include <snassert/snassert.hpp>
 
-typedef SurfaceKHR::Builder Builder;
+typedef Image::Builder Builder;
 
 //  > Data
 #ifdef _DEBUG
@@ -126,7 +122,7 @@ struct Builder::Temp
 #define _RARR(type, name) _RVAR(std::vector<type>, const std::vector<type>&, name)
 #define _OARR(type, name, ...) _RVAR(std::vector<type>, const std::vector<type>&, name)
 #define _FLG(name) _RVAR(bool, bool, name)
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#include <snvoxeng\.def\vk\Image.h>
 
 	void validate() const;
 };
@@ -134,7 +130,7 @@ struct Builder::Temp
 
 //  > Init
 Builder::Builder()
-	: m_pData(new SurfaceKHR::Data{})
+	: m_pData(new Image::Data{})
 #ifdef _DEBUG
 	, m_pTemp(new Temp{})
 #endif
@@ -185,19 +181,19 @@ Builder& Builder::operator=(Builder&& other) noexcept
 }
 
 //  > Build
-SurfaceKHR Builder::sbuild()
+Image Builder::sbuild()
 {
 #ifdef _DEBUG
 	m_pTemp->validate();
 #endif
-	return SurfaceKHR{ m_pData };
+	return Image{ m_pData };
 }
-SurfaceKHR* Builder::build()
+Image* Builder::build()
 {
 #ifdef _DEBUG
 	m_pTemp->validate();
 #endif
-	return new SurfaceKHR{ m_pData };
+	return new Image{ m_pData };
 }
 
 #ifdef _DEBUG
@@ -216,7 +212,7 @@ void Builder::Temp::validate() const
 		"Try to call .with" #name "(...)\n"\
 		"or          .add" #name "(...)"\
 	);
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#include <snvoxeng\.def\vk\Image.h>
 }
 
 #define _SET_DEF_FLAG_ADD(name) { m_pTemp->f##name = Temp::eDefFlag::eAddCalled; }
@@ -282,4 +278,4 @@ void Builder::Temp::validate() const
 		return *this;\
 	}
 	
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#include <snvoxeng\.def\vk\Image.h>
