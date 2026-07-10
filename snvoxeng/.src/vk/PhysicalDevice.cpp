@@ -11,10 +11,10 @@ PhysicalDevice::PhysicalDevice(const PhysicalDeviceRegistry& registry, size_t id
     snassert(m_registryIdx < m_pRegistry->count(), "Out of PhysicalDeviceRegistry::count()", "Provide valid idx");
 }
 
-VkResult PhysicalDevice::createDevice(const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) const
-{
-    return vkCreateDevice(getHandle(), pCreateInfo, pAllocator, pDevice);
-}
+//VkResult PhysicalDevice::createDevice(const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) const
+//{
+//    return vkCreateDevice(getHandle(), pCreateInfo, pAllocator, pDevice);
+//}
 
 VkSurfaceCapabilitiesKHR PhysicalDevice::getSurfaceCapabilities(VkSurfaceKHR surface) const
 {
@@ -23,7 +23,7 @@ VkSurfaceCapabilitiesKHR PhysicalDevice::getSurfaceCapabilities(VkSurfaceKHR sur
     return surfaceCapabilities;
 }
 
-VkPhysicalDevice PhysicalDevice::getHandle() const noexcept { return m_pRegistry->getHandle(m_registryIdx); }
+VkPhysicalDevice PhysicalDevice::getHandle() const noexcept { return m_pRegistry->vkHandle(m_registryIdx); }
 const PhysicalDeviceRegistry& PhysicalDevice::getRegistry() const noexcept { return *m_pRegistry; }
 size_t PhysicalDevice::getRegistryIdx() const noexcept { return m_registryIdx; }
 

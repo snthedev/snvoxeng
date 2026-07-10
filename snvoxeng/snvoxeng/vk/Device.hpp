@@ -1,11 +1,12 @@
 #pragma once
 
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
+#include <snvoxeng/snvoxeng/vk/VkMinimal.hpp>
 
-#include <vector>
+#include <ThirdParty/snbcg/bcg.hpp>
 
-#define _INCLUDE
-#include <snvoxeng\.def\vk\Device.h>
+#define SNBCG_HEADER_INCLUDE
+#include <snvoxeng/.def/vk/Device.h>
 
 namespace sn::voxeng::vk
 {
@@ -19,8 +20,7 @@ namespace sn::voxeng::vk
 			uint32_t familyIndex = ~(uint32_t)(0);
 			float priority = 1.0f;
 		};
-		
-		struct NamedQueue
+		struct NamedQueue final
 		{
 			const char* name = nullptr;
 			VkQueue handle = VK_NULL_HANDLE;
@@ -29,17 +29,24 @@ namespace sn::voxeng::vk
 		};
 
 	private:
-		struct Data;
-		Data* m_pData;
+		struct data_t;
+		data_t* m_pData;
+
+		void onCreate(data_t& data);
+		void onDestroy(data_t& data) noexcept;
+
+		bool m_isView;
+
+		Device(data_t*& pData);
+		Device(data_t*& pData, VkDevice view);
 
 	public:
-		Device(Data*& pData);
 		~Device() noexcept;
 
-		void getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const;
+		const NamedQueue* getQueueInfo(const char* name) const noexcept;
+		const std::vector<NamedQueue>& getQueueInfos() const noexcept;
 
-		VkQueue getQueue(const char* name) const noexcept;
-		const NamedQueue* findQueueInfo(const char* name) const noexcept;
+		void getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const;
 
 		VkResult createSwapchainKHR(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) const;
 		void destoySwapchainKHR(VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator) const;
@@ -66,59 +73,76 @@ namespace sn::voxeng::vk
 		VkResult allocateCommandBuffers(const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers) const;
 		void freeCommandBuffers(VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers) const;
 
-
-		VkDevice getHandle() const noexcept;
-		operator VkDevice() const noexcept;
-
 		Device(const Device&) = delete;
 		Device& operator=(const Device&) = delete;
 		Device(Device&& other) noexcept;
 		Device& operator=(Device&& other) noexcept;
 
-#define _RVAR(storetype, argtype, name) argtype get##name() const noexcept;
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name)\
-		const std::vector<type>& get##name() const noexcept;\
-		std::vector<type>::size_type get##name##Size() const noexcept;\
-		const std::vector<type>::value_type* get##name##Data() const noexcept;\
-		const std::vector<type>::value_type& get##name(size_t idx) const noexcept;
-#define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) bool is##name() const noexcept;
-#include <snvoxeng\.def\vk\Device.h>
+		VkDevice vkHandle() const noexcept;
+		operator VkDevice() const noexcept;
 
-		class SNVOXENG_API Builder
-		{
-			Data* m_pData;
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#include <snvoxeng/.def/vk/Device.h>
+	
+		class Builder;
+		friend class Builder;
+	}; // ^ class Device ^
 
-#ifdef _DEBUG
-			struct Temp;
-			Temp* m_pTemp;
-#endif
+	class SNVOXENG_API Device::Builder
+	{
+		data_t* m_pData;
+		void finalize(data_t& data);
 
-		public:
-			Builder();
-			~Builder() noexcept;
+#ifdef DETAIL_SNBCG_DEBUG
+		struct temp_t;
+		temp_t* m_pTemp;
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 
-			Builder(const Builder&) = delete;
-			Builder& operator=(const Builder&) = delete;
-			Builder(Builder&& other) noexcept;
-			Builder& operator=(Builder&& other) noexcept;
+	public:
+		Builder();
+		~Builder() noexcept;
 
-#define _RVAR(storetype, argtype, name) Builder& with##name(argtype name);
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name)\
-			Builder& with##name(const std::vector<type>& name);\
-			Builder& add##name(const std::vector<type>& name);
-#define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) Builder& set##name();
-#include <snvoxeng\.def\vk\Device.h>
+		// Copies this instance of the Builder.
+		Builder clone() const;
 
-			// Builder is invalid after .sbuild()
-			// Creates Device on stack
-			Device sbuild();
-			// Builder is invalid after .build()
-			// Creates Device on heap
-			Device* build();
-		};
-	};
-}
+		Builder(const Builder&) = delete;
+		Builder& operator=(const Builder&) = delete;
+		Builder(Builder&& other) noexcept;
+		Builder& operator=(Builder&& other) noexcept;
+
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		Builder& with##Name(arg_t name);
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		Builder& with##Name(arg_t name);
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		Builder& with##Name(args_t name);\
+		Builder& add##Name(args_t name);\
+		Builder& add##Name(arg_t name);
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		Builder& with##Name(args_t name);\
+		Builder& add##Name(args_t name);\
+		Builder& add##Name(arg_t name);
+#include <snvoxeng/.def/vk/Device.h>
+
+		// Builds Device on stack;
+		// Builder is invalid after .sbuild()
+		Device sbuild();
+		// Builds Device on heap;
+		// Builder is invalid after .build()
+		Device* build();
+
+		// Builds Device (view) on stack;
+		// Builder is invalid after .sbuild(VkDevice)
+		Device sbuild(VkDevice view);
+		// Builds Device (view) on heap;
+		// Builder is invalid after .build(VkDevice)
+		Device* build(VkDevice view);
+	}; // ^ class Device::Builder ^
+} // ^ namespace sn::voxeng::vk ^

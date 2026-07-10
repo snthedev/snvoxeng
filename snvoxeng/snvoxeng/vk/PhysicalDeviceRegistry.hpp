@@ -27,7 +27,7 @@ namespace sn::voxeng::vk
 		mutable std::vector<std::optional<std::vector<VkExtensionProperties>>> m_cached_extensionProperties;
 
 		friend class PhysicalDevice;
-		VkPhysicalDevice getHandle(size_t idx) const noexcept;
+		VkPhysicalDevice vkHandle(size_t idx) const noexcept;
 
 	public:
 		explicit PhysicalDeviceRegistry(const Instance& instance);

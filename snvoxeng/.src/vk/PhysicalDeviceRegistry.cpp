@@ -6,7 +6,7 @@
 
 using namespace sn::voxeng::vk;
 
-VkPhysicalDevice PhysicalDeviceRegistry::getHandle(size_t idx) const noexcept { return m_physicalDevices[idx]; }
+VkPhysicalDevice PhysicalDeviceRegistry::vkHandle(size_t idx) const noexcept { return m_physicalDevices[idx]; }
 
 PhysicalDeviceRegistry::PhysicalDeviceRegistry(const Instance& instance)
 	: m_pInstance(&instance)
