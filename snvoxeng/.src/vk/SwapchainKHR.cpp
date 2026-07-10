@@ -1,153 +1,139 @@
-#include <snvoxeng\snvoxeng\vk\SwapchainKHR.hpp>
+#include <snvoxeng/snvoxeng/vk/SwapchainKHR.hpp>
+#include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
 #include <snvoxeng/snvoxeng/vk/Image.hpp>
 #include <snvoxeng/snvoxeng/vk/ImageView.hpp>
 
+#include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
 
 using namespace sn::voxeng::vk;
 
-// === SwapchainKHR ===
-
-//  > Data
-struct SwapchainKHR::Data
+namespace default_values
 {
-#define _RVAR(storetype, argtype, name) storetype name;
-#define _OVAR(storetype, argtype, name, value) storetype name{ value };
-#define _RARR(type, name) std::vector<type> name;
-#define _OARR(type, name, ...) std::vector<type> name{ __VA_ARGS__ };
-#define _FLG(name) bool name{ false };
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+#define SNBCG_DEFAULT_VALUES
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
+}
 
-	VkSwapchainKHR vkSwapchainKHR;
-	std::vector<Image> images;
-	std::vector<ImageView> imageViews;
+// === SwapchainKHR : private ===
+struct SwapchainKHR::data_t
+{
+	VkSwapchainCreateInfoKHR vkCreateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkSwapchainCreateInfoKHR>() } };
 
-	uint32_t minImageCount;
-	VkExtent2D imageExtent;
-	VkSurfaceTransformFlagBitsKHR preTransform;
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
+
+	data_t()
+	{
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		subdata##name = {};
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		subdata##name = default_values::name;
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		subdata##name = {};
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		subdata##name = default_values::name;
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
+	}
+
+	VkSwapchainKHR vkHandle{ VK_NULL_HANDLE };
 };
 
-//  > Init
-SwapchainKHR::SwapchainKHR(Data*& pData)
-	: m_pData(pData)
+void SwapchainKHR::onCreate(data_t& data)
 {
-	pData = nullptr;
+	snassert(data.pDevice->createSwapchainKHR(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
+		"Failed to create VkSwapchainKHR", "Check Builder settings");
 
-	auto capabilities = m_pData->Device->getPhysicalDevice()->getSurfaceCapabilities(m_pData->SurfaceKHR->getHandle());
-	m_pData->minImageCount = capabilities.minImageCount + 1u;
-	m_pData->imageExtent = capabilities.currentExtent;
-	m_pData->preTransform = capabilities.currentTransform;
+	uint32_t imageCount;
+	snassert(data.pDevice->getSwapchainImagesKHR(data.vkHandle, &imageCount, nullptr) == VK_SUCCESS,
+		"Failed to get swapchain images", "Check builder settings");
 
-	VkSwapchainCreateInfoKHR createInfo{
-		.sType{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR },
-		.pNext{ nullptr },
-		.flags{},
-		.surface{ m_pData->SurfaceKHR->getHandle() },
-		//.minImageCount{ m_pData->MinImageCount },
-		.minImageCount{ m_pData->minImageCount },
-		.imageFormat{ m_pData->ImageFormat },
-		.imageColorSpace{ m_pData->ImageColorSpace },
-		//.imageExtent{ m_pData->ImageExtent },
-		.imageExtent{ m_pData->imageExtent },
-		.imageArrayLayers{ m_pData->ImageArrayLayers },
-		.imageUsage{ m_pData->ImageUsage },
-		.imageSharingMode{ m_pData->ImageSharingMode },
-		.queueFamilyIndexCount{ static_cast<uint32_t>(m_pData->QueueFamilyIndices.size()) },
-		.pQueueFamilyIndices{ m_pData->QueueFamilyIndices.data() },
-		//.preTransform{ m_pData->PreTransform },
-		.preTransform{ m_pData->preTransform },
-		.compositeAlpha{ m_pData->CompositeAlpha },
-		.presentMode{ m_pData->PresentMode },
-		.clipped{ m_pData->Clipped ? VK_TRUE : VK_FALSE },
-		.oldSwapchain{ m_pData->OldSwapchain },
-	};
+	std::vector<VkImage> vkImages(imageCount);
+	snassert(data.pDevice->getSwapchainImagesKHR(data.vkHandle, &imageCount, vkImages.data()) == VK_SUCCESS,
+		"Failed to get swapchain images", "Check builder settings");
 
-	snassert(m_pData->Device->createSwapchainKHR(&createInfo, nullptr, &m_pData->vkSwapchainKHR) == VK_SUCCESS,
-		"Failed to create swapchain", "Check builder settings");
-
+	m_images.reserve(vkImages.size());
+	m_imageViews.reserve(vkImages.size());
+	for (VkImage vkImage : vkImages)
 	{
-		uint32_t imageCount;
-		snassert(m_pData->Device->getSwapchainImagesKHR(getHandle(), &imageCount, nullptr) == VK_SUCCESS,
-			"Failed to get swapchain images", "Check builder settings");
-
-		std::vector<VkImage> vkImages(imageCount);
-		snassert(m_pData->Device->getSwapchainImagesKHR(getHandle(), &imageCount, vkImages.data()) == VK_SUCCESS,
-			"Failed to get swapchain images", "Check builder settings");
-
-		m_pData->images.reserve(vkImages.size());
-		m_pData->imageViews.reserve(vkImages.size());
-		for (VkImage vkImage : vkImages)
-		{
-			m_pData->images.emplace_back(std::move(Image::Builder()
-				.withViewHandle(vkImage)
-				.withDevice(getDevice())
-				.withImageType(VK_IMAGE_TYPE_2D)
-				.withFormat(getImageFormat())
-				.withExtent(VkExtent3D{
-					.width = m_pData->imageExtent.width,
-					.height = m_pData->imageExtent.height,
-					.depth = 1u,
-					})
-				.withMipLevels(1u)
-				.withArrayLevels(getImageArrayLayers())
-				.withSamples({})
-				.withTiling({})
-				.withUsage(getImageUsage())
-				.withSharingMode(getImageSharingMode())
-				.withInitialLayout({})
-				.withQueueFamilyIndices(m_pData->QueueFamilyIndices)
-				.sbuild()));
-			m_pData->imageViews.emplace_back(std::move(ImageView::Builder()
-				.withImage(&m_pData->images.back())
-				.withViewType(VK_IMAGE_VIEW_TYPE_2D)
-				.withSubresourceRange({
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = 1,
-					.baseArrayLayer = 0,
-					.layerCount = 1,
-					})
-				.sbuild()));
-		}
+		m_images.emplace_back(std::move(Image::Builder()
+			.withDevice(*data.pDevice)
+			.withImageType(VK_IMAGE_TYPE_2D)
+			.withFormat(data.vkCreateInfo.imageFormat)
+			.withExtent(VkExtent3D{
+				.width = data.vkCreateInfo.imageExtent.width,
+				.height = data.vkCreateInfo.imageExtent.height,
+				.depth = 1u,
+				})
+			.withMipLevels(1u)
+			.withArrayLayers(data.vkCreateInfo.imageArrayLayers)
+			.withSamples({})
+			.withTiling({})
+			.withUsage(data.vkCreateInfo.imageUsage)
+			.withSharingMode(data.vkCreateInfo.imageSharingMode)
+			.withInitialLayout({})
+			.withQueueFamilyIndices(data.queueFamilyIndices)
+			.sbuild(vkImage)));
+		m_imageViews.emplace_back(std::move(ImageView::Builder()
+			.withImage(m_images.back())
+			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
+			.withSubresourceRange({
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1,
+				})
+			.sbuild()));
 	}
 }
+void SwapchainKHR::onDestroy(data_t& data) noexcept
+{
+	data.pDevice->destoySwapchainKHR(data.vkHandle, data.vkPAllocator);
+}
+
+SwapchainKHR::SwapchainKHR(data_t*& pData)
+	: m_pData(pData)
+	, m_isView(false)
+{
+	pData = nullptr;
+	onCreate(*m_pData);
+}
+SwapchainKHR::SwapchainKHR(data_t*& pData, VkSwapchainKHR view)
+	: m_pData(pData)
+	, m_isView(true)
+{
+	pData = nullptr;
+	m_pData->vkHandle = view;
+}
+
+// === SwapchainKHR : public ===
 SwapchainKHR::~SwapchainKHR() noexcept
 {
-	if (m_pData)
+	if (m_pData) [[likely]]
 	{
-		m_pData->Device->destoySwapchainKHR(getHandle(), nullptr);
+		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
 	}
 }
 
-uint32_t SwapchainKHR::getMinImageCount() const noexcept { return m_pData->minImageCount; }
-VkExtent2D SwapchainKHR::getImageExtent() const noexcept { return m_pData->imageExtent; }
-VkSurfaceTransformFlagBitsKHR SwapchainKHR::getPreTransform() const noexcept { return m_pData->preTransform; }
+uint32_t SwapchainKHR::getMinImageCount() const noexcept { return m_pData->vkCreateInfo.minImageCount; }
+VkExtent2D SwapchainKHR::getImageExtent() const noexcept { return m_pData->vkCreateInfo.imageExtent; }
+VkSurfaceTransformFlagBitsKHR SwapchainKHR::getPreTransform() const noexcept { return m_pData->vkCreateInfo.preTransform; }
 
-const std::vector<Image>& SwapchainKHR::getImages() const noexcept { return m_pData->images; }
-std::vector<Image>::size_type SwapchainKHR::getImagesCount() const noexcept { return m_pData->images.size(); }
-const std::vector<Image>::value_type* SwapchainKHR::getImagesData() const noexcept { return m_pData->images.data(); }
-const std::vector<Image>::value_type& SwapchainKHR::getImages(size_t idx) const noexcept { return m_pData->images[idx]; }
+const std::vector<Image>& SwapchainKHR::getImages() const noexcept { return m_images; }
+const std::vector<ImageView>& SwapchainKHR::getImageViews() const noexcept { return m_imageViews; }
 
-const std::vector<ImageView>& SwapchainKHR::getImageViews() const noexcept { return m_pData->imageViews; }
-std::vector<ImageView>::size_type SwapchainKHR::getImageViewsCount() const noexcept { return m_pData->imageViews.size(); }
-const std::vector<ImageView>::value_type* SwapchainKHR::getImageViewsData() const noexcept { return m_pData->imageViews.data(); }
-const std::vector<ImageView>::value_type& SwapchainKHR::getImageViews(size_t idx) const noexcept { return m_pData->imageViews[idx]; }
-
-VkSwapchainKHR SwapchainKHR::getHandle() const noexcept
-{
-	return m_pData->vkSwapchainKHR;
-}
-
-SwapchainKHR::operator VkSwapchainKHR() const noexcept
-{
-	return getHandle();
-}
-
-//  > Move
 SwapchainKHR::SwapchainKHR(SwapchainKHR&& other) noexcept
 	: m_pData(other.m_pData)
+	, m_isView(other.m_isView)
 {
 	other.m_pData = nullptr;
 }
@@ -155,89 +141,136 @@ SwapchainKHR& SwapchainKHR::operator=(SwapchainKHR&& other) noexcept
 {
 	if (this != &other) [[likely]]
 	{
-		if (m_pData) delete m_pData;
+		if (m_pData)
+		{
+			if (!m_isView) [[likely]] onDestroy(*m_pData);
+			delete m_pData;
+		}
 		m_pData = other.m_pData;
+		m_isView = other.m_isView;
 		other.m_pData = nullptr;
 	}
 	return *this;
 }
 
-//  > Methods
-#define _RVAR(storetype, argtype, name) argtype SwapchainKHR::get##name() const noexcept { return m_pData->name; }
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name)\
-	const std::vector<type>& SwapchainKHR::get##name() const noexcept { return m_pData->name; }\
-	std::vector<type>::size_type SwapchainKHR::get##name##Size() const noexcept { return m_pData->name.size(); }\
-	const std::vector<type>::value_type* SwapchainKHR::get##name##Data() const noexcept { return m_pData->name.data(); }\
-	const std::vector<type>::value_type& SwapchainKHR::get##name(size_t idx) const noexcept { return m_pData->name[idx]; }
-#define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) bool SwapchainKHR::is##name() const noexcept { return m_pData->name; }
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+VkSwapchainKHR SwapchainKHR::vkHandle() const noexcept { return m_pData->vkHandle; }
+SwapchainKHR::operator VkSwapchainKHR() const noexcept { return m_pData->vkHandle; }
+
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
 
 
-
-// === Builder ===
-#include <snassert/snassert.hpp>
 
 typedef SwapchainKHR::Builder Builder;
 
-//  > Data
-#ifdef _DEBUG
-struct Builder::Temp
+// === Builder : private ===
+void Builder::finalize(data_t& data)
 {
-	enum class eDefFlag
+	data.vkCreateInfo.surface = data.pSurfaceKHR->vkHandle();
+
+	auto capabilities = data.pDevice->getPhysicalDevice().getSurfaceCapabilities(data.pSurfaceKHR->vkHandle());
+	data.vkCreateInfo.minImageCount = capabilities.minImageCount + 1u;
+	data.vkCreateInfo.imageExtent = capabilities.currentExtent;
+	data.vkCreateInfo.preTransform = capabilities.currentTransform;
+}
+
+#ifdef DETAIL_SNBCG_DEBUG
+struct Builder::temp_t
+{
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
+
+	void validate() const
 	{
-		eNone,
-		eAddCalled,
-		eWithCalled,
-	};
-#define _RVAR(storetype, argtype, name) eDefFlag f##name{ eDefFlag::eNone };
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name) _RVAR(std::vector<type>, const std::vector<type>&, name)
-#define _OARR(type, name, ...) _RVAR(std::vector<type>, const std::vector<type>&, name)
-#define _FLG(name) _RVAR(bool, bool, name)
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
-
-	void validate() const;
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		snassert((name & 0b01) != 0,\
+			#Name " is required, but not defined",\
+			"Call Builder::with" #Name "(...)"\
+		);\
+		snassert((name & 0b10) == 0,\
+			#Name " is defined twice",\
+			"Call Builder::with" #Name "(...) once"\
+		);
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		snassert((name & 0b10) == 0,\
+			#Name " is defined twice",\
+			"Call Builder::with" #Name "(...) once"\
+		);
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		snassert((name & 0b01) != 0,\
+			#Name " is required, but not defined",\
+			"Call Builder::with" #Name "(...)\n"\
+			"  or Builder::add" #Name "(...)"\
+		);\
+		snassert((name & 0b10) == 0,\
+			#Name " is defined twice",\
+			"Call Builder::with" #Name "(...) once\n"\
+			"  and do not call Builder::with" #Name "(...) after calling\n"\
+			"  Builder::add" #Name "(...)"\
+		);
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		snassert((name & 0b10) == 0,\
+			#Name " is defined twice",\
+			"Call Builder::with" #Name "(...) once\n"\
+			"  and do not call Builder::with" #Name "(...) after calling\n"\
+			"  Builder::add" #Name "(...)"\
+		);
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
+	}
 };
-#endif
+#define SNBCG_VALIDATE_ON_WITH(name, Name) m_pTemp->name = ((m_pTemp->name << 1u) & 0b11) | 0b01;
+#define SNBCG_VALIDATE_ON_ADD(name, Name) m_pTemp->name = m_pTemp->name | 0b01;
+#else // ^ DETAIL_SNBCG_DEBUG ^
+#define SNBCG_VALIDATE_ON_WITH(name, Name)
+#define SNBCG_VALIDATE_ON_ADD(name, Name)
+#endif // ^ ~DETAIL_SNBCG_DEBUG ^
 
-//  > Init
+// === Builder : public ===
 Builder::Builder()
-	: m_pData(new SwapchainKHR::Data{})
-#ifdef _DEBUG
-	, m_pTemp(new Temp{})
-#endif
+	: m_pData(new data_t{})
+#ifdef DETAIL_SNBCG_DEBUG
+	, m_pTemp(new temp_t{})
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 {
 }
 Builder::~Builder() noexcept
 {
-#ifdef _DEBUG
-	delete m_pTemp;
-#endif
-	if (m_pData)
-	{
-		delete m_pData;
-		snassert(
-			false,
-			"Builder initialized, but not used",
-			"Try to call .build()\n"
-			"or do not use original Builder"
-		);
-	}
+	if (m_pData) [[unlikely]] delete m_pData;
+#ifdef DETAIL_SNBCG_DEBUG
+	if (m_pTemp) [[likely]] delete m_pTemp;
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 }
 
-//  > Move
+Builder Builder::clone() const
+{
+	auto builder = Builder();
+	(*builder.m_pData) = (*m_pData);
+#ifdef DETAIL_SNBCG_DEBUG
+	(*builder.m_pTemp) = (*m_pTemp);
+#endif // ^ DETAIL_SNBCG_DEBUG ^
+	return builder;
+}
+
 Builder::Builder(Builder&& other) noexcept
 	: m_pData(other.m_pData)
-#ifdef _DEBUG
+#ifdef DETAIL_SNBCG_DEBUG
 	, m_pTemp(other.m_pTemp)
-#endif
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 {
 	other.m_pData = nullptr;
-#ifdef _DEBUG
+#ifdef DETAIL_SNBCG_DEBUG
 	other.m_pTemp = nullptr;
-#endif
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 }
 Builder& Builder::operator=(Builder&& other) noexcept
 {
@@ -246,110 +279,95 @@ Builder& Builder::operator=(Builder&& other) noexcept
 		if (m_pData) delete m_pData;
 		m_pData = other.m_pData;
 		other.m_pData = nullptr;
-#ifdef _DEBUG
+#ifdef DETAIL_SNBCG_DEBUG
+		if (m_pTemp) delete m_pTemp;
 		m_pTemp = other.m_pTemp;
 		other.m_pTemp = nullptr;
-#endif
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	}
 	return *this;
 }
 
-//  > Build
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+Builder& Builder::with##Name(arg_t name) {\
+	SNBCG_VALIDATE_ON_WITH(name, Name)\
+	std::add_lvalue_reference_t<arg_t> arg = name;\
+	m_pData->subdata##name = store_policy;\
+	return *this;\
+}
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+Builder& Builder::with##Name(arg_t name) {\
+	SNBCG_VALIDATE_ON_WITH(name, Name)\
+	std::add_lvalue_reference_t<arg_t> arg = name;\
+	m_pData->subdata##name = store_policy;\
+	return *this;\
+}
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+Builder& Builder::with##Name(args_t name) {\
+	SNBCG_VALIDATE_ON_WITH(name, Name)\
+	std::add_lvalue_reference_t<args_t> arg = name;\
+	m_pData->subdata##name = store_policy;\
+	return *this;\
+}\
+Builder& Builder::add##Name(args_t name) {\
+	SNBCG_VALIDATE_ON_ADD(name, Name)\
+	std::add_lvalue_reference_t<args_t> args = name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	DETAIL_##store_action##_MULTI;\
+	return *this;\
+}\
+Builder& Builder::add##Name(arg_t name) {\
+	SNBCG_VALIDATE_ON_ADD(name, Name)\
+	std::add_lvalue_reference_t<arg_t> arg = name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	DETAIL_##store_action##_SINGLE;\
+	return *this;\
+}
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+Builder& Builder::with##Name(args_t name) {\
+	SNBCG_VALIDATE_ON_WITH(name, Name)\
+	std::add_lvalue_reference_t<args_t> arg = name;\
+	m_pData->subdata##name = store_policy;\
+	return *this;\
+}\
+Builder& Builder::add##Name(args_t name) {\
+	SNBCG_VALIDATE_ON_ADD(name, Name)\
+	std::add_lvalue_reference_t<args_t> args = name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	DETAIL_##store_action##_MULTI;\
+	return *this;\
+}\
+Builder& Builder::add##Name(arg_t name) {\
+	SNBCG_VALIDATE_ON_ADD(name, Name)\
+	std::add_lvalue_reference_t<arg_t> arg = name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	DETAIL_##store_action##_SINGLE;\
+	return *this;\
+}
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
+
 SwapchainKHR Builder::sbuild()
 {
-#ifdef _DEBUG
 	m_pTemp->validate();
-#endif
+	finalize(*m_pData);
 	return SwapchainKHR{ m_pData };
 }
 SwapchainKHR* Builder::build()
 {
-#ifdef _DEBUG
 	m_pTemp->validate();
-#endif
+	finalize(*m_pData);
 	return new SwapchainKHR{ m_pData };
 }
 
-#ifdef _DEBUG
-void Builder::Temp::validate() const
+SwapchainKHR Builder::sbuild(VkSwapchainKHR view)
 {
-#define _RVAR(storetype, argtype, name)\
-	snassert(\
-		f##name != eDefFlag::eNone,\
-		#name " is required, but not defined",\
-		"Try to call .with" #name "(...)"\
-	);
-#define _RARR(type, name)\
-	snassert(\
-		f##name != eDefFlag::eNone,\
-		#name " is required, but not defined",\
-		"Try to call .with" #name "(...)\n"\
-		"or          .add" #name "(...)"\
-	);
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+	m_pTemp->validate();
+	finalize(*m_pData);
+	return SwapchainKHR{ m_pData, view };
 }
-
-#define _SET_DEF_FLAG_ADD(name) { m_pTemp->f##name = Temp::eDefFlag::eAddCalled; }
-
-#define _SET_DEF_FLAG_WITH(name){\
-	snassert(m_pTemp->f##name != Builder::Temp::eDefFlag::eWithCalled,\
-		"Builder::with" #name " is called twice",\
-		"Do not call .with-method twice"\
-	);\
-	snassert(m_pTemp->f##name != Builder::Temp::eDefFlag::eAddCalled,\
-		"Builder::with" #name " is called after Builder::add" #name,\
-		"Do not call .with-method after calling .add-method\n"\
-	);\
-	m_pTemp->f##name = Temp::eDefFlag::eWithCalled;}
-
-#define _SET_DEF_FLAG_SET(name){\
-	snassert(m_pTemp->f##name != Builder::Temp::eDefFlag::eWithCalled,\
-		"Builder::set" #name " is called twice",\
-		"Do not call .set-method twice"\
-	);\
-	m_pTemp->f##name = Temp::eDefFlag::eWithCalled;}
-
-#else
-#define _SET_DEF_FLAG_ADD(name) ((void)(0));
-#define _SET_DEF_FLAG_WITH(name) ((void)(0));
-#define _SET_DEF_FLAG_SET(name) ((void)(0));
-#endif
-
-#define _RVAR(storetype, argtype, name)\
-	Builder& Builder::with##name(argtype name)\
-	{\
-		_SET_DEF_FLAG_WITH(name)\
-		m_pData->name = name;\
-		return *this;\
-	}
-#define _OVAR(storetype, argtype, name, value)\
-	Builder& Builder::with##name(argtype name)\
-	{\
-		_SET_DEF_FLAG_WITH(name)\
-		m_pData->name = name;\
-		return *this;\
-	}
-#define _RARR(type, name)\
-	_RVAR(std::vector<type>, const std::vector<type>&, name)\
-	Builder& Builder::add##name(const std::vector<type>& name)\
-	{\
-		_SET_DEF_FLAG_ADD(name)\
-		m_pData->name.insert(m_pData->name.end(), name.begin(), name.end());\
-		return *this;\
-	}
-#define _OARR(type, name, ...)\
-	_OVAR(std::vector<type>, const std::vector<type>&, name,)\
-	Builder& Builder::add##name(const std::vector<type>& name)\
-	{\
-		_SET_DEF_FLAG_ADD(name)\
-		m_pData->name.insert(m_pData->name.end(), name.begin(), name.end());\
-		return *this;\
-	}
-#define _FLG(name) Builder& Builder::set##name()\
-	{\
-		_SET_DEF_FLAG_SET(name)\
-		m_pData->name = true;\
-		return *this;\
-	}
-	
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+SwapchainKHR* Builder::build(VkSwapchainKHR view)
+{
+	m_pTemp->validate();
+	finalize(*m_pData);
+	return new SwapchainKHR{ m_pData, view };
+}

@@ -1,76 +1,102 @@
 #pragma once
 
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
+#include <snvoxeng/snvoxeng/vk/VkMinimal.hpp>
 
-#include <vector>
+#include <ThirdParty/snbcg/bcg.hpp>
 
-#define _INCLUDE
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+#define SNBCG_HEADER_INCLUDE
+#include <snvoxeng/.def/vk/SurfaceKHR.h>
 
 namespace sn::voxeng::vk
 {
 	// Use SurfaceKHR::Builder for build
 	class SNVOXENG_API SurfaceKHR
 	{
-		struct Data;
-		Data* m_pData;
+		struct data_t;
+		data_t* m_pData;
+
+		void onCreate(data_t& data);
+		void onDestroy(data_t& data) noexcept;
+
+		bool m_isView;
+
+		SurfaceKHR(data_t*& pData);
+		SurfaceKHR(data_t*& pData, VkSurfaceKHR view);
 
 	public:
-		SurfaceKHR(Data*& pData);
 		~SurfaceKHR() noexcept;
-
-		VkSurfaceKHR getHandle() const noexcept;
-		operator VkSurfaceKHR() const noexcept;
 
 		SurfaceKHR(const SurfaceKHR&) = delete;
 		SurfaceKHR& operator=(const SurfaceKHR&) = delete;
 		SurfaceKHR(SurfaceKHR&& other) noexcept;
 		SurfaceKHR& operator=(SurfaceKHR&& other) noexcept;
 
-#define _RVAR(storetype, argtype, name) argtype get##name() const noexcept;
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name)\
-		const std::vector<type>& get##name() const noexcept;\
-		std::vector<type>::size_type get##name##Size() const noexcept;\
-		const std::vector<type>::value_type* get##name##Data() const noexcept;\
-		const std::vector<type>::value_type& get##name(size_t idx) const noexcept;
-#define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) bool is##name() const noexcept;
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+		VkSurfaceKHR vkHandle() const noexcept;
+		operator VkSurfaceKHR() const noexcept;
 
-		class SNVOXENG_API Builder
-		{
-			Data* m_pData;
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#include <snvoxeng/.def/vk/SurfaceKHR.h>
+	
+		class Builder;
+		friend class Builder;
+	}; // ^ class SurfaceKHR ^
 
-#ifdef _DEBUG
-			struct Temp;
-			Temp* m_pTemp;
-#endif
+	class SNVOXENG_API SurfaceKHR::Builder
+	{
+		data_t* m_pData;
+		void finalize(data_t& data);
 
-		public:
-			Builder();
-			~Builder() noexcept;
+#ifdef DETAIL_SNBCG_DEBUG
+		struct temp_t;
+		temp_t* m_pTemp;
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 
-			Builder(const Builder&) = delete;
-			Builder& operator=(const Builder&) = delete;
-			Builder(Builder&& other) noexcept;
-			Builder& operator=(Builder&& other) noexcept;
+	public:
+		Builder();
+		~Builder() noexcept;
 
-#define _RVAR(storetype, argtype, name) Builder& with##name(argtype name);
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name)\
-			Builder& with##name(const std::vector<type>& name);\
-			Builder& add##name(const std::vector<type>& name);
-#define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) Builder& set##name();
-#include <snvoxeng\.def\vk\SurfaceKHR.h>
+		// Copies this instance of the Builder.
+		Builder clone() const;
 
-			// Builder is invalid after .sbuild()
-			// Creates SurfaceKHR on stack
-			SurfaceKHR sbuild();
-			// Builder is invalid after .build()
-			// Creates SurfaceKHR on heap
-			SurfaceKHR* build();
-		};
-	};
-}
+		Builder(const Builder&) = delete;
+		Builder& operator=(const Builder&) = delete;
+		Builder(Builder&& other) noexcept;
+		Builder& operator=(Builder&& other) noexcept;
+
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		Builder& with##Name(arg_t name);
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		Builder& with##Name(arg_t name);
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		Builder& with##Name(args_t name);\
+		Builder& add##Name(args_t name);\
+		Builder& add##Name(arg_t name);
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		Builder& with##Name(args_t name);\
+		Builder& add##Name(args_t name);\
+		Builder& add##Name(arg_t name);
+#include <snvoxeng/.def/vk/SurfaceKHR.h>
+
+		// Builds SurfaceKHR on stack;
+		// Builder is invalid after .sbuild()
+		SurfaceKHR sbuild();
+		// Builds SurfaceKHR on heap;
+		// Builder is invalid after .build()
+		SurfaceKHR* build();
+
+		// Builds SurfaceKHR (view) on stack;
+		// Builder is invalid after .sbuild(VkSurfaceKHR)
+		SurfaceKHR sbuild(VkSurfaceKHR view);
+		// Builds SurfaceKHR (view) on heap;
+		// Builder is invalid after .build(VkSurfaceKHR)
+		SurfaceKHR* build(VkSurfaceKHR view);
+	}; // ^ class SurfaceKHR::Builder ^
+} // ^ namespace sn::voxeng::vk ^

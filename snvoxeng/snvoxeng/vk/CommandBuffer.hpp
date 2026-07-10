@@ -18,7 +18,7 @@ namespace sn::voxeng::vk
     public:
         CommandBuffer(const CommandBuffersContainer& container, size_t idx) noexcept;
 
-        VkCommandBuffer getHandle() const noexcept;
+        VkCommandBuffer vkHandle() const noexcept;
 
         const CommandBuffersContainer& getContainer() const noexcept;
         size_t getContainerIdx() const noexcept;

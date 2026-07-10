@@ -69,6 +69,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include;C:\_storage\projects\_sn\cstrs;C:\_storage\projects\_sn\snassert;C:\_storage\projects\_sn\snstatic</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -90,6 +91,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include;C:\_storage\projects\_sn\cstrs;C:\_storage\projects\_sn\snassert;C:\_storage\projects\_sn\snstatic</AdditionalIncludeDirectories>
+      <AdditionalOptions>/Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -114,6 +116,7 @@
     <ClInclude Include=".def\vk\SwapchainKHR.h" />
     <ClInclude Include="snvoxeng.hpp" />
     <ClInclude Include="snvoxeng\dll-defines.hpp" />
+    <ClInclude Include="snvoxeng\utils\vk-getSType.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffersContainer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandPool.hpp" />

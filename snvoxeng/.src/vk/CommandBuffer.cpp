@@ -11,6 +11,6 @@ CommandBuffer::CommandBuffer(const CommandBuffersContainer& container, size_t id
 	snassert(m_containerIdx < m_pContainer->count(), "Out of CommandBuffersContainer::count()", "Provide valid idx");
 }
 
-VkCommandBuffer CommandBuffer::getHandle() const noexcept { return m_pContainer->getHandle(m_containerIdx); }
+VkCommandBuffer CommandBuffer::vkHandle() const noexcept { return m_pContainer->vkHandle(m_containerIdx); }
 const CommandBuffersContainer& CommandBuffer::getContainer() const noexcept { return *m_pContainer; }
 size_t CommandBuffer::getContainerIdx() const noexcept { return m_containerIdx; }

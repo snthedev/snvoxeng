@@ -160,14 +160,14 @@ int main()
 			.withApplicationName("snvoxeng test")
 			.withApplicationVersion(VK_MAKE_API_VERSION(0, 0, 1, 0))
 			.addValidationLayers({ "VK_LAYER_KHRONOS_validation" })
-			.addInstanceExtensions({ "VK_EXT_debug_utils" })
-			.addInstanceExtensions(instance_extensions)
-			.setEnableDebugMessenger()
-			.withDebugStream(&std::cout)
+			.addExtensions({ "VK_EXT_debug_utils" })
+			.addExtensions(instance_extensions)
+			.withDebugMessengerEnabled(true)
+			.withDebugStream(std::cout)
 			.sbuild();
 
 		auto surface_khr = sn::voxeng::vk::SurfaceKHR::Builder()
-			.withInstance(&instance)
+			.withInstance(instance)
 			.withWindowDescription(glfw_get_window_descripton(pWindow))
 			.sbuild();
 
@@ -187,7 +187,7 @@ int main()
 				.requiredFlagsAnd = VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT,
 			};
 			fSurfaceSupport_user_data_t fSurfaceSupport_user_data {
-				.surface = surface_khr.getHandle(),
+				.surface = surface_khr.vkHandle(),
 			};
 
 			const auto gpus = physical_device_registry
@@ -213,7 +213,7 @@ int main()
 		uint32_t compute_family;
 		try
 		{
-			graphics_family = gpu.findQueueFamily({ .flags = VK_QUEUE_GRAPHICS_BIT, .surface = surface_khr.getHandle() }).value();
+			graphics_family = gpu.findQueueFamily({ .flags = VK_QUEUE_GRAPHICS_BIT, .surface = surface_khr.vkHandle() }).value();
 			transfer_family = gpu.findQueueFamily({ .flags = VK_QUEUE_TRANSFER_BIT, .preferDedicated = true }).value();
 			compute_family = gpu.findQueueFamily({ .flags = VK_QUEUE_COMPUTE_BIT,  .preferDedicated = true }).value();
 		}
@@ -232,51 +232,51 @@ int main()
 			<< " " << gpu.getQueueFamilyProperties()[compute_family] << "\n";
 
 		auto device = sn::voxeng::vk::Device::Builder()
-			.withPhysicalDevice(&gpu)
-			.addQueueRequests({
+			.withPhysicalDevice(gpu)
+			.withQueueRequests({
 				{ .name = "graphics", .familyIndex = graphics_family, .priority = 1.0f },
 				{ .name = "compute",  .familyIndex = compute_family,  .priority = 0.8f },
 				{ .name = "transfer", .familyIndex = transfer_family, .priority = 0.5f },
 				})
-			.addExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME })
+			.withExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME })
 			.withPhysicalDevice13Features({ .dynamicRendering = VK_TRUE })
 			.sbuild();
 
-		VkQueue mainGraphics = device.getQueue("graphics");
-		VkQueue asyncCompute = device.getQueue("compute");
-		VkQueue asyncTransfer = device.getQueue("transfer");
+		VkQueue mainGraphics = device.getQueueInfo("graphics")->handle;
+		VkQueue asyncCompute = device.getQueueInfo("compute")->handle;
+		VkQueue asyncTransfer = device.getQueueInfo("transfer")->handle;
 
 		std::cout << "mainGraphics VkQueue 0x" << std::hex << mainGraphics << std::dec << "\n";
 		std::cout << "asyncCompute VkQueue 0x" << std::hex << asyncCompute << std::dec << "\n";
 		std::cout << "asyncTransfer VkQueue 0x" << std::hex << asyncTransfer << std::dec << "\n";
 
 		auto swapchain_khr = sn::voxeng::vk::SwapchainKHR::Builder()
-			.withDevice(&device)
-			.withSurfaceKHR(&surface_khr)
-			.addQueueFamilyIndices({ device.findQueueInfo("graphics")->index })
+			.withDevice(device)
+			.withSurfaceKHR(surface_khr)
+			.addQueueFamilyIndices(device.getQueueInfo("graphics")->index)
 			.sbuild();
 
-		std::cout << "VkSwapchainKHR: 0x" << std::hex << swapchain_khr.getHandle() << std::dec << "\n";
-		std::cout << "Swapchain image count: " << swapchain_khr.getImagesCount() << "\n";
+		std::cout << "VkSwapchainKHR: 0x" << std::hex << swapchain_khr.vkHandle() << std::dec << "\n";
+		std::cout << "Swapchain image count: " << swapchain_khr.getImages().size() << "\n";
 		for (const auto& image : swapchain_khr.getImages())
-			std::cout << "- 0x" << std::hex << image.getHandle() << std::dec << "\n";
-		std::cout << "Swapchain image view count: " << swapchain_khr.getImageViewsCount() << "\n";
+			std::cout << "- 0x" << std::hex << image.vkHandle() << std::dec << "\n";
+		std::cout << "Swapchain image view count: " << swapchain_khr.getImageViews().size() << "\n";
 		for (const auto& image_view : swapchain_khr.getImageViews())
-			std::cout << "- 0x" << std::hex << image_view.getHandle() << std::dec << "\n";
+			std::cout << "- 0x" << std::hex << image_view.vkHandle() << std::dec << "\n";
 
 		auto command_pool = sn::voxeng::vk::CommandPool::Builder()
-			.withDevice(&device)
-			.withQueueFamilyIndex(device.findQueueInfo("compute")->index)
+			.withDevice(device)
+			.withQueueFamilyIndex(device.getQueueInfo("compute")->index)
 			.withFlags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
 			.sbuild();
-		std::cout << "VkCommandPool (Compute) 0x" << std::hex << command_pool.getHandle() << std::dec << "\n";
+		std::cout << "VkCommandPool (Compute) 0x" << std::hex << command_pool.vkHandle() << std::dec << "\n";
 
 		auto command_buffers = command_pool.allocateCommandBuffers(1u);
 		std::cout << "Command buffers (Compute) count: " << command_buffers.count() << "\n";
 		for (size_t i = 0; i < command_buffers.count(); ++i)
 		{
 			auto buf = command_buffers.get(i);
-			std::cout << "Command buffer " << buf.getContainerIdx() << " (Compute): 0x" << std::hex << buf.getHandle() << std::dec << "\n";
+			std::cout << "Command buffer " << buf.getContainerIdx() << " (Compute): 0x" << std::hex << buf.vkHandle() << std::dec << "\n";
 		}
 
 		std::cout << "[main()]: OK\n";

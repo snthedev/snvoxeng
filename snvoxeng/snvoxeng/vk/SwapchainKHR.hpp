@@ -1,11 +1,12 @@
 #pragma once
 
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
+#include <snvoxeng/snvoxeng/vk/VkMinimal.hpp>
 
-#include <vector>
+#include <ThirdParty/snbcg/bcg.hpp>
 
-#define _INCLUDE
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+#define SNBCG_HEADER_INCLUDE
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
 
 namespace sn::voxeng::vk
 {
@@ -15,11 +16,21 @@ namespace sn::voxeng::vk
 	// Use SwapchainKHR::Builder for build
 	class SNVOXENG_API SwapchainKHR
 	{
-		struct Data;
-		Data* m_pData;
+		struct data_t;
+		data_t* m_pData;
+
+		std::vector<Image> m_images;
+		std::vector<ImageView> m_imageViews;
+
+		void onCreate(data_t& data);
+		void onDestroy(data_t& data) noexcept;
+
+		bool m_isView;
+
+		SwapchainKHR(data_t*& pData);
+		SwapchainKHR(data_t*& pData, VkSwapchainKHR view);
 
 	public:
-		SwapchainKHR(Data*& pData);
 		~SwapchainKHR() noexcept;
 
 		uint32_t getMinImageCount() const noexcept;
@@ -27,67 +38,78 @@ namespace sn::voxeng::vk
 		VkSurfaceTransformFlagBitsKHR getPreTransform() const noexcept;
 
 		const std::vector<Image>& getImages() const noexcept;
-		std::vector<Image>::size_type getImagesCount() const noexcept;
-		const std::vector<Image>::value_type* getImagesData() const noexcept;
-		const std::vector<Image>::value_type& getImages(size_t idx) const noexcept;
-
 		const std::vector<ImageView>& getImageViews() const noexcept;
-		std::vector<ImageView>::size_type getImageViewsCount() const noexcept;
-		const std::vector<ImageView>::value_type* getImageViewsData() const noexcept;
-		const std::vector<ImageView>::value_type& getImageViews(size_t idx) const noexcept;
-
-		VkSwapchainKHR getHandle() const noexcept;
-		operator VkSwapchainKHR() const noexcept;
 
 		SwapchainKHR(const SwapchainKHR&) = delete;
 		SwapchainKHR& operator=(const SwapchainKHR&) = delete;
 		SwapchainKHR(SwapchainKHR&& other) noexcept;
 		SwapchainKHR& operator=(SwapchainKHR&& other) noexcept;
 
-#define _RVAR(storetype, argtype, name) argtype get##name() const noexcept;
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name)\
-		const std::vector<type>& get##name() const noexcept;\
-		std::vector<type>::size_type get##name##Size() const noexcept;\
-		const std::vector<type>::value_type* get##name##Data() const noexcept;\
-		const std::vector<type>::value_type& get##name(size_t idx) const noexcept;
-#define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) bool is##name() const noexcept;
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+		VkSwapchainKHR vkHandle() const noexcept;
+		operator VkSwapchainKHR() const noexcept;
 
-		class SNVOXENG_API Builder
-		{
-			Data* m_pData;
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
+	
+		class Builder;
+		friend class Builder;
+	}; // ^ class SwapchainKHR ^
 
-#ifdef _DEBUG
-			struct Temp;
-			Temp* m_pTemp;
-#endif
+	class SNVOXENG_API SwapchainKHR::Builder
+	{
+		data_t* m_pData;
+		void finalize(data_t& data);
 
-		public:
-			Builder();
-			~Builder() noexcept;
+#ifdef DETAIL_SNBCG_DEBUG
+		struct temp_t;
+		temp_t* m_pTemp;
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 
-			Builder(const Builder&) = delete;
-			Builder& operator=(const Builder&) = delete;
-			Builder(Builder&& other) noexcept;
-			Builder& operator=(Builder&& other) noexcept;
+	public:
+		Builder();
+		~Builder() noexcept;
 
-#define _RVAR(storetype, argtype, name) Builder& with##name(argtype name);
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name)\
-			Builder& with##name(const std::vector<type>& name);\
-			Builder& add##name(const std::vector<type>& name);
-#define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) Builder& set##name();
-#include <snvoxeng\.def\vk\SwapchainKHR.h>
+		// Copies this instance of the Builder.
+		Builder clone() const;
 
-			// Builder is invalid after .sbuild()
-			// Creates SwapchainKHR on stack
-			SwapchainKHR sbuild();
-			// Builder is invalid after .build()
-			// Creates SwapchainKHR on heap
-			SwapchainKHR* build();
-		};
-	};
-}
+		Builder(const Builder&) = delete;
+		Builder& operator=(const Builder&) = delete;
+		Builder(Builder&& other) noexcept;
+		Builder& operator=(Builder&& other) noexcept;
+
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		Builder& with##Name(arg_t name);
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		Builder& with##Name(arg_t name);
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		Builder& with##Name(args_t name);\
+		Builder& add##Name(args_t name);\
+		Builder& add##Name(arg_t name);
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		Builder& with##Name(args_t name);\
+		Builder& add##Name(args_t name);\
+		Builder& add##Name(arg_t name);
+#include <snvoxeng/.def/vk/SwapchainKHR.h>
+
+		// Builds SwapchainKHR on stack;
+		// Builder is invalid after .sbuild()
+		SwapchainKHR sbuild();
+		// Builds SwapchainKHR on heap;
+		// Builder is invalid after .build()
+		SwapchainKHR* build();
+
+		// Builds SwapchainKHR (view) on stack;
+		// Builder is invalid after .sbuild(VkSwapchainKHR)
+		SwapchainKHR sbuild(VkSwapchainKHR view);
+		// Builds SwapchainKHR (view) on heap;
+		// Builder is invalid after .build(VkSwapchainKHR)
+		SwapchainKHR* build(VkSwapchainKHR view);
+	}; // ^ class SwapchainKHR::Builder ^
+} // ^ namespace sn::voxeng::vk ^

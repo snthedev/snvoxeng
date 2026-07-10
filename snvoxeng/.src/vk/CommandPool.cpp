@@ -1,45 +1,81 @@
-#include <snvoxeng\snvoxeng\vk\CommandPool.hpp>
-#include <snvoxeng\snvoxeng\vk\CommandBuffersContainer.hpp>
+#include <snvoxeng/snvoxeng/vk/CommandPool.hpp>
+#include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
+#include <snvoxeng/snvoxeng/vk/CommandBuffersContainer.hpp>
+
+#include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
 
 using namespace sn::voxeng::vk;
 
-// === CommandPool ===
-
-//  > Data
-struct CommandPool::Data
+namespace default_values
 {
-#define _RVAR(storetype, argtype, name) storetype name;
-#define _OVAR(storetype, argtype, name, value) storetype name{ value };
-#define _RARR(type, name) std::vector<type> name;
-#define _OARR(type, name, ...) std::vector<type> name{ __VA_ARGS__ };
-#define _FLG(name) bool name{ false };
-#include <snvoxeng\.def\vk\CommandPool.h>
+#define SNBCG_DEFAULT_VALUES
+#include <snvoxeng/.def/vk/CommandPool.h>
+}
 
-	VkCommandPool vkCommandPool;
+// === CommandPool : private ===
+struct CommandPool::data_t
+{
+	VkCommandPoolCreateInfo vkCreateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkCommandPoolCreateInfo>() } };
+
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
+#include <snvoxeng/.def/vk/CommandPool.h>
+
+	data_t()
+	{
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		subdata##name = {};
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		subdata##name = default_values::name;
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		subdata##name = {};
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		subdata##name = default_values::name;
+#include <snvoxeng/.def/vk/CommandPool.h>
+	}
+
+	VkCommandPool vkHandle{ VK_NULL_HANDLE };
 };
 
-//  > Init
-CommandPool::CommandPool(Data*& pData)
+void CommandPool::onCreate(data_t& data)
+{
+	snassert(data.pDevice->createCommandPool(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
+		"Failed to create VkCommandPool", "Check Builder settings");
+}
+void CommandPool::onDestroy(data_t& data) noexcept
+{
+	data.pDevice->destroyCommandPool(data.vkHandle, data.vkPAllocator);
+}
+
+CommandPool::CommandPool(data_t*& pData)
 	: m_pData(pData)
+	, m_isView(false)
 {
 	pData = nullptr;
-
-	VkCommandPoolCreateInfo createInfo{
-		.sType{ VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO },
-		.pNext{ nullptr },
-		.flags{ m_pData->Flags },
-		.queueFamilyIndex{ m_pData->QueueFamilyIndex },
-	};
-	snassert(m_pData->Device->createCommandPool(&createInfo, nullptr, &m_pData->vkCommandPool) == VK_SUCCESS,
-		"Failed to create command pool", "Check builder settings");
+	onCreate(*m_pData);
 }
+CommandPool::CommandPool(data_t*& pData, VkCommandPool view)
+	: m_pData(pData)
+	, m_isView(true)
+{
+	pData = nullptr;
+	m_pData->vkHandle = view;
+}
+
+// === CommandPool : public ===
 CommandPool::~CommandPool() noexcept
 {
-	if (m_pData)
+	if (m_pData) [[likely]]
 	{
-		m_pData->Device->destroyCommandPool(getHandle(), nullptr);
+		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
 	}
 }
@@ -47,25 +83,15 @@ CommandPool::~CommandPool() noexcept
 CommandBuffersContainer CommandPool::allocateCommandBuffers(uint32_t count, VkCommandBufferLevel level) const
 {
 	return CommandBuffersContainer::Builder()
-		.withCommandPool(this)
+		.withCommandPool(*this)
 		.withCommandBufferCount(count)
 		.withLevel(level)
 		.sbuild();
 }
 
-VkCommandPool CommandPool::getHandle() const noexcept
-{
-	return m_pData->vkCommandPool;
-}
-
-CommandPool::operator VkCommandPool() const noexcept
-{
-	return getHandle();
-}
-
-//  > Move
 CommandPool::CommandPool(CommandPool&& other) noexcept
 	: m_pData(other.m_pData)
+	, m_isView(other.m_isView)
 {
 	other.m_pData = nullptr;
 }
@@ -73,89 +99,131 @@ CommandPool& CommandPool::operator=(CommandPool&& other) noexcept
 {
 	if (this != &other) [[likely]]
 	{
-		if (m_pData) delete m_pData;
+		if (m_pData)
+		{
+			if (!m_isView) [[likely]] onDestroy(*m_pData);
+			delete m_pData;
+		}
 		m_pData = other.m_pData;
+		m_isView = other.m_isView;
 		other.m_pData = nullptr;
 	}
 	return *this;
 }
 
-//  > Methods
-#define _RVAR(storetype, argtype, name) argtype CommandPool::get##name() const noexcept { return m_pData->name; }
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name)\
-	const std::vector<type>& CommandPool::get##name() const noexcept { return m_pData->name; }\
-	std::vector<type>::size_type CommandPool::get##name##Size() const noexcept { return m_pData->name.size(); }\
-	const std::vector<type>::value_type* CommandPool::get##name##Data() const noexcept { return m_pData->name.data(); }\
-	const std::vector<type>::value_type& CommandPool::get##name(size_t idx) const noexcept { return m_pData->name[idx]; }
-#define _OARR(type, name, ...) _RARR(type, name)
-#define _FLG(name) bool CommandPool::is##name() const noexcept { return m_pData->name; }
-#include <snvoxeng\.def\vk\CommandPool.h>
+VkCommandPool CommandPool::vkHandle() const noexcept { return m_pData->vkHandle; }
+CommandPool::operator VkCommandPool() const noexcept { return m_pData->vkHandle; }
+
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+DETAIL_##return_policy##_t(store_t) CommandPool::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+DETAIL_##return_policy##_t(store_t) CommandPool::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+DETAIL_##return_policy##_t(store_t) CommandPool::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+DETAIL_##return_policy##_t(store_t) CommandPool::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+#include <snvoxeng/.def/vk/CommandPool.h>
 
 
-
-// === Builder ===
-#include <snassert/snassert.hpp>
 
 typedef CommandPool::Builder Builder;
 
-//  > Data
-#ifdef _DEBUG
-struct Builder::Temp
+// === Builder : private ===
+void Builder::finalize(data_t& data)
 {
-	enum class eDefFlag
+	// here is your impl
+}
+
+#ifdef DETAIL_SNBCG_DEBUG
+struct Builder::temp_t
+{
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
+#include <snvoxeng/.def/vk/CommandPool.h>
+
+	void validate() const
 	{
-		eNone,
-		eAddCalled,
-		eWithCalled,
-	};
-#define _RVAR(storetype, argtype, name) eDefFlag f##name{ eDefFlag::eNone };
-#define _OVAR(storetype, argtype, name, value) _RVAR(storetype, argtype, name)
-#define _RARR(type, name) _RVAR(std::vector<type>, const std::vector<type>&, name)
-#define _OARR(type, name, ...) _RVAR(std::vector<type>, const std::vector<type>&, name)
-#define _FLG(name) _RVAR(bool, bool, name)
-#include <snvoxeng\.def\vk\CommandPool.h>
-
-	void validate() const;
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		snassert((name & 0b01) != 0,\
+			#Name " is required, but not defined",\
+			"Call Builder::with" #Name "(...)"\
+		);\
+		snassert((name & 0b10) == 0,\
+			#Name " is defined twice",\
+			"Call Builder::with" #Name "(...) once"\
+		);
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+		snassert((name & 0b10) == 0,\
+			#Name " is defined twice",\
+			"Call Builder::with" #Name "(...) once"\
+		);
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		snassert((name & 0b01) != 0,\
+			#Name " is required, but not defined",\
+			"Call Builder::with" #Name "(...)\n"\
+			"  or Builder::add" #Name "(...)"\
+		);\
+		snassert((name & 0b10) == 0,\
+			#Name " is defined twice",\
+			"Call Builder::with" #Name "(...) once\n"\
+			"  and do not call Builder::with" #Name "(...) after calling\n"\
+			"  Builder::add" #Name "(...)"\
+		);
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+		snassert((name & 0b10) == 0,\
+			#Name " is defined twice",\
+			"Call Builder::with" #Name "(...) once\n"\
+			"  and do not call Builder::with" #Name "(...) after calling\n"\
+			"  Builder::add" #Name "(...)"\
+		);
+#include <snvoxeng/.def/vk/CommandPool.h>
+	}
 };
-#endif
+#define SNBCG_VALIDATE_ON_WITH(name, Name) m_pTemp->name = ((m_pTemp->name << 1u) & 0b11) | 0b01;
+#define SNBCG_VALIDATE_ON_ADD(name, Name) m_pTemp->name = m_pTemp->name | 0b01;
+#else // ^ DETAIL_SNBCG_DEBUG ^
+#define SNBCG_VALIDATE_ON_WITH(name, Name)
+#define SNBCG_VALIDATE_ON_ADD(name, Name)
+#endif // ^ ~DETAIL_SNBCG_DEBUG ^
 
-//  > Init
+// === Builder : public ===
 Builder::Builder()
-	: m_pData(new CommandPool::Data{})
-#ifdef _DEBUG
-	, m_pTemp(new Temp{})
-#endif
+	: m_pData(new data_t{})
+#ifdef DETAIL_SNBCG_DEBUG
+	, m_pTemp(new temp_t{})
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 {
 }
 Builder::~Builder() noexcept
 {
-#ifdef _DEBUG
-	delete m_pTemp;
-#endif
-	if (m_pData)
-	{
-		delete m_pData;
-		snassert(
-			false,
-			"Builder initialized, but not used",
-			"Try to call .build()\n"
-			"or do not use original Builder"
-		);
-	}
+	if (m_pData) [[unlikely]] delete m_pData;
+#ifdef DETAIL_SNBCG_DEBUG
+	if (m_pTemp) [[likely]] delete m_pTemp;
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 }
 
-//  > Move
+Builder Builder::clone() const
+{
+	auto builder = Builder();
+	(*builder.m_pData) = (*m_pData);
+#ifdef DETAIL_SNBCG_DEBUG
+	(*builder.m_pTemp) = (*m_pTemp);
+#endif // ^ DETAIL_SNBCG_DEBUG ^
+	return builder;
+}
+
 Builder::Builder(Builder&& other) noexcept
 	: m_pData(other.m_pData)
-#ifdef _DEBUG
+#ifdef DETAIL_SNBCG_DEBUG
 	, m_pTemp(other.m_pTemp)
-#endif
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 {
 	other.m_pData = nullptr;
-#ifdef _DEBUG
+#ifdef DETAIL_SNBCG_DEBUG
 	other.m_pTemp = nullptr;
-#endif
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 }
 Builder& Builder::operator=(Builder&& other) noexcept
 {
@@ -164,110 +232,95 @@ Builder& Builder::operator=(Builder&& other) noexcept
 		if (m_pData) delete m_pData;
 		m_pData = other.m_pData;
 		other.m_pData = nullptr;
-#ifdef _DEBUG
+#ifdef DETAIL_SNBCG_DEBUG
+		if (m_pTemp) delete m_pTemp;
 		m_pTemp = other.m_pTemp;
 		other.m_pTemp = nullptr;
-#endif
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	}
 	return *this;
 }
 
-//  > Build
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+Builder& Builder::with##Name(arg_t name) {\
+	SNBCG_VALIDATE_ON_WITH(name, Name)\
+	std::add_lvalue_reference_t<arg_t> arg = name;\
+	m_pData->subdata##name = store_policy;\
+	return *this;\
+}
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
+Builder& Builder::with##Name(arg_t name) {\
+	SNBCG_VALIDATE_ON_WITH(name, Name)\
+	std::add_lvalue_reference_t<arg_t> arg = name;\
+	m_pData->subdata##name = store_policy;\
+	return *this;\
+}
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+Builder& Builder::with##Name(args_t name) {\
+	SNBCG_VALIDATE_ON_WITH(name, Name)\
+	std::add_lvalue_reference_t<args_t> arg = name;\
+	m_pData->subdata##name = store_policy;\
+	return *this;\
+}\
+Builder& Builder::add##Name(args_t name) {\
+	SNBCG_VALIDATE_ON_ADD(name, Name)\
+	std::add_lvalue_reference_t<args_t> args = name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	DETAIL_##store_action##_MULTI;\
+	return *this;\
+}\
+Builder& Builder::add##Name(arg_t name) {\
+	SNBCG_VALIDATE_ON_ADD(name, Name)\
+	std::add_lvalue_reference_t<arg_t> arg = name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	DETAIL_##store_action##_SINGLE;\
+	return *this;\
+}
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
+Builder& Builder::with##Name(args_t name) {\
+	SNBCG_VALIDATE_ON_WITH(name, Name)\
+	std::add_lvalue_reference_t<args_t> arg = name;\
+	m_pData->subdata##name = store_policy;\
+	return *this;\
+}\
+Builder& Builder::add##Name(args_t name) {\
+	SNBCG_VALIDATE_ON_ADD(name, Name)\
+	std::add_lvalue_reference_t<args_t> args = name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	DETAIL_##store_action##_MULTI;\
+	return *this;\
+}\
+Builder& Builder::add##Name(arg_t name) {\
+	SNBCG_VALIDATE_ON_ADD(name, Name)\
+	std::add_lvalue_reference_t<arg_t> arg = name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	DETAIL_##store_action##_SINGLE;\
+	return *this;\
+}
+#include <snvoxeng/.def/vk/CommandPool.h>
+
 CommandPool Builder::sbuild()
 {
-#ifdef _DEBUG
 	m_pTemp->validate();
-#endif
+	finalize(*m_pData);
 	return CommandPool{ m_pData };
 }
 CommandPool* Builder::build()
 {
-#ifdef _DEBUG
 	m_pTemp->validate();
-#endif
+	finalize(*m_pData);
 	return new CommandPool{ m_pData };
 }
 
-#ifdef _DEBUG
-void Builder::Temp::validate() const
+CommandPool Builder::sbuild(VkCommandPool view)
 {
-#define _RVAR(storetype, argtype, name)\
-	snassert(\
-		f##name != eDefFlag::eNone,\
-		#name " is required, but not defined",\
-		"Try to call .with" #name "(...)"\
-	);
-#define _RARR(type, name)\
-	snassert(\
-		f##name != eDefFlag::eNone,\
-		#name " is required, but not defined",\
-		"Try to call .with" #name "(...)\n"\
-		"or          .add" #name "(...)"\
-	);
-#include <snvoxeng\.def\vk\CommandPool.h>
+	m_pTemp->validate();
+	finalize(*m_pData);
+	return CommandPool{ m_pData, view };
 }
-
-#define _SET_DEF_FLAG_ADD(name) { m_pTemp->f##name = Temp::eDefFlag::eAddCalled; }
-
-#define _SET_DEF_FLAG_WITH(name){\
-	snassert(m_pTemp->f##name != Builder::Temp::eDefFlag::eWithCalled,\
-		"Builder::with" #name " is called twice",\
-		"Do not call .with-method twice"\
-	);\
-	snassert(m_pTemp->f##name != Builder::Temp::eDefFlag::eAddCalled,\
-		"Builder::with" #name " is called after Builder::add" #name,\
-		"Do not call .with-method after calling .add-method\n"\
-	);\
-	m_pTemp->f##name = Temp::eDefFlag::eWithCalled;}
-
-#define _SET_DEF_FLAG_SET(name){\
-	snassert(m_pTemp->f##name != Builder::Temp::eDefFlag::eWithCalled,\
-		"Builder::set" #name " is called twice",\
-		"Do not call .set-method twice"\
-	);\
-	m_pTemp->f##name = Temp::eDefFlag::eWithCalled;}
-
-#else
-#define _SET_DEF_FLAG_ADD(name) ((void)(0));
-#define _SET_DEF_FLAG_WITH(name) ((void)(0));
-#define _SET_DEF_FLAG_SET(name) ((void)(0));
-#endif
-
-#define _RVAR(storetype, argtype, name)\
-	Builder& Builder::with##name(argtype name)\
-	{\
-		_SET_DEF_FLAG_WITH(name)\
-		m_pData->name = name;\
-		return *this;\
-	}
-#define _OVAR(storetype, argtype, name, value)\
-	Builder& Builder::with##name(argtype name)\
-	{\
-		_SET_DEF_FLAG_WITH(name)\
-		m_pData->name = name;\
-		return *this;\
-	}
-#define _RARR(type, name)\
-	_RVAR(std::vector<type>, const std::vector<type>&, name)\
-	Builder& Builder::add##name(const std::vector<type>& name)\
-	{\
-		_SET_DEF_FLAG_ADD(name)\
-		m_pData->name.insert(m_pData->name.end(), name.begin(), name.end());\
-		return *this;\
-	}
-#define _OARR(type, name, ...)\
-	_OVAR(std::vector<type>, const std::vector<type>&, name,)\
-	Builder& Builder::add##name(const std::vector<type>& name)\
-	{\
-		_SET_DEF_FLAG_ADD(name)\
-		m_pData->name.insert(m_pData->name.end(), name.begin(), name.end());\
-		return *this;\
-	}
-#define _FLG(name) Builder& Builder::set##name()\
-	{\
-		_SET_DEF_FLAG_SET(name)\
-		m_pData->name = true;\
-		return *this;\
-	}
-	
-#include <snvoxeng\.def\vk\CommandPool.h>
+CommandPool* Builder::build(VkCommandPool view)
+{
+	m_pTemp->validate();
+	finalize(*m_pData);
+	return new CommandPool{ m_pData, view };
+}
