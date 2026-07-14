@@ -1,6 +1,8 @@
 #include <snvoxeng/snvoxeng/vk/Device.hpp>
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
+
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
 
@@ -94,8 +96,11 @@ void Device::onCreate(data_t& data)
 	data.vkCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	data.vkCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-	snassert(vkCreateDevice(data.pPhysicalDevice->getHandle(), &data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkDevice", "Check Builder settings");
+	{
+		auto result = vkCreateDevice(data.pPhysicalDevice->getHandle(), &data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkDevice", "Check Builder settings");
+	}
 
 	data.namedQueues.resize(data.queueRequests.size());
 	for (const auto& group : uniqueFamilies)
@@ -116,10 +121,18 @@ void Device::onCreate(data_t& data)
 			};
 		}
 	}
+
+	if (m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream())
+		*m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream()
+		<< "[trace]: Device 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void Device::onDestroy(data_t& data) noexcept
 {
 	vkDestroyDevice(data.vkHandle, data.vkPAllocator);
+
+	if (m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream())
+		*m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream()
+		<< "[trace]: Device 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 Device::Device(data_t*& pData)
@@ -486,26 +499,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 Device Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Device{ m_pData };
 }
 Device* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Device{ m_pData };
 }
 
 Device Builder::sbuild(VkDevice view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Device{ m_pData, view };
 }
 Device* Builder::build(VkDevice view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Device{ m_pData, view };
 }

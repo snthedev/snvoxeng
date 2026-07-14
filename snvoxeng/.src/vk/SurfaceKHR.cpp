@@ -52,7 +52,6 @@ void SurfaceKHR::onCreate(data_t& data)
 	if (data.windowDescription.platform == WindowDescription_t::platform_type::headless) return;
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-
 	snassert(data.windowDescription.platform == WindowDescription_t::platform_type::win32,
 		"Platform mismatch", "Provide a 'WindowDescription' corresponding to the current platform.");
 
@@ -62,17 +61,28 @@ void SurfaceKHR::onCreate(data_t& data)
 		.hinstance = static_cast<HINSTANCE>(data.windowDescription.handle_param1),
 		.hwnd = static_cast<HWND>(data.windowDescription.handle_param2),
 	};
-	snassert(vkCreateWin32SurfaceKHR(data.pInstance->vkHandle(), &createInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkSurfaceKHR", "Check Builder settings");
+	{
+		auto result = vkCreateWin32SurfaceKHR(data.pInstance->vkHandle(), &createInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkSurfaceKHR", "Check Builder settings");
+	}
 
 #else
 	snassert(data.windowDescription.platform == WindowDescription_t::platform_type::headless,
 		"Platform mismatch", "Provide a 'WindowDescription' corresponding to the current platform.");
 #endif
+
+	if (m_pData->pInstance->getDebugStream())
+		*m_pData->pInstance->getDebugStream()
+		<< "[trace]: SurfaceKHR 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void SurfaceKHR::onDestroy(data_t& data) noexcept
 {
 	vkDestroySurfaceKHR(data.pInstance->vkHandle(), data.vkHandle, data.vkPAllocator);
+
+	if (m_pData->pInstance->getDebugStream())
+		*m_pData->pInstance->getDebugStream()
+		<< "[trace]: SurfaceKHR 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 SurfaceKHR::SurfaceKHR(data_t*& pData)
@@ -311,26 +321,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 SurfaceKHR Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return SurfaceKHR{ m_pData };
 }
 SurfaceKHR* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new SurfaceKHR{ m_pData };
 }
 
 SurfaceKHR Builder::sbuild(VkSurfaceKHR view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return SurfaceKHR{ m_pData, view };
 }
 SurfaceKHR* Builder::build(VkSurfaceKHR view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new SurfaceKHR{ m_pData, view };
 }

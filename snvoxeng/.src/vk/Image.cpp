@@ -1,6 +1,8 @@
 #include <snvoxeng/snvoxeng/vk/Image.hpp>
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
+
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
 
@@ -46,12 +48,23 @@ struct Image::data_t
 
 void Image::onCreate(data_t& data)
 {
-	snassert(data.pDevice->createImage(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkImage", "Check builder settings");
+	{
+		auto result = data.pDevice->createImage(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkImage", "Check builder settings");
+	}
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: Image 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void Image::onDestroy(data_t& data) noexcept
 {
 	data.pDevice->destroyImage(data.vkHandle, data.vkPAllocator);
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: Image 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 Image::Image(data_t*& pData)
@@ -300,26 +313,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 Image Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Image{ m_pData };
 }
 Image* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Image{ m_pData };
 }
 
 Image Builder::sbuild(VkImage view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Image{ m_pData, view };
 }
 Image* Builder::build(VkImage view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Image{ m_pData, view };
 }

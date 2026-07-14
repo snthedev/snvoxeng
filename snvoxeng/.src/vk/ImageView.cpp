@@ -1,6 +1,8 @@
 #include <snvoxeng/snvoxeng/vk/ImageView.hpp>
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
+
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
 
@@ -45,12 +47,23 @@ struct ImageView::data_t
 
 void ImageView::onCreate(data_t& data)
 {
-	snassert(data.pImage->getDevice().createImageView(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkImageView", "Check builder settings");
+	{
+		auto result = data.pImage->getDevice().createImageView(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkImageView", "Check builder settings");
+	}
+
+	if (m_pData->pImage->getDevice().getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pImage->getDevice().getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: ImageView 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void ImageView::onDestroy(data_t& data) noexcept
 {
 	data.pImage->getDevice().destroyImageView(data.vkHandle, data.vkPAllocator);
+
+	if (m_pData->pImage->getDevice().getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pImage->getDevice().getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: ImageView 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 ImageView::ImageView(data_t*& pData)
@@ -292,26 +305,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 ImageView Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return ImageView{ m_pData };
 }
 ImageView* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new ImageView{ m_pData };
 }
 
 ImageView Builder::sbuild(VkImageView view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return ImageView{ m_pData, view };
 }
 ImageView* Builder::build(VkImageView view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new ImageView{ m_pData, view };
 }

@@ -2,13 +2,15 @@
 
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
 
-#include <filesystem>
-#include <mutex>
+#include <cstdint>
 
 namespace sn::voxeng
 {
     class SNVOXENG_API ShaderCompiler final
     {
+        class _Impl;
+        static _Impl& get();
+
     public:
         struct settings_t
         {
@@ -30,22 +32,6 @@ namespace sn::voxeng
             ~shader_t();
         };
 
-    private:
-        static std::mutex s_settings_mutex;
-        static settings_t s_settings;
-
-        class _Impl final
-        {
-        public:
-            _Impl();
-            ~_Impl() noexcept;
-
-            shader_t loadFromFile(const char* filepath, bool forceCompile);
-        };
-
-        static _Impl& get();
-
-    public:
         ShaderCompiler() = delete;
 
         static settings_t getSettings();

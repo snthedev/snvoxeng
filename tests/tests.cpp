@@ -93,8 +93,8 @@ static cstrs::cstr u2bin_str(const T& val)
 static cstrs::cstr VkQueueFlags2str(VkQueueFlags val)
 {
 	size_t at = 0u;
-	cstrs::cstr buf(512);
-	at = buf.fill("[", at);
+	cstrs::cstr buf(512, '\0');
+	at = buf.fill("[ ", at);
 	if ((val & VK_QUEUE_GRAPHICS_BIT) != 0) at = buf.fill("\"GRAPHICS_BIT\", ", at);
 	if ((val & VK_QUEUE_COMPUTE_BIT) != 0) at = buf.fill("\"COMPUTE_BIT\", ", at);
 	if ((val & VK_QUEUE_TRANSFER_BIT) != 0) at = buf.fill("\"TRANSFER_BIT\", ", at);
@@ -104,8 +104,9 @@ static cstrs::cstr VkQueueFlags2str(VkQueueFlags val)
 	if ((val & VK_QUEUE_VIDEO_ENCODE_BIT_KHR) != 0) at = buf.fill("\"VIDEO_ENCODE_BIT_KHR\", ", at);
 	if ((val & VK_QUEUE_OPTICAL_FLOW_BIT_NV) != 0) at = buf.fill("\"OPTICAL_FLOW_BIT_NV\", ", at);
 	if ((val & VK_QUEUE_DATA_GRAPH_BIT_ARM) != 0) at = buf.fill("\"DATA_GRAPH_BIT_ARM\", ", at);
-	buf.truncate(buf.find_last_of(cstrs::cset("\"[")) + 2u);
-	buf.back() = ']';
+	buf.truncate(at);
+	if (at > 2u) buf[at - 2u] = ' ';
+	buf[at - 1u] = ']';
 	return buf;
 }
 
@@ -162,11 +163,13 @@ int main()
 			.withApiVersion(VK_API_VERSION_1_3)
 			.withApplicationName("snvoxeng test")
 			.withApplicationVersion(VK_MAKE_API_VERSION(0, 0, 1, 0))
+			.addExtensions(instance_extensions)
+#ifndef NDEBUG
 			.addValidationLayers({ "VK_LAYER_KHRONOS_validation" })
 			.addExtensions({ "VK_EXT_debug_utils" })
-			.addExtensions(instance_extensions)
 			.withDebugMessengerEnabled(true)
 			.withDebugStream(std::cout)
+#endif
 			.sbuild();
 
 		auto surface_khr = sn::voxeng::vk::SurfaceKHR::Builder()
@@ -181,15 +184,15 @@ int main()
 			using namespace sn::voxeng::vk::fPhysicalDeviseSelectors;
 
 			std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-			fExtensions_user_data_t fExtensions_user_data {
+			fExtensions_user_data_t fExtensions_user_data{
 				.ppExtensionNames = deviceExtensions.data(),
 				.extensionCount = deviceExtensions.size(),
 			};
-			fQueueSupport_user_data_t fQueueSupport_user_data {
+			fQueueSupport_user_data_t fQueueSupport_user_data{
 				.requiredFlagsOr = VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT | VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT,
 				.requiredFlagsAnd = VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT,
 			};
-			fSurfaceSupport_user_data_t fSurfaceSupport_user_data {
+			fSurfaceSupport_user_data_t fSurfaceSupport_user_data{
 				.surface = surface_khr.vkHandle(),
 			};
 
@@ -199,7 +202,7 @@ int main()
 				.pick(fSurfaceSupport, &fSurfaceSupport_user_data)
 				;
 
-			fDeviceType_user_data_t fDeviceType_user_data {
+			fDeviceType_user_data_t fDeviceType_user_data{
 				.deviceType = VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
 			};
 
@@ -226,13 +229,13 @@ int main()
 			"Failed to find requested GPU's compute queue family",
 			"See GPU pick impl");
 
-		std::cout 
-			<< "GPU's graphics_family: " << graphics_family 
+		std::cout
+			<< "GPU's graphics_family: " << graphics_family
 			<< " " << gpu.getQueueFamilyProperties()[graphics_family] << "\n";
-		std::cout 
+		std::cout
 			<< "GPU's transfer_family: " << transfer_family
 			<< " " << gpu.getQueueFamilyProperties()[transfer_family] << "\n";
-		std::cout 
+		std::cout
 			<< "GPU's compute_family: " << compute_family
 			<< " " << gpu.getQueueFamilyProperties()[compute_family] << "\n";
 
@@ -355,10 +358,10 @@ int main()
 		auto compiler_settings = sn::voxeng::ShaderCompiler::getSettings();
 		compiler_settings.apiVersion = instance.getApiVersion();
 		sn::voxeng::ShaderCompiler::setSettings(compiler_settings);
-
+		
 		auto compute_shader_spv = sn::voxeng::ShaderCompiler::loadFromFile(".res/shaders/test.comp");
 		std::cout << "Shader compiled (" << compute_shader_spv.sizeInBytes << " bytes)\n";
-
+		
 		std::cout << "[main()]: OK\n";
 	}
 	catch (const std::exception& e)
