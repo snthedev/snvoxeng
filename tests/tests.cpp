@@ -361,6 +361,22 @@ int main()
 		
 		auto compute_shader_spv = sn::voxeng::ShaderCompiler::loadFromFile(".res/shaders/test.comp");
 		std::cout << "Shader compiled (" << compute_shader_spv.sizeInBytes << " bytes)\n";
+
+		auto descriptor_set_layout = sn::voxeng::vk::DescriptorSetLayout::Builder()
+			.withDevice(device)
+			.addBindings(VkDescriptorSetLayoutBinding{
+				.binding = 0,
+				.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				.descriptorCount = 1u,
+				.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+				.pImmutableSamplers = nullptr,
+				})
+			.sbuild();
+
+		auto pipeline_layout = sn::voxeng::vk::PipelineLayout::Builder()
+			.withDevice(device)
+			.addSetLayouts(descriptor_set_layout.vkHandle())
+			.sbuild();
 		
 		std::cout << "[main()]: OK\n";
 	}

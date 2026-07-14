@@ -273,6 +273,25 @@ VkResult Device::bindImageMemory(VkImage image, VkDeviceMemory memory, VkDeviceS
 	return vkBindImageMemory(m_pData->vkHandle, image, memory, memoryOffset);
 }
 
+VkResult Device::createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout) const
+{
+	return vkCreateDescriptorSetLayout(m_pData->vkHandle, pCreateInfo, pAllocator, pSetLayout);
+}
+void Device::destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyDescriptorSetLayout(m_pData->vkHandle, descriptorSetLayout, pAllocator);
+}
+
+VkResult Device::createPipelineLayout(const VkPipelineLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineLayout* pPipelineLayout) const
+{
+	return vkCreatePipelineLayout(m_pData->vkHandle, pCreateInfo, pAllocator, pPipelineLayout);
+}
+
+void Device::destroyPipelineLayout(VkPipelineLayout pipelineLayout, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyPipelineLayout(m_pData->vkHandle, pipelineLayout, pAllocator);
+}
+
 Device::Device(Device&& other) noexcept
 	: m_pData(other.m_pData)
 	, m_isView(other.m_isView)

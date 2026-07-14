@@ -25,3 +25,6 @@
 #include <snvoxeng/snvoxeng/vk/DeviceMemory.hpp>
 
 #include <snvoxeng/snvoxeng/ShaderCompiler.hpp>
+
+#include <snvoxeng/snvoxeng/vk/DescriptorSetLayout.hpp>
+#include <snvoxeng/snvoxeng/vk/PipelineLayout.hpp>
