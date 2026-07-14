@@ -14,13 +14,19 @@ CommandBuffer::CommandBuffer(const CommandBuffersContainer& container, size_t id
 void CommandBuffer::begin(VkCommandBufferBeginInfo info) const
 {
     info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    snassert(vkBeginCommandBuffer(vkHandle(), &info) == VK_SUCCESS,
-        "Failed to begin command buffer recording", "");
+    {
+        auto result = vkBeginCommandBuffer(vkHandle(), &info);
+        snassert(result == VK_SUCCESS,
+            "Failed to begin command buffer recording", "");
+    }
 }
 void CommandBuffer::end() const
 {
-    snassert(vkEndCommandBuffer(vkHandle()) == VK_SUCCESS,
-        "Failed to record command buffer", "");
+    {
+        auto result = vkEndCommandBuffer(vkHandle());
+        snassert(result == VK_SUCCESS,
+            "Failed to record command buffer", "");
+    }
 }
 
 void CommandBuffer::cmdPipelineBarrier(

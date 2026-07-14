@@ -1,4 +1,5 @@
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceSelector.hpp>
+#include <snvoxeng/snvoxeng/vk/PhysicalDevice.hpp>
 
 #include <snassert/snassert.hpp>
 

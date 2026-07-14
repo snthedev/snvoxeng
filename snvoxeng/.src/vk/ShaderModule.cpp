@@ -1,26 +1,24 @@
-#include <snvoxeng/snvoxeng/vk/SurfaceKHR.hpp>
+#include <snvoxeng/snvoxeng/vk/ShaderModule.hpp>
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
+
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
-
-#ifdef _WIN32
-#include <windows.h>
-#define VK_USE_PLATFORM_WIN32_KHR
-#include <vulkan/vulkan_win32.h>
-#endif
 
 using namespace sn::voxeng::vk;
 
 namespace default_values
 {
 #define SNBCG_DEFAULT_VALUES
-#include <snvoxeng/.def/vk/SurfaceKHR.h>
+#include <snvoxeng/.def/vk/ShaderModule.h>
 }
 
-// === SurfaceKHR : private ===
-struct SurfaceKHR::data_t
+// === ShaderModule : private ===
+struct ShaderModule::data_t
 {
+	VkShaderModuleCreateInfo vkCreateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkShaderModuleCreateInfo>() } };
+	
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
@@ -29,7 +27,7 @@ struct SurfaceKHR::data_t
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
-#include <snvoxeng/.def/vk/SurfaceKHR.h>
+#include <snvoxeng/.def/vk/ShaderModule.h>
 
 	data_t()
 	{
@@ -41,67 +39,47 @@ struct SurfaceKHR::data_t
 		subdata name = {};
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		subdata name = default_values::name;
-#include <snvoxeng/.def/vk/SurfaceKHR.h>
+#include <snvoxeng/.def/vk/ShaderModule.h>
 	}
 
-	VkSurfaceKHR vkHandle{ VK_NULL_HANDLE };
+	VkShaderModule vkHandle{ VK_NULL_HANDLE };
 };
 
-void SurfaceKHR::onCreate(data_t& data)
+void ShaderModule::onCreate(data_t& data)
 {
-	if (data.windowDescription.platform == WindowDescription_t::platform_type::headless) return;
+	auto result = data.pDevice->createShaderModule(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+	snassert(result == VK_SUCCESS,
+		"Failed to create VkShaderModule", "Check Builder settings");
 
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-	snassert(data.windowDescription.platform == WindowDescription_t::platform_type::win32,
-		"Platform mismatch", "Provide a 'WindowDescription' corresponding to the current platform.");
-
-	VkWin32SurfaceCreateInfoKHR createInfo
-	{
-		.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-		.hinstance = static_cast<HINSTANCE>(data.windowDescription.handle_param1),
-		.hwnd = static_cast<HWND>(data.windowDescription.handle_param2),
-	};
-	{
-		auto result = vkCreateWin32SurfaceKHR(data.pInstance->vkHandle(), &createInfo, data.vkPAllocator, &data.vkHandle);
-		snassert(result == VK_SUCCESS,
-			"Failed to create VkSurfaceKHR", "Check Builder settings");
-	}
-
-#else
-	snassert(data.windowDescription.platform == WindowDescription_t::platform_type::headless,
-		"Platform mismatch", "Provide a 'WindowDescription' corresponding to the current platform.");
-#endif
-
-	if (m_pData->pInstance->getDebugStream())
-		*m_pData->pInstance->getDebugStream()
-		<< "[trace]: SurfaceKHR 0x" << std::hex << this << std::dec << " created" << std::endl;
+	if (data.pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*data.pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: ShaderModule 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
-void SurfaceKHR::onDestroy(data_t& data) noexcept
+void ShaderModule::onDestroy(data_t& data) noexcept
 {
-	vkDestroySurfaceKHR(data.pInstance->vkHandle(), data.vkHandle, data.vkPAllocator);
+	data.pDevice->destroyShaderModule(data.vkHandle, data.vkPAllocator);
 
-	if (m_pData->pInstance->getDebugStream())
-		*m_pData->pInstance->getDebugStream()
-		<< "[trace]: SurfaceKHR 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
+	if (data.pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*data.pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: ShaderModule 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
-SurfaceKHR::SurfaceKHR(data_t*& pData)
+ShaderModule::ShaderModule(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
 	pData = nullptr;
 	onCreate(*m_pData);
 }
-SurfaceKHR::SurfaceKHR(data_t*& pData, VkSurfaceKHR view)
+ShaderModule::ShaderModule(data_t*& pData, VkShaderModule view)
 	: m_pData(pData)
 	, m_isView(true)
 {
 	pData = nullptr;
-	m_pData->vkHandle = view;
 }
 
-// === SurfaceKHR : public ===
-SurfaceKHR::~SurfaceKHR() noexcept
+// === ShaderModule : public ===
+ShaderModule::~ShaderModule() noexcept
 {
 	if (m_pData) [[likely]]
 	{
@@ -110,13 +88,13 @@ SurfaceKHR::~SurfaceKHR() noexcept
 	}
 }
 
-SurfaceKHR::SurfaceKHR(SurfaceKHR&& other) noexcept
+ShaderModule::ShaderModule(ShaderModule&& other) noexcept
 	: m_pData(other.m_pData)
 	, m_isView(other.m_isView)
 {
 	other.m_pData = nullptr;
 }
-SurfaceKHR& SurfaceKHR::operator=(SurfaceKHR&& other) noexcept
+ShaderModule& ShaderModule::operator=(ShaderModule&& other) noexcept
 {
 	if (this != &other) [[likely]]
 	{
@@ -132,26 +110,28 @@ SurfaceKHR& SurfaceKHR::operator=(SurfaceKHR&& other) noexcept
 	return *this;
 }
 
-VkSurfaceKHR SurfaceKHR::vkHandle() const noexcept { return m_pData->vkHandle; }
-SurfaceKHR::operator VkSurfaceKHR() const noexcept { return m_pData->vkHandle; }
+VkShaderModule ShaderModule::vkHandle() const noexcept { return m_pData->vkHandle; }
+ShaderModule::operator VkShaderModule() const noexcept { return m_pData->vkHandle; }
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) SurfaceKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) ShaderModule::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) SurfaceKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) ShaderModule::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) SurfaceKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) ShaderModule::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) SurfaceKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
-#include <snvoxeng/.def/vk/SurfaceKHR.h>
+DETAIL_##return_policy##_t(store_t) ShaderModule::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+#include <snvoxeng/.def/vk/ShaderModule.h>
 
 
 
-typedef SurfaceKHR::Builder Builder;
+typedef ShaderModule::Builder Builder;
 
 // === Builder : private ===
 void Builder::finalize(data_t& data)
 {
+	data.vkCreateInfo.codeSize = static_cast<size_t>(data.pCode->getSize());
+	data.vkCreateInfo.pCode = data.pCode->getCode();
 }
 
 #ifdef DETAIL_SNBCG_DEBUG
@@ -161,7 +141,7 @@ struct Builder::temp_t
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
-#include <snvoxeng/.def/vk/SurfaceKHR.h>
+#include <snvoxeng/.def/vk/ShaderModule.h>
 
 	void validate() const
 	{
@@ -198,7 +178,7 @@ struct Builder::temp_t
 			"  and do not call Builder::with" #Name "(...) after calling\n"\
 			"  Builder::add" #Name "(...)"\
 		);
-#include <snvoxeng/.def/vk/SurfaceKHR.h>
+#include <snvoxeng/.def/vk/ShaderModule.h>
 	}
 };
 #define SNBCG_VALIDATE_ON_WITH(name, Name) m_pTemp->name = ((m_pTemp->name << 1u) & 0b11) | 0b01;
@@ -317,38 +297,38 @@ Builder& Builder::add##Name(arg_t name) {\
 	DETAIL_##store_action##_SINGLE;\
 	return *this;\
 }
-#include <snvoxeng/.def/vk/SurfaceKHR.h>
+#include <snvoxeng/.def/vk/ShaderModule.h>
 
-SurfaceKHR Builder::sbuild()
+ShaderModule Builder::sbuild()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
+#endif
 	finalize(*m_pData);
-	return SurfaceKHR{ m_pData };
+	return ShaderModule{ m_pData };
 }
-SurfaceKHR* Builder::build()
+ShaderModule* Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
+#endif
 	finalize(*m_pData);
-	return new SurfaceKHR{ m_pData };
+	return new ShaderModule{ m_pData };
 }
 
-SurfaceKHR Builder::sbuild(VkSurfaceKHR view)
+ShaderModule Builder::sbuild(VkShaderModule view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
+#endif
 	finalize(*m_pData);
-	return SurfaceKHR{ m_pData, view };
+	return ShaderModule{ m_pData, view };
 }
-SurfaceKHR* Builder::build(VkSurfaceKHR view)
+ShaderModule* Builder::build(VkShaderModule view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
+#endif
 	finalize(*m_pData);
-	return new SurfaceKHR{ m_pData, view };
+	return new ShaderModule{ m_pData, view };
 }

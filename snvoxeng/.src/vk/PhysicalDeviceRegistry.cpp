@@ -1,5 +1,6 @@
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceSelector.hpp>
+#include <snvoxeng/snvoxeng/vk/PhysicalDevice.hpp>
 
 #include <snassert/snassert.hpp>
 
@@ -22,12 +23,18 @@ struct PhysicalDeviceRegistry::data_t
     data_t(const Instance& instance)
         : pInstance(&instance)
     {
-        uint32_t physicalDevicesCount;
-        snassert(pInstance->enumeratePhysicalDevices(&physicalDevicesCount, nullptr) == VK_SUCCESS,
-            "Failed to enumeratePhysicalDevices", "");
+        uint32_t physicalDevicesCount{ 0u };
+        {
+            auto result = pInstance->enumeratePhysicalDevices(&physicalDevicesCount, nullptr);
+            snassert(result == VK_SUCCESS,
+                "Failed to enumeratePhysicalDevices", "");
+        }
         physicalDevices.resize(physicalDevicesCount);
-        snassert(pInstance->enumeratePhysicalDevices(&physicalDevicesCount, physicalDevices.data()) == VK_SUCCESS,
-            "Failed to enumeratePhysicalDevices", "");
+        {
+            auto result = pInstance->enumeratePhysicalDevices(&physicalDevicesCount, physicalDevices.data());
+            snassert(result == VK_SUCCESS,
+                "Failed to enumeratePhysicalDevices", "");
+        }
 
         cached_properties.resize(physicalDevices.size(), std::nullopt);
         cached_features.resize(physicalDevices.size(), std::nullopt);
@@ -43,13 +50,16 @@ VkPhysicalDevice PhysicalDeviceRegistry::vkHandle(size_t idx) const noexcept { r
 PhysicalDeviceRegistry::PhysicalDeviceRegistry(const Instance& instance)
     : m_pData(new data_t{ instance })
 {
-	if (m_pData->pInstance->getDebugStream()) (*m_pData->pInstance->getDebugStream())
-		<< "[PhysicalDeviceRegistry()]: device count "
-		<< m_pData->physicalDevices.size()
-		<< "\n";
+    if (m_pData->pInstance->getDebugStream())
+        *m_pData->pInstance->getDebugStream()
+        << "[trace]: PhysicalDeviceRegistry 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 PhysicalDeviceRegistry::~PhysicalDeviceRegistry() noexcept
 {
+    if (m_pData->pInstance->getDebugStream())
+        *m_pData->pInstance->getDebugStream()
+        << "[trace]: PhysicalDeviceRegistry 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
+
     delete m_pData;
 }
 

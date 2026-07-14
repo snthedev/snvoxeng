@@ -2,6 +2,7 @@
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
 #include <snvoxeng/snvoxeng/vk/Image.hpp>
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
@@ -47,12 +48,23 @@ struct DeviceMemory::data_t
 
 void DeviceMemory::onCreate(data_t& data)
 {
-	snassert(data.pDevice->allocateMemory(&data.vkAllocateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkDeviceMemory", "Check Builder settings");
+	{
+		auto result = data.pDevice->allocateMemory(&data.vkAllocateInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkDeviceMemory", "Check Builder settings");
+	}
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: DeviceMemory 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void DeviceMemory::onDestroy(data_t& data) noexcept
 {
 	data.pDevice->freeMemory(data.vkHandle, data.vkPAllocator);
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: DeviceMemory 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 DeviceMemory::DeviceMemory(data_t*& pData)
@@ -81,7 +93,8 @@ DeviceMemory::~DeviceMemory() noexcept
 
 void DeviceMemory::bindImage(const Image& image, VkDeviceSize memoryOffset) const
 {
-	snassert(m_pData->pDevice->bindImageMemory(image.vkHandle(), m_pData->vkHandle, memoryOffset) == VK_SUCCESS,
+	auto result = m_pData->pDevice->bindImageMemory(image.vkHandle(), m_pData->vkHandle, memoryOffset);
+	snassert(result == VK_SUCCESS,
 		"Failed to bind image", "Check memory properties");
 }
 
@@ -296,26 +309,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 DeviceMemory Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return DeviceMemory{ m_pData };
 }
 DeviceMemory* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new DeviceMemory{ m_pData };
 }
 
 DeviceMemory Builder::sbuild(VkDeviceMemory view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return DeviceMemory{ m_pData, view };
 }
 DeviceMemory* Builder::build(VkDeviceMemory view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new DeviceMemory{ m_pData, view };
 }

@@ -1,6 +1,8 @@
 #include <snvoxeng/snvoxeng/vk/Semaphore.hpp>
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
+
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
 
@@ -45,12 +47,23 @@ struct Semaphore::data_t
 
 void Semaphore::onCreate(data_t& data)
 {
-	snassert(data.pDevice->createSemaphore(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkSemaphore", "Check builder settings");
+	{
+		auto result = data.pDevice->createSemaphore(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkSemaphore", "Check builder settings");
+	}
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: Semaphore 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void Semaphore::onDestroy(data_t& data) noexcept
 {
 	data.pDevice->destroySemaphore(data.vkHandle, data.vkPAllocator);
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: Semaphore 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 Semaphore::Semaphore(data_t*& pData)
@@ -288,26 +301,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 Semaphore Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Semaphore{ m_pData };
 }
 Semaphore* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Semaphore{ m_pData };
 }
 
 Semaphore Builder::sbuild(VkSemaphore view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Semaphore{ m_pData, view };
 }
 Semaphore* Builder::build(VkSemaphore view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Semaphore{ m_pData, view };
 }

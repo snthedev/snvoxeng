@@ -9,6 +9,7 @@
 namespace sn::voxeng::vk
 {
     class PhysicalDeviceRegistry;
+
     class SNVOXENG_API PhysicalDevice final
     {
         const PhysicalDeviceRegistry* m_pRegistry = nullptr;
