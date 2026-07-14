@@ -283,6 +283,21 @@ int main()
 			std::cout << "Command buffer " << buf.getContainerIdx() << " (Compute): 0x" << std::hex << buf.vkHandle() << std::dec << "\n";
 		}
 
+		auto storage_image = sn::voxeng::vk::Image::Builder()
+			.withDevice(device)
+			.withImageType(VK_IMAGE_TYPE_2D)
+			.withFormat(VK_FORMAT_R8G8B8A8_UNORM)
+			.withExtent({ window_description.width, window_description.height, 1 })
+			.withMipLevels(1)
+			.withArrayLayers(1)
+			.withSamples(VK_SAMPLE_COUNT_1_BIT)
+			.withTiling(VK_IMAGE_TILING_OPTIMAL)
+			.withUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+			.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
+			.withInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+			.sbuild();
+		std::cout << "Storage Image 0x " << std::hex << storage_image.vkHandle() << std::dec << "\n";
+
 		std::cout << "[main()]: OK\n";
 	}
 	catch (const std::exception& e)
