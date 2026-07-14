@@ -23,3 +23,5 @@
 #include <snvoxeng/snvoxeng/vk/CommandBuffer.hpp>
 
 #include <snvoxeng/snvoxeng/vk/DeviceMemory.hpp>
+
+#include <snvoxeng/snvoxeng/ShaderCompiler.hpp>

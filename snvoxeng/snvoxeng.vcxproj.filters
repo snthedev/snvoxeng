@@ -111,6 +111,12 @@
     <ClInclude Include="snvoxeng\vk\DeviceMemory.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="snvoxeng\ShaderCompiler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="snvoxeng\ShaderStages.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include=".src\vk\Instance.cpp">
@@ -161,5 +167,11 @@
     <ClCompile Include=".src\vk\DeviceMemory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include=".src\ShaderCompiler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".res\shaders\test.comp" />
   </ItemGroup>
 </Project>

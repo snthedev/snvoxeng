@@ -352,6 +352,13 @@ int main()
 		);
 		storage_image_cmdbuf.end();
 
+		auto compiler_settings = sn::voxeng::ShaderCompiler::getSettings();
+		compiler_settings.apiVersion = instance.getApiVersion();
+		sn::voxeng::ShaderCompiler::setSettings(compiler_settings);
+
+		auto compute_shader_spv = sn::voxeng::ShaderCompiler::loadFromFile(".res/shaders/test.comp");
+		std::cout << "Shader compiled (" << compute_shader_spv.sizeInBytes << " bytes)\n";
+
 		std::cout << "[main()]: OK\n";
 	}
 	catch (const std::exception& e)

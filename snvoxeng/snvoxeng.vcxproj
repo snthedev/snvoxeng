@@ -75,7 +75,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;C:\_storage\projects\_sn\snassert\build</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;snassert-d.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;shaderc_combinedd.lib;snassert-d.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -97,7 +97,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;C:\_storage\projects\_sn\snassert\build</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;snassert.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;shaderc_combined.lib;snassert.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -117,6 +117,8 @@
     <ClInclude Include=".def\vk\SwapchainKHR.h" />
     <ClInclude Include="snvoxeng.hpp" />
     <ClInclude Include="snvoxeng\dll-defines.hpp" />
+    <ClInclude Include="snvoxeng\ShaderCompiler.hpp" />
+    <ClInclude Include="snvoxeng\ShaderStages.hpp" />
     <ClInclude Include="snvoxeng\utils\vk-getSType.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffersContainer.hpp" />
@@ -138,6 +140,7 @@
     <ClInclude Include="snvoxeng\WindowDescription.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include=".src\ShaderCompiler.cpp" />
     <ClCompile Include=".src\vk\CommandBuffer.cpp" />
     <ClCompile Include=".src\vk\CommandBuffersContainer.cpp" />
     <ClCompile Include=".src\vk\CommandPool.cpp" />
@@ -154,6 +157,9 @@
     <ClCompile Include=".src\vk\Semaphore.cpp" />
     <ClCompile Include=".src\vk\SurfaceKHR.cpp" />
     <ClCompile Include=".src\vk\SwapchainKHR.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".res\shaders\test.comp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
