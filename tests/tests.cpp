@@ -382,6 +382,17 @@ int main()
 			.withDevice(device)
 			.addSetLayouts(descriptor_set_layout.vkHandle())
 			.sbuild();
+
+		auto compute_pipeline = sn::voxeng::vk::ComputePipeline::Builder()
+			.withDevice(device)
+			.withLayout(pipeline_layout)
+			.withStage(VkPipelineShaderStageCreateInfo{
+				.stage = VK_SHADER_STAGE_COMPUTE_BIT,
+				.module = compute_shader.vkHandle(),
+				.pName = "main",
+				})
+			.sbuild();
+		std::cout << "Compute Pipeline 0x " << std::hex << compute_pipeline.vkHandle() << std::dec << "\n";
 		
 		std::cout << "[main()]: OK\n";
 	}

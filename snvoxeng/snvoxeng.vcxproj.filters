@@ -135,6 +135,12 @@
     <ClInclude Include="snvoxeng\vk\ShaderModule.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="snvoxeng\vk\ComputePipeline.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include=".def\vk\ComputePipeline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include=".src\vk\Instance.cpp">
@@ -195,6 +201,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include=".src\vk\ShaderModule.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include=".src\vk\ComputePipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

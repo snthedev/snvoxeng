@@ -29,3 +29,4 @@
 
 #include <snvoxeng/snvoxeng/vk/DescriptorSetLayout.hpp>
 #include <snvoxeng/snvoxeng/vk/PipelineLayout.hpp>
+#include <snvoxeng/snvoxeng/vk/ComputePipeline.hpp>

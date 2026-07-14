@@ -89,6 +89,9 @@ namespace sn::voxeng::vk
 		VkResult createShaderModule(const VkShaderModuleCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkShaderModule* pShaderModule) const;
 		void destroyShaderModule(VkShaderModule shaderModule, const VkAllocationCallbacks* pAllocator) const;
 
+		VkResult createComputePipelines(VkPipelineCache pipelineCache, uint32_t createInfoCount, const VkComputePipelineCreateInfo* pCreateInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines) const;
+		void destroyPipeline(VkPipeline pipeline, const VkAllocationCallbacks* pAllocator) const;
+
 		Device(const Device&) = delete;
 		Device& operator=(const Device&) = delete;
 		Device(Device&& other) noexcept;

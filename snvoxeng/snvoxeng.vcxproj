@@ -106,6 +106,7 @@
   <ItemGroup>
     <ClInclude Include=".def\vk\CommandBuffersContainer.h" />
     <ClInclude Include=".def\vk\CommandPool.h" />
+    <ClInclude Include=".def\vk\ComputePipeline.h" />
     <ClInclude Include=".def\vk\DescriptorSetLayout.h" />
     <ClInclude Include=".def\vk\Device.h" />
     <ClInclude Include=".def\vk\DeviceMemory.h" />
@@ -126,6 +127,7 @@
     <ClInclude Include="snvoxeng\vk\CommandBuffer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffersContainer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandPool.hpp" />
+    <ClInclude Include="snvoxeng\vk\ComputePipeline.hpp" />
     <ClInclude Include="snvoxeng\vk\DescriptorSetLayout.hpp" />
     <ClInclude Include="snvoxeng\vk\Device.hpp" />
     <ClInclude Include="snvoxeng\vk\DeviceMemory.hpp" />
@@ -150,6 +152,7 @@
     <ClCompile Include=".src\vk\CommandBuffer.cpp" />
     <ClCompile Include=".src\vk\CommandBuffersContainer.cpp" />
     <ClCompile Include=".src\vk\CommandPool.cpp" />
+    <ClCompile Include=".src\vk\ComputePipeline.cpp" />
     <ClCompile Include=".src\vk\DescriptorSetLayout.cpp" />
     <ClCompile Include=".src\vk\Device.cpp" />
     <ClCompile Include=".src\vk\DeviceMemory.cpp" />
