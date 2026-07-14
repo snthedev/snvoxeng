@@ -3,30 +3,37 @@
 #include <type_traits>
 #include <string_view>
 #include <iterator>
+#include <span>
+#include <vector>
 
-// policy : return
+// policy : return (hpp/cpp)
 #define SNBCG_POLICY_RETURN_CREF            val
 #define SNBCG_POLICY_RETURN_COPY            val
 #define SNBCG_POLICY_RETURN_UNPTR          *val
 #define SNBCG_POLICY_RETURN_PTR            &val
 #define SNBCG_POLICY_RETURN_VIEW          ::std::string_view{ val }
+#define SNBCG_POLICY_RETURN_SPAN            val
 
 #define DETAIL_SNBCG_POLICY_RETURN_CREF_t(T)       std::add_lvalue_reference_t<std::add_const_t<T>>
 #define DETAIL_SNBCG_POLICY_RETURN_COPY_t(T)        T
 #define DETAIL_SNBCG_POLICY_RETURN_UNPTR_t(T)      std::add_lvalue_reference_t<std::add_const_t<std::remove_pointer_t<T>>>
 #define DETAIL_SNBCG_POLICY_RETURN_PTR_t(T)        std::add_const_t<std::add_pointer_t<T>>
 #define DETAIL_SNBCG_POLICY_RETURN_VIEW_t(T)       std::string_view
+#define DETAIL_SNBCG_POLICY_RETURN_SPAN_t(T)       std::span<std::add_const_t<T::value_type>>
 
-// policy : store
-#define SNBCG_POLICY_STORE_COPY             arg
-#define SNBCG_POLICY_STORE_MOVE             ::std::move(arg)
-#define SNBCG_POLICY_STORE_ADDR             &arg
-#define SNBCG_POLICY_STORE_STATIC_CAST      static_cast<store_t>(arg)
-#define SNBCG_POLICY_STORE_REINTERPRET_CAST reinterpret_cast<store_t>(arg)
-#define SNBCG_POLICY_STORE_CONST_CAST       const_cast<store_t>(arg)
-#define SNBCG_POLICY_STORE_DYNAMIC_CAST     dynamic_cast<store_t>(arg)
+// policy : store (cpp)
+#define SNBCG_POLICY_STORE_COPY(T)             arg
+#define SNBCG_POLICY_STORE_MOVE(T)             ::std::move(arg)
+#define SNBCG_POLICY_STORE_ADDR(T)             &arg
+#define SNBCG_POLICY_STORE_STATIC_CAST(T)      static_cast<T>(arg)
+#define SNBCG_POLICY_STORE_REINTERPRET_CAST(T) reinterpret_cast<T>(arg)
+#define SNBCG_POLICY_STORE_CONST_CAST(T)       const_cast<T>(arg)
+#define SNBCG_POLICY_STORE_DYNAMIC_CAST(T)     dynamic_cast<T>(arg)
+#define SNBCG_POLICY_STORE_SPAN_COPY(T)        T{ arg.begin(), arg.end() }
+#define SNBCG_POLICY_STORE_CONSTRUCT_PAREN(T)  T( arg )
+#define SNBCG_POLICY_STORE_CONSTRUCT_BRACE(T)  T{ arg }
 
-// action : append
+// action : append (cpp)
 #define DETAIL_SNBCG_ACTION_APPEND_EMPLACE_SINGLE       val.emplace_back(arg)
 #define DETAIL_SNBCG_ACTION_APPEND_PUSH_SINGLE          val.push_back(arg)
 #define DETAIL_SNBCG_ACTION_APPEND_EMPLACE_MOVE_SINGLE  val.emplace_back(::std::move(arg))

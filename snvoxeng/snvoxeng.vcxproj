@@ -107,6 +107,7 @@
     <ClInclude Include=".def\vk\CommandBuffersContainer.h" />
     <ClInclude Include=".def\vk\CommandPool.h" />
     <ClInclude Include=".def\vk\Device.h" />
+    <ClInclude Include=".def\vk\DeviceMemory.h" />
     <ClInclude Include=".def\vk\Fence.h" />
     <ClInclude Include=".def\vk\Image.h" />
     <ClInclude Include=".def\vk\ImageView.h" />
@@ -121,6 +122,7 @@
     <ClInclude Include="snvoxeng\vk\CommandBuffersContainer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandPool.hpp" />
     <ClInclude Include="snvoxeng\vk\Device.hpp" />
+    <ClInclude Include="snvoxeng\vk\DeviceMemory.hpp" />
     <ClInclude Include="snvoxeng\vk\Fence.hpp" />
     <ClInclude Include="snvoxeng\vk\Image.hpp" />
     <ClInclude Include="snvoxeng\vk\ImageView.hpp" />
@@ -140,6 +142,7 @@
     <ClCompile Include=".src\vk\CommandBuffersContainer.cpp" />
     <ClCompile Include=".src\vk\CommandPool.cpp" />
     <ClCompile Include=".src\vk\Device.cpp" />
+    <ClCompile Include=".src\vk\DeviceMemory.cpp" />
     <ClCompile Include=".src\vk\Fence.cpp" />
     <ClCompile Include=".src\vk\Image.cpp" />
     <ClCompile Include=".src\vk\ImageView.cpp" />

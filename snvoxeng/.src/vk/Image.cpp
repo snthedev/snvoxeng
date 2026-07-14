@@ -31,13 +31,13 @@ struct Image::data_t
 	data_t()
 	{
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		subdata##name = {};
+		subdata name = {};
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		subdata##name = default_values::name;
+		subdata name = default_values::name;
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		subdata##name = {};
+		subdata name = {};
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		subdata##name = default_values::name;
+		subdata name = default_values::name;
 #include <snvoxeng/.def/vk/Image.h>
 	}
 
@@ -80,6 +80,13 @@ Image::~Image() noexcept
 	}
 }
 
+VkMemoryRequirements Image::getMemoryRequirements() const
+{
+	VkMemoryRequirements result;
+	m_pData->pDevice->getImageMemoryRequirements(m_pData->vkHandle, &result);
+	return result;
+}
+
 Image::Image(Image&& other) noexcept
 	: m_pData(other.m_pData)
 	, m_isView(other.m_isView)
@@ -106,13 +113,13 @@ VkImage Image::vkHandle() const noexcept { return m_pData->vkHandle; }
 Image::operator VkImage() const noexcept { return m_pData->vkHandle; }
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) Image::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) Image::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) Image::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) Image::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) Image::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) Image::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) Image::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) Image::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #include <snvoxeng/.def/vk/Image.h>
 
 
@@ -237,34 +244,34 @@ Builder& Builder::operator=(Builder&& other) noexcept
 Builder& Builder::with##Name(arg_t name) {\
 	SNBCG_VALIDATE_ON_WITH(name, Name)\
 	std::add_lvalue_reference_t<arg_t> arg = name;\
-	m_pData->subdata##name = store_policy;\
+	m_pData->subdata name = store_policy(store_t);\
 	return *this;\
 }
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 Builder& Builder::with##Name(arg_t name) {\
 	SNBCG_VALIDATE_ON_WITH(name, Name)\
 	std::add_lvalue_reference_t<arg_t> arg = name;\
-	m_pData->subdata##name = store_policy;\
+	m_pData->subdata name = store_policy(store_t);\
 	return *this;\
 }
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 Builder& Builder::with##Name(args_t name) {\
 	SNBCG_VALIDATE_ON_WITH(name, Name)\
 	std::add_lvalue_reference_t<args_t> arg = name;\
-	m_pData->subdata##name = store_policy;\
+	m_pData->subdata name = store_policy(store_t);\
 	return *this;\
 }\
 Builder& Builder::add##Name(args_t name) {\
 	SNBCG_VALIDATE_ON_ADD(name, Name)\
 	std::add_lvalue_reference_t<args_t> args = name;\
-	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata name;\
 	DETAIL_##store_action##_MULTI;\
 	return *this;\
 }\
 Builder& Builder::add##Name(arg_t name) {\
 	SNBCG_VALIDATE_ON_ADD(name, Name)\
 	std::add_lvalue_reference_t<arg_t> arg = name;\
-	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata name;\
 	DETAIL_##store_action##_SINGLE;\
 	return *this;\
 }
@@ -272,20 +279,20 @@ Builder& Builder::add##Name(arg_t name) {\
 Builder& Builder::with##Name(args_t name) {\
 	SNBCG_VALIDATE_ON_WITH(name, Name)\
 	std::add_lvalue_reference_t<args_t> arg = name;\
-	m_pData->subdata##name = store_policy;\
+	m_pData->subdata name = store_policy(store_t);\
 	return *this;\
 }\
 Builder& Builder::add##Name(args_t name) {\
 	SNBCG_VALIDATE_ON_ADD(name, Name)\
 	std::add_lvalue_reference_t<args_t> args = name;\
-	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata name;\
 	DETAIL_##store_action##_MULTI;\
 	return *this;\
 }\
 Builder& Builder::add##Name(arg_t name) {\
 	SNBCG_VALIDATE_ON_ADD(name, Name)\
 	std::add_lvalue_reference_t<arg_t> arg = name;\
-	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata name;\
 	DETAIL_##store_action##_SINGLE;\
 	return *this;\
 }

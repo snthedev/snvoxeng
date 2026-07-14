@@ -13,6 +13,7 @@
 
 #include <ostream>
 #include <iostream>
+#include <vector>
 
 static sn::voxeng::WindowDescription_t glfw_get_window_descripton(GLFWwindow* window)
 {
@@ -148,6 +149,8 @@ int main()
 
 	try
 	{
+		auto window_description = glfw_get_window_descripton(pWindow);
+
 		std::vector<const char*> instance_extensions = {};
 		{
 			uint32_t glfwExtensionCount = 0;
@@ -168,7 +171,7 @@ int main()
 
 		auto surface_khr = sn::voxeng::vk::SurfaceKHR::Builder()
 			.withInstance(instance)
-			.withWindowDescription(glfw_get_window_descripton(pWindow))
+			.withWindowDescription(window_description)
 			.sbuild();
 
 		sn::voxeng::vk::PhysicalDeviceRegistry physical_device_registry(instance);
@@ -208,19 +211,21 @@ int main()
 		}
 		std::cout << "GPU: " << gpu.getProperties().deviceName << "\n";
 
-		uint32_t graphics_family;
-		uint32_t transfer_family;
-		uint32_t compute_family;
-		try
-		{
-			graphics_family = gpu.findQueueFamily({ .flags = VK_QUEUE_GRAPHICS_BIT, .surface = surface_khr.vkHandle() }).value();
-			transfer_family = gpu.findQueueFamily({ .flags = VK_QUEUE_TRANSFER_BIT, .preferDedicated = true }).value();
-			compute_family = gpu.findQueueFamily({ .flags = VK_QUEUE_COMPUTE_BIT,  .preferDedicated = true }).value();
-		}
-		catch (...)
-		{
-			throw std::runtime_error("Failed to find requested GPU's queue family.");
-		}
+		uint32_t graphics_family = gpu.findQueueFamily({ .flags = VK_QUEUE_GRAPHICS_BIT, .surface = surface_khr.vkHandle() });
+		snassert(graphics_family != sn::voxeng::vk::PhysicalDevice::nmatch,
+			"Failed to find requested GPU's graphics queue family",
+			"See GPU pick impl");
+
+		uint32_t transfer_family = gpu.findQueueFamily({ .flags = VK_QUEUE_TRANSFER_BIT, .preferDedicated = true });
+		snassert(transfer_family != sn::voxeng::vk::PhysicalDevice::nmatch,
+			"Failed to find requested GPU's transfer queue family",
+			"See GPU pick impl");
+
+		uint32_t compute_family = gpu.findQueueFamily({ .flags = VK_QUEUE_COMPUTE_BIT,  .preferDedicated = true });
+		snassert(compute_family != sn::voxeng::vk::PhysicalDevice::nmatch,
+			"Failed to find requested GPU's compute queue family",
+			"See GPU pick impl");
+
 		std::cout 
 			<< "GPU's graphics_family: " << graphics_family 
 			<< " " << gpu.getQueueFamilyProperties()[graphics_family] << "\n";
@@ -233,12 +238,10 @@ int main()
 
 		auto device = sn::voxeng::vk::Device::Builder()
 			.withPhysicalDevice(gpu)
-			.withQueueRequests({
-				{ .name = "graphics", .familyIndex = graphics_family, .priority = 1.0f },
-				{ .name = "compute",  .familyIndex = compute_family,  .priority = 0.8f },
-				{ .name = "transfer", .familyIndex = transfer_family, .priority = 0.5f },
-				})
-			.withExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME })
+			.addQueueRequests({ .name = "graphics", .familyIndex = graphics_family, .priority = 1.0f })
+			.addQueueRequests({ .name = "compute",  .familyIndex = compute_family,  .priority = 0.8f })
+			.addQueueRequests({ .name = "transfer", .familyIndex = transfer_family, .priority = 0.5f })
+			.addExtensions(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
 			.withPhysicalDevice13Features({ .dynamicRendering = VK_TRUE })
 			.sbuild();
 
@@ -278,6 +281,76 @@ int main()
 			auto buf = command_buffers.get(i);
 			std::cout << "Command buffer " << buf.getContainerIdx() << " (Compute): 0x" << std::hex << buf.vkHandle() << std::dec << "\n";
 		}
+
+		auto storage_image = sn::voxeng::vk::Image::Builder()
+			.withDevice(device)
+			.withImageType(VK_IMAGE_TYPE_2D)
+			.withFormat(VK_FORMAT_R8G8B8A8_UNORM)
+			.withExtent({ window_description.width, window_description.height, 1 })
+			.withMipLevels(1)
+			.withArrayLayers(1)
+			.withSamples(VK_SAMPLE_COUNT_1_BIT)
+			.withTiling(VK_IMAGE_TILING_OPTIMAL)
+			.withUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+			.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
+			.withInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+			.sbuild();
+		std::cout << "Storage Image 0x " << std::hex << storage_image.vkHandle() << std::dec << "\n";
+
+		auto storage_image_mem_req = storage_image.getMemoryRequirements();
+		auto storage_image_mem_type = gpu.findMemoryType(storage_image_mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		snassert(storage_image_mem_type != sn::voxeng::vk::PhysicalDevice::nmatch,
+			"Failed to find requested GPU's memory", "");
+
+		auto storage_image_memory = sn::voxeng::vk::DeviceMemory::Builder()
+			.withDevice(device)
+			.withAllocationSize(storage_image_mem_req.size)
+			.withMemoryTypeIndex(storage_image_mem_type)
+			.sbuild();
+
+		storage_image_memory.bindImage(storage_image, 0);
+
+		auto storage_image_view = sn::voxeng::vk::ImageView::Builder()
+			.withImage(storage_image)
+			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
+			.withSubresourceRange({
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+				})
+			.sbuild();
+		std::cout << "Storage Image View 0x " << std::hex << storage_image_view.vkHandle() << std::dec << "\n";
+
+		auto storage_image_cmdbuf = command_buffers.get(0);
+		storage_image_cmdbuf.begin({ .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT });
+		VkImageMemoryBarrier storage_image_barrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			.srcAccessMask = 0,
+			.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_GENERAL,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = storage_image.vkHandle(),
+			.subresourceRange = {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+			}
+		};
+		storage_image_cmdbuf.cmdPipelineBarrier(
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			0,
+			{},
+			{},
+			{ &storage_image_barrier, 1 }
+		);
+		storage_image_cmdbuf.end();
 
 		std::cout << "[main()]: OK\n";
 	}

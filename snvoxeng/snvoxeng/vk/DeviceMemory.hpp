@@ -6,15 +6,14 @@
 #include <ThirdParty/snbcg/bcg.hpp>
 
 #define SNBCG_HEADER_INCLUDE
-#include <snvoxeng/.def/vk/SwapchainKHR.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 
 namespace sn::voxeng::vk
 {
 	class Image;
-	class ImageView;
 
-	// Use SwapchainKHR::Builder for build
-	class SNVOXENG_API SwapchainKHR
+	// Use DeviceMemory::Builder for build
+	class SNVOXENG_API DeviceMemory
 	{
 		struct data_t;
 		data_t* m_pData;
@@ -24,26 +23,21 @@ namespace sn::voxeng::vk
 
 		bool m_isView;
 
-		SwapchainKHR(data_t*& pData);
-		SwapchainKHR(data_t*& pData, VkSwapchainKHR view);
+		DeviceMemory(data_t*& pData);
+		DeviceMemory(data_t*& pData, VkDeviceMemory view);
 
 	public:
-		~SwapchainKHR() noexcept;
+		~DeviceMemory() noexcept;
 
-		uint32_t getMinImageCount() const noexcept;
-		VkExtent2D getImageExtent() const noexcept;
-		VkSurfaceTransformFlagBitsKHR getPreTransform() const noexcept;
+		void bindImage(const Image& image, VkDeviceSize memoryOffset) const;
 
-		std::span<const Image> getImages() const noexcept;
-		std::span<const ImageView> getImageViews() const noexcept;
+		DeviceMemory(const DeviceMemory&) = delete;
+		DeviceMemory& operator=(const DeviceMemory&) = delete;
+		DeviceMemory(DeviceMemory&& other) noexcept;
+		DeviceMemory& operator=(DeviceMemory&& other) noexcept;
 
-		SwapchainKHR(const SwapchainKHR&) = delete;
-		SwapchainKHR& operator=(const SwapchainKHR&) = delete;
-		SwapchainKHR(SwapchainKHR&& other) noexcept;
-		SwapchainKHR& operator=(SwapchainKHR&& other) noexcept;
-
-		VkSwapchainKHR vkHandle() const noexcept;
-		operator VkSwapchainKHR() const noexcept;
+		VkDeviceMemory vkHandle() const noexcept;
+		operator VkDeviceMemory() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
@@ -53,13 +47,13 @@ namespace sn::voxeng::vk
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
-#include <snvoxeng/.def/vk/SwapchainKHR.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 	
 		class Builder;
 		friend class Builder;
-	}; // ^ class SwapchainKHR ^
+	}; // ^ class DeviceMemory ^
 
-	class SNVOXENG_API SwapchainKHR::Builder
+	class SNVOXENG_API DeviceMemory::Builder
 	{
 		data_t* m_pData;
 		void finalize(data_t& data);
@@ -93,20 +87,20 @@ namespace sn::voxeng::vk
 		Builder& with##Name(args_t name);\
 		Builder& add##Name(args_t name);\
 		Builder& add##Name(arg_t name);
-#include <snvoxeng/.def/vk/SwapchainKHR.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 
-		// Builds SwapchainKHR on stack;
+		// Builds DeviceMemory on stack;
 		// Builder is invalid after .sbuild()
-		SwapchainKHR sbuild();
-		// Builds SwapchainKHR on heap;
+		DeviceMemory sbuild();
+		// Builds DeviceMemory on heap;
 		// Builder is invalid after .build()
-		SwapchainKHR* build();
+		DeviceMemory* build();
 
-		// Builds SwapchainKHR (view) on stack;
-		// Builder is invalid after .sbuild(VkSwapchainKHR)
-		SwapchainKHR sbuild(VkSwapchainKHR view);
-		// Builds SwapchainKHR (view) on heap;
-		// Builder is invalid after .build(VkSwapchainKHR)
-		SwapchainKHR* build(VkSwapchainKHR view);
-	}; // ^ class SwapchainKHR::Builder ^
+		// Builds DeviceMemory (view) on stack;
+		// Builder is invalid after .sbuild(VkDeviceMemory)
+		DeviceMemory sbuild(VkDeviceMemory view);
+		// Builds DeviceMemory (view) on heap;
+		// Builder is invalid after .build(VkDeviceMemory)
+		DeviceMemory* build(VkDeviceMemory view);
+	}; // ^ class DeviceMemory::Builder ^
 } // ^ namespace sn::voxeng::vk ^

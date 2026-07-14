@@ -1,11 +1,9 @@
 #pragma once
 
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
-
 #include <snvoxeng/snvoxeng/vk/VkMinimal.hpp>
 
-#include <optional>
-#include <vector>
+#include <span>
 
 namespace sn::voxeng::vk
 {
@@ -17,6 +15,18 @@ namespace sn::voxeng::vk
 
     public:
         CommandBuffer(const CommandBuffersContainer& container, size_t idx) noexcept;
+
+        void begin(VkCommandBufferBeginInfo info = {}) const;
+        void end() const;
+
+        void cmdPipelineBarrier(
+            VkPipelineStageFlags srcStageMask,
+            VkPipelineStageFlags dstStageMask,
+            VkDependencyFlags dependencyFlags,
+            std::span<const VkMemoryBarrier> memoryBarriers,
+            std::span<const VkBufferMemoryBarrier> bufferMemoryBarriers,
+            std::span<const VkImageMemoryBarrier> imageMemoryBarriers
+        ) const noexcept;
 
         VkCommandBuffer vkHandle() const noexcept;
 

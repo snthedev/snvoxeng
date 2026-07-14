@@ -42,20 +42,12 @@
 
 #ifdef SNBCG_HEADER_INCLUDE
 // --- v Includes v ---
-#include <snvoxeng/snvoxeng/vk/Image.hpp>
+#include <snvoxeng/snvoxeng/vk/Device.hpp>
 #endif
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static constexpr auto components = VkComponentMapping{
-	.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-	.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-	.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-	.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-};
-
 static constexpr auto pNext = nullptr;
-static constexpr auto flags = 0u;
 static constexpr auto vkPAllocator = nullptr;
 #endif
 
@@ -67,18 +59,18 @@ static constexpr auto vkPAllocator = nullptr;
 #define SNBCG_THIS SNBCG_REQUIRED
 // --- v Required Fields v ---
 SNBCG_THIS(
-	const Image*, const Image&,
-	, pImage, Image,
+	const Device*, const Device&,
+	, pDevice, Device,
 	SNBCG_POLICY_RETURN_UNPTR, SNBCG_POLICY_STORE_ADDR
 )
 SNBCG_THIS(
-	VkImageViewType, VkImageViewType,
-	vkCreateInfo., viewType, ViewType,
+	VkDeviceSize, VkDeviceSize,
+	vkAllocateInfo., allocationSize, AllocationSize,
 	SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY
 )
 SNBCG_THIS(
-	VkImageSubresourceRange, const VkImageSubresourceRange&,
-	vkCreateInfo., subresourceRange, SubresourceRange,
+	uint32_t, uint32_t,
+	vkAllocateInfo., memoryTypeIndex, MemoryTypeIndex,
 	SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY
 )
 #undef SNBCG_THIS
@@ -87,14 +79,7 @@ SNBCG_THIS(
 #ifdef SNBCG_OPTIONAL
 #define SNBCG_THIS SNBCG_OPTIONAL
 // --- v Optional Fields v ---
-SNBCG_THIS(
-	VkComponentMapping, const VkComponentMapping&,
-	vkCreateInfo., components, Components,
-	SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY
-)
-
-SNBCG_THIS(const void*, const void*, vkCreateInfo., pNext, Next, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
-SNBCG_THIS(VkImageViewCreateFlags, VkImageViewCreateFlags, vkCreateInfo., flags, Flags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+SNBCG_THIS(const void*, const void*, vkAllocateInfo., pNext, Next, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 SNBCG_THIS(const VkAllocationCallbacks*, const VkAllocationCallbacks*, , vkPAllocator, Allocator, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 #undef SNBCG_THIS
 #endif

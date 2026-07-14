@@ -27,6 +27,8 @@ namespace sn::voxeng::vk
 	public:
 		~Image() noexcept;
 
+		VkMemoryRequirements getMemoryRequirements() const;
+
 		Image(const Image&) = delete;
 		Image& operator=(const Image&) = delete;
 		Image(Image&& other) noexcept;
