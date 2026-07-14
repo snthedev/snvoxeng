@@ -6,88 +6,109 @@
 
 using namespace sn::voxeng::vk;
 
-VkPhysicalDevice PhysicalDeviceRegistry::vkHandle(size_t idx) const noexcept { return m_physicalDevices[idx]; }
+struct PhysicalDeviceRegistry::data_t
+{
+    const Instance* const pInstance;
+    const std::vector<VkPhysicalDevice> physicalDevices;
+
+    mutable std::vector<std::optional<VkPhysicalDeviceProperties>> cached_properties;
+    mutable std::vector<std::optional<VkPhysicalDeviceFeatures>> cached_features;
+    mutable std::vector<std::optional<VkPhysicalDeviceMemoryProperties>> cached_memoryProperties;
+    mutable std::vector<std::optional<std::vector<VkQueueFamilyProperties>>> cached_queueFamilyProperties;
+    mutable std::vector<std::optional<std::vector<VkExtensionProperties>>> cached_extensionProperties;
+
+    data_t(const Instance& instance)
+        : pInstance(&instance)
+        , physicalDevices(pInstance->enumeratePhysicalDevices())
+        , cached_properties(physicalDevices.size(), std::nullopt)
+        , cached_features(physicalDevices.size(), std::nullopt)
+        , cached_memoryProperties(physicalDevices.size(), std::nullopt)
+        , cached_queueFamilyProperties(physicalDevices.size(), std::nullopt)
+        , cached_extensionProperties(physicalDevices.size(), std::nullopt)
+    {
+    }
+    ~data_t() noexcept = default;
+};
+
+VkPhysicalDevice PhysicalDeviceRegistry::vkHandle(size_t idx) const noexcept { return m_pData->physicalDevices[idx]; }
 
 PhysicalDeviceRegistry::PhysicalDeviceRegistry(const Instance& instance)
-	: m_pInstance(&instance)
-	, m_physicalDevices(m_pInstance->enumeratePhysicalDevices())
-	, m_cached_properties(m_physicalDevices.size(), std::nullopt)
-	, m_cached_features(m_physicalDevices.size(), std::nullopt)
-	, m_cached_memoryProperties(m_physicalDevices.size(), std::nullopt)
-	, m_cached_queueFamilyProperties(m_physicalDevices.size(), std::nullopt)
-	, m_cached_extensionProperties(m_physicalDevices.size(), std::nullopt)
+    : m_pData(new data_t{ instance })
 {
-	if (m_pInstance->getDebugStream()) (*m_pInstance->getDebugStream()) 
+	if (m_pData->pInstance->getDebugStream()) (*m_pData->pInstance->getDebugStream())
 		<< "[PhysicalDeviceRegistry()]: device count "
-		<< m_physicalDevices.size()
+		<< m_pData->physicalDevices.size()
 		<< "\n";
 }
-PhysicalDeviceRegistry::~PhysicalDeviceRegistry() noexcept = default;
+PhysicalDeviceRegistry::~PhysicalDeviceRegistry() noexcept
+{
+    delete m_pData;
+}
 
 const VkPhysicalDeviceProperties& PhysicalDeviceRegistry::getProperties(size_t idx) const noexcept
 {
-    snassert(idx < m_physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
+    snassert(idx < m_pData->physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
 
-    if (!m_cached_properties[idx].has_value())
+    if (!m_pData->cached_properties[idx].has_value())
     {
-        m_cached_properties[idx].emplace();
-        vkGetPhysicalDeviceProperties(m_physicalDevices[idx], &m_cached_properties[idx].value());
+        m_pData->cached_properties[idx].emplace();
+        vkGetPhysicalDeviceProperties(m_pData->physicalDevices[idx], &m_pData->cached_properties[idx].value());
     }
-    return m_cached_properties[idx].value();
+    return m_pData->cached_properties[idx].value();
 }
 
 const VkPhysicalDeviceFeatures& PhysicalDeviceRegistry::getFeatures(size_t idx) const noexcept
 {
-    snassert(idx < m_physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
+    snassert(idx < m_pData->physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
 
-    if (!m_cached_features[idx].has_value())
+    if (!m_pData->cached_features[idx].has_value())
     {
-        m_cached_features[idx].emplace();
-        vkGetPhysicalDeviceFeatures(m_physicalDevices[idx], &m_cached_features[idx].value());
+        m_pData->cached_features[idx].emplace();
+        vkGetPhysicalDeviceFeatures(m_pData->physicalDevices[idx], &m_pData->cached_features[idx].value());
     }
-    return m_cached_features[idx].value();
+    return m_pData->cached_features[idx].value();
 }
 
 const VkPhysicalDeviceMemoryProperties& PhysicalDeviceRegistry::getMemoryProperties(size_t idx) const noexcept
 {
-    snassert(idx < m_physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
+    snassert(idx < m_pData->physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
 
-    if (!m_cached_memoryProperties[idx].has_value())
+    if (!m_pData->cached_memoryProperties[idx].has_value())
     {
-        m_cached_memoryProperties[idx].emplace();
-        vkGetPhysicalDeviceMemoryProperties(m_physicalDevices[idx], &m_cached_memoryProperties[idx].value());
+        m_pData->cached_memoryProperties[idx].emplace();
+        vkGetPhysicalDeviceMemoryProperties(m_pData->physicalDevices[idx], &m_pData->cached_memoryProperties[idx].value());
     }
-    return m_cached_memoryProperties[idx].value();
+    return m_pData->cached_memoryProperties[idx].value();
 }
 
-const std::vector<VkQueueFamilyProperties>& PhysicalDeviceRegistry::getQueueFamilyProperties(size_t idx) const noexcept
+std::span<const VkQueueFamilyProperties> PhysicalDeviceRegistry::getQueueFamilyProperties(size_t idx) const noexcept
 {
-    snassert(idx < m_physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
+    snassert(idx < m_pData->physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
 
-    if (!m_cached_queueFamilyProperties[idx].has_value())
+    if (!m_pData->cached_queueFamilyProperties[idx].has_value())
     {
         uint32_t queueFamilyPropertyCount = 0;
-        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevices[idx], &queueFamilyPropertyCount, nullptr);
+        vkGetPhysicalDeviceQueueFamilyProperties(m_pData->physicalDevices[idx], &queueFamilyPropertyCount, nullptr);
 
-        m_cached_queueFamilyProperties[idx].emplace(queueFamilyPropertyCount);
-        vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevices[idx], &queueFamilyPropertyCount, m_cached_queueFamilyProperties[idx].value().data());
+        m_pData->cached_queueFamilyProperties[idx].emplace(queueFamilyPropertyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(m_pData->physicalDevices[idx], &queueFamilyPropertyCount, m_pData->cached_queueFamilyProperties[idx].value().data());
     }
-    return m_cached_queueFamilyProperties[idx].value();
+    return m_pData->cached_queueFamilyProperties[idx].value();
 }
 
-const std::vector<VkExtensionProperties>& PhysicalDeviceRegistry::getExtensionProperties(size_t idx) const noexcept
+std::span<const VkExtensionProperties> PhysicalDeviceRegistry::getExtensionProperties(size_t idx) const noexcept
 {
-    snassert(idx < m_physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
+    snassert(idx < m_pData->physicalDevices.size(), "Index out of bounds", "Valid range is [0; device count)");
 
-    if (!m_cached_extensionProperties[idx].has_value())
+    if (!m_pData->cached_extensionProperties[idx].has_value())
     {
         uint32_t propertyCount = 0;
-        vkEnumerateDeviceExtensionProperties(m_physicalDevices[idx], nullptr, &propertyCount, nullptr);
+        vkEnumerateDeviceExtensionProperties(m_pData->physicalDevices[idx], nullptr, &propertyCount, nullptr);
 
-        m_cached_extensionProperties[idx].emplace(propertyCount);
-        vkEnumerateDeviceExtensionProperties(m_physicalDevices[idx], nullptr, &propertyCount, m_cached_extensionProperties[idx].value().data());
+        m_pData->cached_extensionProperties[idx].emplace(propertyCount);
+        vkEnumerateDeviceExtensionProperties(m_pData->physicalDevices[idx], nullptr, &propertyCount, m_pData->cached_extensionProperties[idx].value().data());
     }
-    return m_cached_extensionProperties[idx].value();
+    return m_pData->cached_extensionProperties[idx].value();
 }
 
 const VkExtensionProperties* PhysicalDeviceRegistry::findExtensionProperties(size_t idx, const char* extensionName) const noexcept
@@ -99,7 +120,7 @@ const VkExtensionProperties* PhysicalDeviceRegistry::findExtensionProperties(siz
     return nullptr;
 }
 
-const Instance& PhysicalDeviceRegistry::getInstance() const noexcept { return *m_pInstance; }
+const Instance& PhysicalDeviceRegistry::getInstance() const noexcept { return *m_pData->pInstance; }
 
 PhysicalDeviceSelector PhysicalDeviceRegistry::pick(fSelector_t* fSelector, void* user_data) const
 {
@@ -113,8 +134,8 @@ PhysicalDeviceRegistry::operator PhysicalDeviceSelector() const
 
 PhysicalDevice PhysicalDeviceRegistry::get(size_t idx) const { return PhysicalDevice(*this, idx); }
 PhysicalDevice PhysicalDeviceRegistry::first() const { return PhysicalDevice(*this, 0); }
-PhysicalDevice PhysicalDeviceRegistry::last() const { return PhysicalDevice(*this, m_physicalDevices.size() - 1u); }
-size_t PhysicalDeviceRegistry::count() const noexcept { return m_physicalDevices.size(); }
+PhysicalDevice PhysicalDeviceRegistry::last() const { return PhysicalDevice(*this, m_pData->physicalDevices.size() - 1u); }
+size_t PhysicalDeviceRegistry::count() const noexcept { return m_pData->physicalDevices.size(); }
 
 SNVOXENG_API_POD bool fPhysicalDeviseSelectors::fDeviceType(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data)
 {

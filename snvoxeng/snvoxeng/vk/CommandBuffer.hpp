@@ -1,11 +1,7 @@
 #pragma once
 
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
-
 #include <snvoxeng/snvoxeng/vk/VkMinimal.hpp>
-
-#include <optional>
-#include <vector>
 
 namespace sn::voxeng::vk
 {

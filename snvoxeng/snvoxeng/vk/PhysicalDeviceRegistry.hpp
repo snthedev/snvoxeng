@@ -17,14 +17,8 @@ namespace sn::voxeng::vk
 		typedef bool(fSelector_t)(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data);
 
 	private:
-		const Instance* const m_pInstance;
-		const std::vector<VkPhysicalDevice> m_physicalDevices;
-		
-		mutable std::vector<std::optional<VkPhysicalDeviceProperties>> m_cached_properties;
-		mutable std::vector<std::optional<VkPhysicalDeviceFeatures>> m_cached_features;
-		mutable std::vector<std::optional<VkPhysicalDeviceMemoryProperties>> m_cached_memoryProperties;
-		mutable std::vector<std::optional<std::vector<VkQueueFamilyProperties>>> m_cached_queueFamilyProperties;
-		mutable std::vector<std::optional<std::vector<VkExtensionProperties>>> m_cached_extensionProperties;
+		struct data_t;
+		data_t* m_pData;
 
 		friend class PhysicalDevice;
 		VkPhysicalDevice vkHandle(size_t idx) const noexcept;
@@ -36,8 +30,8 @@ namespace sn::voxeng::vk
 		const VkPhysicalDeviceProperties& getProperties(size_t idx) const noexcept;
 		const VkPhysicalDeviceFeatures& getFeatures(size_t idx) const noexcept;
 		const VkPhysicalDeviceMemoryProperties& getMemoryProperties(size_t idx) const noexcept;
-		const std::vector<VkQueueFamilyProperties>& getQueueFamilyProperties(size_t idx) const noexcept;
-		const std::vector<VkExtensionProperties>& getExtensionProperties(size_t idx) const noexcept;
+		std::span<const VkQueueFamilyProperties> getQueueFamilyProperties(size_t idx) const noexcept;
+		std::span<const VkExtensionProperties> getExtensionProperties(size_t idx) const noexcept;
 		const VkExtensionProperties* findExtensionProperties(size_t idx, const char* extensionName) const noexcept;
 
 		const Instance& getInstance() const noexcept;

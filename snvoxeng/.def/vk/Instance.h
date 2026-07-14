@@ -42,7 +42,6 @@
 
 #ifdef SNBCG_HEADER_INCLUDE
 // --- v Includes v ---
-#include <vector>
 #include <ostream>
 #endif
 
@@ -78,6 +77,7 @@ SNBCG_THIS(
 	vkApplicationInfo., pApplicationName, ApplicationName,
 	SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY
 )
+#undef SNBCG_THIS
 #endif
 
 #ifdef SNBCG_OPTIONAL
@@ -111,6 +111,7 @@ SNBCG_THIS(
 SNBCG_THIS(const void*, const void*, vkCreateInfo., pNext, Next, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 SNBCG_THIS(VkInstanceCreateFlags, VkInstanceCreateFlags, vkCreateInfo., flags, Flags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 SNBCG_THIS(const VkAllocationCallbacks*, const VkAllocationCallbacks*, , vkPAllocator, Allocator, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+#undef SNBCG_THIS
 #endif
 
 // --- V -------------- V ---
@@ -120,31 +121,44 @@ SNBCG_THIS(const VkAllocationCallbacks*, const VkAllocationCallbacks*, , vkPAllo
 #ifdef SNBCG_REQUIRED_ADDITIVE
 #define SNBCG_THIS SNBCG_REQUIRED_ADDITIVE
 // --- v Required Fields v ---
+#undef SNBCG_THIS
 #endif
 
 #ifdef SNBCG_OPTIONAL_ADDITIVE
 #define SNBCG_THIS SNBCG_OPTIONAL_ADDITIVE
 // --- v Optional Fields v ---
 SNBCG_THIS(
-	std::vector<const char*>, const char*, const std::vector<const char*>&,
+	std::vector<const char*>, const char*, std::span<const char*>,
 	, validationLayers, ValidationLayers,
-	SNBCG_POLICY_RETURN_CREF, SNBCG_POLICY_STORE_COPY, SNBCG_ACTION_APPEND_EMPLACE
+	SNBCG_POLICY_RETURN_SPAN, SNBCG_POLICY_STORE_SPAN_COPY, SNBCG_ACTION_APPEND_EMPLACE
 )
 SNBCG_THIS(
-	std::vector<const char*>, const char*, const std::vector<const char*>&,
+	std::vector<const char*>, const char*, std::span<const char*>,
 	, extensions, Extensions,
-	SNBCG_POLICY_RETURN_CREF, SNBCG_POLICY_STORE_COPY, SNBCG_ACTION_APPEND_EMPLACE
+	SNBCG_POLICY_RETURN_SPAN, SNBCG_POLICY_STORE_SPAN_COPY, SNBCG_ACTION_APPEND_EMPLACE
 )
+#undef SNBCG_THIS
 #endif
 
 // --- V -------------- V ---
 // === V      MISC      V ===
 // --- V -------------- V ---
 
-#undef SNBCG_THIS
+#ifdef SNBCG_HEADER_INCLUDE
 #undef SNBCG_HEADER_INCLUDE
+#endif
+#ifdef SNBCG_DEFAULT_VALUES
 #undef SNBCG_DEFAULT_VALUES
+#endif
+#ifdef SNBCG_REQUIRED
 #undef SNBCG_REQUIRED
+#endif
+#ifdef SNBCG_OPTIONAL
 #undef SNBCG_OPTIONAL
+#endif
+#ifdef SNBCG_REQUIRED_ADDITIVE
 #undef SNBCG_REQUIRED_ADDITIVE
+#endif
+#ifdef SNBCG_OPTIONAL_ADDITIVE
 #undef SNBCG_OPTIONAL_ADDITIVE
+#endif
