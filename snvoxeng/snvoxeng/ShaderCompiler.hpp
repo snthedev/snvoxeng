@@ -24,12 +24,24 @@ namespace sn::voxeng
             } optLevel;
         };
 
-        struct SNVOXENG_API shader_t
+        class SNVOXENG_API shader_t
         {
-            const uint32_t* const pCode;
-            const size_t sizeInBytes;
+            const uint32_t* m_pCode;
+            size_t m_sizeInBytes;
 
-            ~shader_t();
+        public:
+            shader_t(const uint32_t* pCode, size_t sizeInBytes);
+            ~shader_t() noexcept;
+
+            shader_t(const shader_t&) = delete;
+            shader_t& operator=(const shader_t&) = delete;
+            shader_t(shader_t&& other) noexcept;
+            shader_t& operator=(shader_t&& other) noexcept;
+
+            const uint32_t* getCode() const noexcept;
+
+            // in bytes
+            size_t getSize() const noexcept;
         };
 
         ShaderCompiler() = delete;

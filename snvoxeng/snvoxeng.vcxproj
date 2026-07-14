@@ -115,6 +115,7 @@
     <ClInclude Include=".def\vk\Instance.h" />
     <ClInclude Include=".def\vk\PipelineLayout.h" />
     <ClInclude Include=".def\vk\Semaphore.h" />
+    <ClInclude Include=".def\vk\ShaderModule.h" />
     <ClInclude Include=".def\vk\SurfaceKHR.h" />
     <ClInclude Include=".def\vk\SwapchainKHR.h" />
     <ClInclude Include="snvoxeng.hpp" />
@@ -138,6 +139,7 @@
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceSet.hpp" />
     <ClInclude Include="snvoxeng\vk\PipelineLayout.hpp" />
     <ClInclude Include="snvoxeng\vk\Semaphore.hpp" />
+    <ClInclude Include="snvoxeng\vk\ShaderModule.hpp" />
     <ClInclude Include="snvoxeng\vk\SurfaceKHR.hpp" />
     <ClInclude Include="snvoxeng\vk\SwapchainKHR.hpp" />
     <ClInclude Include="snvoxeng\vk\VkMinimal.hpp" />
@@ -161,6 +163,7 @@
     <ClCompile Include=".src\vk\PhysicalDeviceSet.cpp" />
     <ClCompile Include=".src\vk\PipelineLayout.cpp" />
     <ClCompile Include=".src\vk\Semaphore.cpp" />
+    <ClCompile Include=".src\vk\ShaderModule.cpp" />
     <ClCompile Include=".src\vk\SurfaceKHR.cpp" />
     <ClCompile Include=".src\vk\SwapchainKHR.cpp" />
   </ItemGroup>

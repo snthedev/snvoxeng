@@ -292,6 +292,15 @@ void Device::destroyPipelineLayout(VkPipelineLayout pipelineLayout, const VkAllo
 	vkDestroyPipelineLayout(m_pData->vkHandle, pipelineLayout, pAllocator);
 }
 
+VkResult Device::createShaderModule(const VkShaderModuleCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkShaderModule* pShaderModule) const
+{
+	return vkCreateShaderModule(m_pData->vkHandle, pCreateInfo, pAllocator, pShaderModule);
+}
+void Device::destroyShaderModule(VkShaderModule shaderModule, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyShaderModule(m_pData->vkHandle, shaderModule, pAllocator);
+}
+
 Device::Device(Device&& other) noexcept
 	: m_pData(other.m_pData)
 	, m_isView(other.m_isView)

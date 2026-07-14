@@ -40,15 +40,37 @@ static ShaderCompiler::shader_t readSpvFile(const std::filesystem::path& path)
     file.read(reinterpret_cast<char*>(buffer), fileSize);
     file.close();
 
-    return {
-        .pCode = buffer,
-        .sizeInBytes = fileSize
-    };
+    return ShaderCompiler::shader_t{ buffer, fileSize };
 }
 
 // ShaderCompiler::shader_t
 
-ShaderCompiler::shader_t::~shader_t() { if (pCode) delete[] pCode; }
+ShaderCompiler::shader_t::shader_t(const uint32_t* pCode, size_t sizeInBytes)
+    : m_pCode(pCode)
+    , m_sizeInBytes(sizeInBytes)
+{
+}
+ShaderCompiler::shader_t::~shader_t() { if (m_pCode) delete[] m_pCode; }
+
+ShaderCompiler::shader_t::shader_t(shader_t&& other) noexcept
+    : m_pCode(other.m_pCode)
+    , m_sizeInBytes(other.m_sizeInBytes)
+{
+    other.m_pCode = nullptr;
+}
+ShaderCompiler::shader_t& ShaderCompiler::shader_t::operator=(shader_t&& other) noexcept
+{
+    if (this != &other) [[likely]]
+    {
+        m_pCode = other.m_pCode;
+        m_sizeInBytes = other.m_sizeInBytes;
+        other.m_pCode = nullptr;
+    }
+    return *this;
+}
+
+const uint32_t* ShaderCompiler::shader_t::getCode() const noexcept { return m_pCode; }
+size_t ShaderCompiler::shader_t::getSize() const noexcept { return m_sizeInBytes; }
 
 // ShaderCompiler::_Impl
 
@@ -126,10 +148,7 @@ public:
             cacheFile.close();
         }
 
-        return {
-            .pCode = buffer,
-            .sizeInBytes = sizeInBytes
-        };
+        return ShaderCompiler::shader_t{ buffer, sizeInBytes };
     }
 };
 

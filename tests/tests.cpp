@@ -360,7 +360,12 @@ int main()
 		sn::voxeng::ShaderCompiler::setSettings(compiler_settings);
 		
 		auto compute_shader_spv = sn::voxeng::ShaderCompiler::loadFromFile(".res/shaders/test.comp");
-		std::cout << "Shader compiled (" << compute_shader_spv.sizeInBytes << " bytes)\n";
+		std::cout << "Shader compiled (" << compute_shader_spv.getSize() << " bytes)\n";
+
+		auto compute_shader = sn::voxeng::vk::ShaderModule::Builder()
+			.withDevice(device)
+			.withCode(compute_shader_spv)
+			.sbuild();
 
 		auto descriptor_set_layout = sn::voxeng::vk::DescriptorSetLayout::Builder()
 			.withDevice(device)
