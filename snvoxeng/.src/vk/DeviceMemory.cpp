@@ -1,38 +1,23 @@
-#include <snvoxeng/snvoxeng/vk/Instance.hpp>
+#include <snvoxeng/snvoxeng/vk/DeviceMemory.hpp>
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
+
+#include <snvoxeng/snvoxeng/vk/Image.hpp>
 
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
 
-#include <stdexcept>
-#include <vector>
-
 using namespace sn::voxeng::vk;
-
-static VKAPI_ATTR VkBool32 VKAPI_PTR debugCallback(
-	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	void* pUserData)
-{
-	if (pUserData)
-	{
-		*(reinterpret_cast<std::ostream*>(pUserData)) << "[Vulkan Validation]: " << pCallbackData->pMessage << std::endl;
-	}
-	return VK_FALSE;
-}
 
 namespace default_values
 {
 #define SNBCG_DEFAULT_VALUES
-#include <snvoxeng/.def/vk/Instance.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 }
 
-// === Instance : private ===
-struct Instance::data_t
+// === DeviceMemory : private ===
+struct DeviceMemory::data_t
 {
-	VkInstanceCreateInfo vkCreateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkInstanceCreateInfo>() } };
-	VkApplicationInfo vkApplicationInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkApplicationInfo>() } };
+	VkMemoryAllocateInfo vkAllocateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkMemoryAllocateInfo>() } };
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
@@ -42,7 +27,7 @@ struct Instance::data_t
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
-#include <snvoxeng/.def/vk/Instance.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 
 	data_t()
 	{
@@ -54,71 +39,38 @@ struct Instance::data_t
 		subdata name = {};
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		subdata name = default_values::name;
-#include <snvoxeng/.def/vk/Instance.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 	}
 
-	VkInstance vkHandle{ VK_NULL_HANDLE };
-	VkDebugUtilsMessengerEXT vkDebugUtilsMessengerEXT{ VK_NULL_HANDLE };
+	VkDeviceMemory vkHandle{ VK_NULL_HANDLE };
 };
 
-void Instance::onCreate(data_t& data)
+void DeviceMemory::onCreate(data_t& data)
 {
-	VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
-	if (data.isDebugMessengerEnabled)
-	{
-		debugCreateInfo = VkDebugUtilsMessengerCreateInfoEXT{
-			.sType{ ::sn::voxeng::utils::vk::getSType<VkDebugUtilsMessengerCreateInfoEXT>() },
-			.pNext = data.vkCreateInfo.pNext,
-			.messageSeverity =
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-			.messageType =
-				VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-				VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-			.pfnUserCallback = debugCallback,
-			.pUserData = data.debugStream,
-		};
-		data.vkCreateInfo.pNext = &debugCreateInfo;
-	}
-	snassert(vkCreateInstance(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkInstance", "Check Builder settings");
-
-	if (data.isDebugMessengerEnabled)
-	{
-		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(data.vkHandle, "vkCreateDebugUtilsMessengerEXT");
-		if (func != nullptr) func(data.vkHandle, &debugCreateInfo, data.vkPAllocator, &m_pData->vkDebugUtilsMessengerEXT);
-	}
+	snassert(data.pDevice->allocateMemory(&data.vkAllocateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
+		"Failed to create VkDeviceMemory", "Check Builder settings");
 }
-void Instance::onDestroy(data_t& data) noexcept
+void DeviceMemory::onDestroy(data_t& data) noexcept
 {
-	if (m_pData->vkDebugUtilsMessengerEXT != VK_NULL_HANDLE)
-	{
-		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(data.vkHandle, "vkDestroyDebugUtilsMessengerEXT");
-		if (func != nullptr) func(data.vkHandle, m_pData->vkDebugUtilsMessengerEXT, data.vkPAllocator);
-	}
-
-	vkDestroyInstance(data.vkHandle, data.vkPAllocator);
+	data.pDevice->freeMemory(data.vkHandle, data.vkPAllocator);
 }
 
-Instance::Instance(data_t*& pData)
+DeviceMemory::DeviceMemory(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
 	pData = nullptr;
 	onCreate(*m_pData);
 }
-Instance::Instance(data_t*& pData, VkInstance view)
+DeviceMemory::DeviceMemory(data_t*& pData, VkDeviceMemory view)
 	: m_pData(pData)
 	, m_isView(true)
 {
 	pData = nullptr;
-	m_pData->vkHandle = view;
 }
 
-// === Instance : public ===
-Instance::~Instance() noexcept
+// === DeviceMemory : public ===
+DeviceMemory::~DeviceMemory() noexcept
 {
 	if (m_pData) [[likely]]
 	{
@@ -127,18 +79,19 @@ Instance::~Instance() noexcept
 	}
 }
 
-VkResult Instance::enumeratePhysicalDevices(uint32_t* pPhysicalDeviceCount, VkPhysicalDevice* pPhysicalDevices) const
+void DeviceMemory::bindImage(const Image& image, VkDeviceSize memoryOffset) const
 {
-	return vkEnumeratePhysicalDevices(vkHandle(), pPhysicalDeviceCount, pPhysicalDevices);
+	snassert(m_pData->pDevice->bindImageMemory(image.vkHandle(), m_pData->vkHandle, memoryOffset) == VK_SUCCESS,
+		"Failed to bind image", "Check memory properties");
 }
 
-Instance::Instance(Instance&& other) noexcept
+DeviceMemory::DeviceMemory(DeviceMemory&& other) noexcept
 	: m_pData(other.m_pData)
 	, m_isView(other.m_isView)
 {
 	other.m_pData = nullptr;
 }
-Instance& Instance::operator=(Instance&& other) noexcept
+DeviceMemory& DeviceMemory::operator=(DeviceMemory&& other) noexcept
 {
 	if (this != &other) [[likely]]
 	{
@@ -154,31 +107,26 @@ Instance& Instance::operator=(Instance&& other) noexcept
 	return *this;
 }
 
-VkInstance Instance::vkHandle() const noexcept { return m_pData->vkHandle; }
-Instance::operator VkInstance() const noexcept { return m_pData->vkHandle; }
+VkDeviceMemory DeviceMemory::vkHandle() const noexcept { return m_pData->vkHandle; }
+DeviceMemory::operator VkDeviceMemory() const noexcept { return m_pData->vkHandle; }
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) Instance::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) DeviceMemory::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) Instance::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) DeviceMemory::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) Instance::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) DeviceMemory::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) Instance::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
-#include <snvoxeng/.def/vk/Instance.h>
+DETAIL_##return_policy##_t(store_t) DeviceMemory::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 
 
 
-typedef Instance::Builder Builder;
+typedef DeviceMemory::Builder Builder;
 
 // === Builder : private ===
 void Builder::finalize(data_t& data)
 {
-	data.vkCreateInfo.pApplicationInfo = &data.vkApplicationInfo;
-	data.vkCreateInfo.enabledLayerCount = static_cast<uint32_t>(data.validationLayers.size());
-	data.vkCreateInfo.ppEnabledLayerNames = data.validationLayers.data();
-	data.vkCreateInfo.enabledExtensionCount = static_cast<uint32_t>(data.extensions.size());
-	data.vkCreateInfo.ppEnabledExtensionNames = data.extensions.data();
 }
 
 #ifdef DETAIL_SNBCG_DEBUG
@@ -188,7 +136,7 @@ struct Builder::temp_t
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
-#include <snvoxeng/.def/vk/Instance.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 
 	void validate() const
 	{
@@ -225,7 +173,7 @@ struct Builder::temp_t
 			"  and do not call Builder::with" #Name "(...) after calling\n"\
 			"  Builder::add" #Name "(...)"\
 		);
-#include <snvoxeng/.def/vk/Instance.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 	}
 };
 #define SNBCG_VALIDATE_ON_WITH(name, Name) m_pTemp->name = ((m_pTemp->name << 1u) & 0b11) | 0b01;
@@ -344,30 +292,30 @@ Builder& Builder::add##Name(arg_t name) {\
 	DETAIL_##store_action##_SINGLE;\
 	return *this;\
 }
-#include <snvoxeng/.def/vk/Instance.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 
-Instance Builder::sbuild()
+DeviceMemory Builder::sbuild()
 {
 	m_pTemp->validate();
 	finalize(*m_pData);
-	return Instance{ m_pData };
+	return DeviceMemory{ m_pData };
 }
-Instance* Builder::build()
+DeviceMemory* Builder::build()
 {
 	m_pTemp->validate();
 	finalize(*m_pData);
-	return new Instance{ m_pData };
+	return new DeviceMemory{ m_pData };
 }
 
-Instance Builder::sbuild(VkInstance view)
+DeviceMemory Builder::sbuild(VkDeviceMemory view)
 {
 	m_pTemp->validate();
 	finalize(*m_pData);
-	return Instance{ m_pData, view };
+	return DeviceMemory{ m_pData, view };
 }
-Instance* Builder::build(VkInstance view)
+DeviceMemory* Builder::build(VkDeviceMemory view)
 {
 	m_pTemp->validate();
 	finalize(*m_pData);
-	return new Instance{ m_pData, view };
+	return new DeviceMemory{ m_pData, view };
 }

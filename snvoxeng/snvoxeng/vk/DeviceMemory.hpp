@@ -6,12 +6,14 @@
 #include <ThirdParty/snbcg/bcg.hpp>
 
 #define SNBCG_HEADER_INCLUDE
-#include <snvoxeng/.def/vk/Image.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 
 namespace sn::voxeng::vk
 {
-	// Use Image::Builder for build
-	class SNVOXENG_API Image
+	class Image;
+
+	// Use DeviceMemory::Builder for build
+	class SNVOXENG_API DeviceMemory
 	{
 		struct data_t;
 		data_t* m_pData;
@@ -21,21 +23,21 @@ namespace sn::voxeng::vk
 
 		bool m_isView;
 
-		Image(data_t*& pData);
-		Image(data_t*& pData, VkImage view);
+		DeviceMemory(data_t*& pData);
+		DeviceMemory(data_t*& pData, VkDeviceMemory view);
 
 	public:
-		~Image() noexcept;
+		~DeviceMemory() noexcept;
 
-		VkMemoryRequirements getMemoryRequirements() const;
+		void bindImage(const Image& image, VkDeviceSize memoryOffset) const;
 
-		Image(const Image&) = delete;
-		Image& operator=(const Image&) = delete;
-		Image(Image&& other) noexcept;
-		Image& operator=(Image&& other) noexcept;
+		DeviceMemory(const DeviceMemory&) = delete;
+		DeviceMemory& operator=(const DeviceMemory&) = delete;
+		DeviceMemory(DeviceMemory&& other) noexcept;
+		DeviceMemory& operator=(DeviceMemory&& other) noexcept;
 
-		VkImage vkHandle() const noexcept;
-		operator VkImage() const noexcept;
+		VkDeviceMemory vkHandle() const noexcept;
+		operator VkDeviceMemory() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
@@ -45,13 +47,13 @@ namespace sn::voxeng::vk
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
-#include <snvoxeng/.def/vk/Image.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 	
 		class Builder;
 		friend class Builder;
-	}; // ^ class Image ^
+	}; // ^ class DeviceMemory ^
 
-	class SNVOXENG_API Image::Builder
+	class SNVOXENG_API DeviceMemory::Builder
 	{
 		data_t* m_pData;
 		void finalize(data_t& data);
@@ -85,22 +87,20 @@ namespace sn::voxeng::vk
 		Builder& with##Name(args_t name);\
 		Builder& add##Name(args_t name);\
 		Builder& add##Name(arg_t name);
-#include <snvoxeng/.def/vk/Image.h>
+#include <snvoxeng/.def/vk/DeviceMemory.h>
 
-		// Builds Image on stack;
+		// Builds DeviceMemory on stack;
 		// Builder is invalid after .sbuild()
-		Image sbuild();
-		// Builds Image on heap;
+		DeviceMemory sbuild();
+		// Builds DeviceMemory on heap;
 		// Builder is invalid after .build()
-		Image* build();
+		DeviceMemory* build();
 
-		// Builds Image (view) on stack;
-		// Builder is invalid after .sbuild(VkImage)
-		// Fork for SwapchainKHR
-		Image sbuild(VkImage view);
-		// Builds Image (view) on heap;
-		// Builder is invalid after .build(VkImage)
-		// Fork for SwapchainKHR
-		Image* build(VkImage view);
-	}; // ^ class Image::Builder ^
+		// Builds DeviceMemory (view) on stack;
+		// Builder is invalid after .sbuild(VkDeviceMemory)
+		DeviceMemory sbuild(VkDeviceMemory view);
+		// Builds DeviceMemory (view) on heap;
+		// Builder is invalid after .build(VkDeviceMemory)
+		DeviceMemory* build(VkDeviceMemory view);
+	}; // ^ class DeviceMemory::Builder ^
 } // ^ namespace sn::voxeng::vk ^

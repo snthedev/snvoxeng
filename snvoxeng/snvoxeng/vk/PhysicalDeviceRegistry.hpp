@@ -6,8 +6,6 @@
 
 #include <snassert/snassert.hpp>
 
-#include <optional>
-
 namespace sn::voxeng::vk
 {
 	class PhysicalDeviceSelector;

@@ -1,15 +1,17 @@
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
-
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceSelector.hpp>
 
 #include <snassert/snassert.hpp>
+
+#include <vector>
+#include <optional>
 
 using namespace sn::voxeng::vk;
 
 struct PhysicalDeviceRegistry::data_t
 {
-    const Instance* const pInstance;
-    const std::vector<VkPhysicalDevice> physicalDevices;
+    const Instance* pInstance;
+    std::vector<VkPhysicalDevice> physicalDevices;
 
     mutable std::vector<std::optional<VkPhysicalDeviceProperties>> cached_properties;
     mutable std::vector<std::optional<VkPhysicalDeviceFeatures>> cached_features;
@@ -19,13 +21,19 @@ struct PhysicalDeviceRegistry::data_t
 
     data_t(const Instance& instance)
         : pInstance(&instance)
-        , physicalDevices(pInstance->enumeratePhysicalDevices())
-        , cached_properties(physicalDevices.size(), std::nullopt)
-        , cached_features(physicalDevices.size(), std::nullopt)
-        , cached_memoryProperties(physicalDevices.size(), std::nullopt)
-        , cached_queueFamilyProperties(physicalDevices.size(), std::nullopt)
-        , cached_extensionProperties(physicalDevices.size(), std::nullopt)
     {
+        uint32_t physicalDevicesCount;
+        snassert(pInstance->enumeratePhysicalDevices(&physicalDevicesCount, nullptr) == VK_SUCCESS,
+            "Failed to enumeratePhysicalDevices", "");
+        physicalDevices.resize(physicalDevicesCount);
+        snassert(pInstance->enumeratePhysicalDevices(&physicalDevicesCount, physicalDevices.data()) == VK_SUCCESS,
+            "Failed to enumeratePhysicalDevices", "");
+
+        cached_properties.resize(physicalDevices.size(), std::nullopt);
+        cached_features.resize(physicalDevices.size(), std::nullopt);
+        cached_memoryProperties.resize(physicalDevices.size(), std::nullopt);
+        cached_queueFamilyProperties.resize(physicalDevices.size(), std::nullopt);
+        cached_extensionProperties.resize(physicalDevices.size(), std::nullopt);
     }
     ~data_t() noexcept = default;
 };

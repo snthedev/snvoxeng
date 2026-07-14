@@ -80,6 +80,13 @@ Image::~Image() noexcept
 	}
 }
 
+VkMemoryRequirements Image::getMemoryRequirements() const
+{
+	VkMemoryRequirements result;
+	m_pData->pDevice->getImageMemoryRequirements(m_pData->vkHandle, &result);
+	return result;
+}
+
 Image::Image(Image&& other) noexcept
 	: m_pData(other.m_pData)
 	, m_isView(other.m_isView)

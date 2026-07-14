@@ -17,8 +17,12 @@ namespace sn::voxeng::vk
     public:
         PhysicalDevice(const PhysicalDeviceRegistry& registry, size_t idx) noexcept;
 
-        //VkResult createDevice(const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) const;
+        static inline constexpr uint32_t nmatch = ~(uint32_t)(0);
+
         VkSurfaceCapabilitiesKHR getSurfaceCapabilities(VkSurfaceKHR surface) const;
+
+        // returns PhysicalDevice::nmatch if memory type is not found
+        uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
         VkPhysicalDevice getHandle() const noexcept;
         const PhysicalDeviceRegistry& getRegistry() const noexcept;
@@ -30,8 +34,6 @@ namespace sn::voxeng::vk
         std::span<const VkQueueFamilyProperties> getQueueFamilyProperties() const noexcept;
         std::span<const VkExtensionProperties> getExtensionProperties() const noexcept;
         const VkExtensionProperties* findExtensionProperties(const char* extensionName) const noexcept;
-
-        static inline constexpr uint32_t nmatch = ~(uint32_t)(0);
 
         struct QueueRequest
         {

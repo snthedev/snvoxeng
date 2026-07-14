@@ -5,6 +5,7 @@
 #include <snassert/snassert.hpp>
 
 #include <string>
+#include <vector>
 
 using namespace sn::voxeng::vk;
 
@@ -155,7 +156,7 @@ const Device::NamedQueue* Device::getQueueInfo(const char* name) const noexcept
 	if (it == m_pData->namedQueues.end()) return nullptr;
 	return &(*it);
 }
-const std::vector<Device::NamedQueue>& Device::getQueueInfos() const noexcept { return m_pData->namedQueues; }
+std::span<const Device::NamedQueue> Device::getQueueInfos() const noexcept { return m_pData->namedQueues; }
 
 void Device::getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const
 {
@@ -237,6 +238,26 @@ VkResult Device::allocateCommandBuffers(const VkCommandBufferAllocateInfo* pAllo
 void Device::freeCommandBuffers(VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers) const
 {
 	vkFreeCommandBuffers(m_pData->vkHandle, commandPool, commandBufferCount, pCommandBuffers);
+}
+
+void Device::getImageMemoryRequirements(VkImage image, VkMemoryRequirements* pMemoryRequirements) const
+{
+	vkGetImageMemoryRequirements(m_pData->vkHandle, image, pMemoryRequirements);
+}
+
+VkResult Device::allocateMemory(const VkMemoryAllocateInfo* pAllocateInfo, const VkAllocationCallbacks* pAllocator, VkDeviceMemory* pMemory) const
+{
+	return vkAllocateMemory(m_pData->vkHandle, pAllocateInfo, pAllocator, pMemory);
+}
+
+void Device::freeMemory(VkDeviceMemory memory, const VkAllocationCallbacks* pAllocator) const
+{
+	vkFreeMemory(m_pData->vkHandle, memory, pAllocator);
+}
+
+VkResult Device::bindImageMemory(VkImage image, VkDeviceMemory memory, VkDeviceSize memoryOffset) const
+{
+	return vkBindImageMemory(m_pData->vkHandle, image, memory, memoryOffset);
 }
 
 Device::Device(Device&& other) noexcept

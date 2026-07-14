@@ -13,6 +13,7 @@
 
 #include <ostream>
 #include <iostream>
+#include <vector>
 
 static sn::voxeng::WindowDescription_t glfw_get_window_descripton(GLFWwindow* window)
 {
@@ -237,11 +238,9 @@ int main()
 
 		auto device = sn::voxeng::vk::Device::Builder()
 			.withPhysicalDevice(gpu)
-			.withQueueRequests({
-				{ .name = "graphics", .familyIndex = graphics_family, .priority = 1.0f },
-				{ .name = "compute",  .familyIndex = compute_family,  .priority = 0.8f },
-				{ .name = "transfer", .familyIndex = transfer_family, .priority = 0.5f },
-				})
+			.addQueueRequests({ .name = "graphics", .familyIndex = graphics_family, .priority = 1.0f })
+			.addQueueRequests({ .name = "compute",  .familyIndex = compute_family,  .priority = 0.8f })
+			.addQueueRequests({ .name = "transfer", .familyIndex = transfer_family, .priority = 0.5f })
 			.addExtensions(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
 			.withPhysicalDevice13Features({ .dynamicRendering = VK_TRUE })
 			.sbuild();
@@ -297,6 +296,32 @@ int main()
 			.withInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
 			.sbuild();
 		std::cout << "Storage Image 0x " << std::hex << storage_image.vkHandle() << std::dec << "\n";
+
+		auto storage_image_mem_req = storage_image.getMemoryRequirements();
+		auto storage_image_mem_type = gpu.findMemoryType(storage_image_mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		snassert(storage_image_mem_type != sn::voxeng::vk::PhysicalDevice::nmatch,
+			"Failed to find requested GPU's memory", "");
+
+		auto storage_image_memory = sn::voxeng::vk::DeviceMemory::Builder()
+			.withDevice(device)
+			.withAllocationSize(storage_image_mem_req.size)
+			.withMemoryTypeIndex(storage_image_mem_type)
+			.sbuild();
+
+		storage_image_memory.bindImage(storage_image, 0);
+
+		auto storage_image_view = sn::voxeng::vk::ImageView::Builder()
+			.withImage(storage_image)
+			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
+			.withSubresourceRange({
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+				})
+			.sbuild();
+		std::cout << "Storage Image View 0x " << std::hex << storage_image_view.vkHandle() << std::dec << "\n";
 
 		std::cout << "[main()]: OK\n";
 	}

@@ -7,6 +7,8 @@
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
 
+#include <vector>
+
 using namespace sn::voxeng::vk;
 
 namespace default_values

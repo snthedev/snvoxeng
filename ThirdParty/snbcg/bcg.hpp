@@ -14,12 +14,12 @@
 #define SNBCG_POLICY_RETURN_VIEW          ::std::string_view{ val }
 #define SNBCG_POLICY_RETURN_SPAN            val
 
-#define DETAIL_SNBCG_POLICY_RETURN_CREF_t(T)       ::std::add_lvalue_reference_t<::std::add_const_t<T>>
+#define DETAIL_SNBCG_POLICY_RETURN_CREF_t(T)       std::add_lvalue_reference_t<std::add_const_t<T>>
 #define DETAIL_SNBCG_POLICY_RETURN_COPY_t(T)        T
-#define DETAIL_SNBCG_POLICY_RETURN_UNPTR_t(T)      ::std::add_lvalue_reference_t<::std::add_const_t<::std::remove_pointer_t<T>>>
-#define DETAIL_SNBCG_POLICY_RETURN_PTR_t(T)        ::std::add_const_t<::std::add_pointer_t<T>>
-#define DETAIL_SNBCG_POLICY_RETURN_VIEW_t(T)       ::std::string_view
-#define DETAIL_SNBCG_POLICY_RETURN_SPAN_t(T)       ::std::span<::std::add_const_t<T::value_type>>
+#define DETAIL_SNBCG_POLICY_RETURN_UNPTR_t(T)      std::add_lvalue_reference_t<std::add_const_t<std::remove_pointer_t<T>>>
+#define DETAIL_SNBCG_POLICY_RETURN_PTR_t(T)        std::add_const_t<std::add_pointer_t<T>>
+#define DETAIL_SNBCG_POLICY_RETURN_VIEW_t(T)       std::string_view
+#define DETAIL_SNBCG_POLICY_RETURN_SPAN_t(T)       std::span<std::add_const_t<T::value_type>>
 
 // policy : store (cpp)
 #define SNBCG_POLICY_STORE_COPY(T)             arg

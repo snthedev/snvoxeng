@@ -21,3 +21,5 @@
 #include <snvoxeng/snvoxeng/vk/CommandPool.hpp>
 #include <snvoxeng/snvoxeng/vk/CommandBuffersContainer.hpp>
 #include <snvoxeng/snvoxeng/vk/CommandBuffer.hpp>
+
+#include <snvoxeng/snvoxeng/vk/DeviceMemory.hpp>

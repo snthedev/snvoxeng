@@ -44,7 +44,7 @@ namespace sn::voxeng::vk
 		~Device() noexcept;
 
 		const NamedQueue* getQueueInfo(const char* name) const noexcept;
-		const std::vector<NamedQueue>& getQueueInfos() const noexcept;
+		std::span<const NamedQueue> getQueueInfos() const noexcept;
 
 		void getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const;
 
@@ -72,6 +72,13 @@ namespace sn::voxeng::vk
 
 		VkResult allocateCommandBuffers(const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers) const;
 		void freeCommandBuffers(VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers) const;
+
+		void getImageMemoryRequirements(VkImage image, VkMemoryRequirements* pMemoryRequirements) const;
+
+		VkResult allocateMemory(const VkMemoryAllocateInfo* pAllocateInfo, const VkAllocationCallbacks* pAllocator, VkDeviceMemory* pMemory) const;
+		void freeMemory(VkDeviceMemory memory, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult bindImageMemory(VkImage image, VkDeviceMemory memory, VkDeviceSize memoryOffset) const;
 
 		Device(const Device&) = delete;
 		Device& operator=(const Device&) = delete;
