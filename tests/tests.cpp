@@ -148,6 +148,8 @@ int main()
 
 	try
 	{
+		auto window_description = glfw_get_window_descripton(pWindow);
+
 		std::vector<const char*> instance_extensions = {};
 		{
 			uint32_t glfwExtensionCount = 0;
@@ -168,7 +170,7 @@ int main()
 
 		auto surface_khr = sn::voxeng::vk::SurfaceKHR::Builder()
 			.withInstance(instance)
-			.withWindowDescription(glfw_get_window_descripton(pWindow))
+			.withWindowDescription(window_description)
 			.sbuild();
 
 		sn::voxeng::vk::PhysicalDeviceRegistry physical_device_registry(instance);
@@ -208,19 +210,21 @@ int main()
 		}
 		std::cout << "GPU: " << gpu.getProperties().deviceName << "\n";
 
-		uint32_t graphics_family;
-		uint32_t transfer_family;
-		uint32_t compute_family;
-		try
-		{
-			graphics_family = gpu.findQueueFamily({ .flags = VK_QUEUE_GRAPHICS_BIT, .surface = surface_khr.vkHandle() }).value();
-			transfer_family = gpu.findQueueFamily({ .flags = VK_QUEUE_TRANSFER_BIT, .preferDedicated = true }).value();
-			compute_family = gpu.findQueueFamily({ .flags = VK_QUEUE_COMPUTE_BIT,  .preferDedicated = true }).value();
-		}
-		catch (...)
-		{
-			throw std::runtime_error("Failed to find requested GPU's queue family.");
-		}
+		uint32_t graphics_family = gpu.findQueueFamily({ .flags = VK_QUEUE_GRAPHICS_BIT, .surface = surface_khr.vkHandle() });
+		snassert(graphics_family != sn::voxeng::vk::PhysicalDevice::nmatch,
+			"Failed to find requested GPU's graphics queue family",
+			"See GPU pick impl");
+
+		uint32_t transfer_family = gpu.findQueueFamily({ .flags = VK_QUEUE_TRANSFER_BIT, .preferDedicated = true });
+		snassert(transfer_family != sn::voxeng::vk::PhysicalDevice::nmatch,
+			"Failed to find requested GPU's transfer queue family",
+			"See GPU pick impl");
+
+		uint32_t compute_family = gpu.findQueueFamily({ .flags = VK_QUEUE_COMPUTE_BIT,  .preferDedicated = true });
+		snassert(compute_family != sn::voxeng::vk::PhysicalDevice::nmatch,
+			"Failed to find requested GPU's compute queue family",
+			"See GPU pick impl");
+
 		std::cout 
 			<< "GPU's graphics_family: " << graphics_family 
 			<< " " << gpu.getQueueFamilyProperties()[graphics_family] << "\n";
@@ -238,7 +242,7 @@ int main()
 				{ .name = "compute",  .familyIndex = compute_family,  .priority = 0.8f },
 				{ .name = "transfer", .familyIndex = transfer_family, .priority = 0.5f },
 				})
-			.withExtensions({ VK_KHR_SWAPCHAIN_EXTENSION_NAME })
+			.addExtensions(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
 			.withPhysicalDevice13Features({ .dynamicRendering = VK_TRUE })
 			.sbuild();
 

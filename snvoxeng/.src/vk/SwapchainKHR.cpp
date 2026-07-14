@@ -33,17 +33,21 @@ struct SwapchainKHR::data_t
 	data_t()
 	{
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		subdata##name = {};
+		subdata name = {};
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		subdata##name = default_values::name;
+		subdata name = default_values::name;
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		subdata##name = {};
+		subdata name = {};
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		subdata##name = default_values::name;
+		subdata name = default_values::name;
 #include <snvoxeng/.def/vk/SwapchainKHR.h>
 	}
 
 	VkSwapchainKHR vkHandle{ VK_NULL_HANDLE };
+
+	uint32_t imageCount;
+	Image* pImages;
+	ImageView* pImageViews;
 };
 
 void SwapchainKHR::onCreate(data_t& data)
@@ -51,19 +55,18 @@ void SwapchainKHR::onCreate(data_t& data)
 	snassert(data.pDevice->createSwapchainKHR(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
 		"Failed to create VkSwapchainKHR", "Check Builder settings");
 
-	uint32_t imageCount;
-	snassert(data.pDevice->getSwapchainImagesKHR(data.vkHandle, &imageCount, nullptr) == VK_SUCCESS,
+	snassert(data.pDevice->getSwapchainImagesKHR(data.vkHandle, &data.imageCount, nullptr) == VK_SUCCESS,
 		"Failed to get swapchain images", "Check builder settings");
 
-	std::vector<VkImage> vkImages(imageCount);
-	snassert(data.pDevice->getSwapchainImagesKHR(data.vkHandle, &imageCount, vkImages.data()) == VK_SUCCESS,
+	std::vector<VkImage> vkImages(data.imageCount);
+	snassert(data.pDevice->getSwapchainImagesKHR(data.vkHandle, &data.imageCount, vkImages.data()) == VK_SUCCESS,
 		"Failed to get swapchain images", "Check builder settings");
 
-	m_images.reserve(vkImages.size());
-	m_imageViews.reserve(vkImages.size());
-	for (VkImage vkImage : vkImages)
+	data.pImages = static_cast<Image*>(::operator new(data.imageCount * sizeof(Image)));
+	data.pImageViews = static_cast<ImageView*>(::operator new(data.imageCount * sizeof(ImageView)));
+	for (size_t i = 0; i < data.imageCount; ++i)
 	{
-		m_images.emplace_back(std::move(Image::Builder()
+		new (&data.pImages[i]) Image(Image::Builder()
 			.withDevice(*data.pDevice)
 			.withImageType(VK_IMAGE_TYPE_2D)
 			.withFormat(data.vkCreateInfo.imageFormat)
@@ -80,9 +83,9 @@ void SwapchainKHR::onCreate(data_t& data)
 			.withSharingMode(data.vkCreateInfo.imageSharingMode)
 			.withInitialLayout({})
 			.withQueueFamilyIndices(data.queueFamilyIndices)
-			.sbuild(vkImage)));
-		m_imageViews.emplace_back(std::move(ImageView::Builder()
-			.withImage(m_images.back())
+			.sbuild(vkImages[i]));
+		new (&data.pImageViews[i]) ImageView(ImageView::Builder()
+			.withImage(data.pImages[i])
 			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
 			.withSubresourceRange({
 				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -91,12 +94,20 @@ void SwapchainKHR::onCreate(data_t& data)
 				.baseArrayLayer = 0,
 				.layerCount = 1,
 				})
-			.sbuild()));
+			.sbuild());
 	}
 }
 void SwapchainKHR::onDestroy(data_t& data) noexcept
 {
-	data.pDevice->destoySwapchainKHR(data.vkHandle, data.vkPAllocator);
+	for (size_t i = 0; i < data.imageCount; ++i)
+	{
+		data.pImageViews[i].~ImageView();
+		data.pImages[i].~Image();
+	}
+	::operator delete(data.pImageViews);
+	::operator delete(data.pImages);
+
+	data.pDevice->destroySwapchainKHR(data.vkHandle, data.vkPAllocator);
 }
 
 SwapchainKHR::SwapchainKHR(data_t*& pData)
@@ -128,8 +139,8 @@ uint32_t SwapchainKHR::getMinImageCount() const noexcept { return m_pData->vkCre
 VkExtent2D SwapchainKHR::getImageExtent() const noexcept { return m_pData->vkCreateInfo.imageExtent; }
 VkSurfaceTransformFlagBitsKHR SwapchainKHR::getPreTransform() const noexcept { return m_pData->vkCreateInfo.preTransform; }
 
-const std::vector<Image>& SwapchainKHR::getImages() const noexcept { return m_images; }
-const std::vector<ImageView>& SwapchainKHR::getImageViews() const noexcept { return m_imageViews; }
+std::span<const Image> SwapchainKHR::getImages() const noexcept { return { m_pData->pImages, m_pData->imageCount }; }
+std::span<const ImageView> SwapchainKHR::getImageViews() const noexcept { return { m_pData->pImageViews, m_pData->imageCount }; }
 
 SwapchainKHR::SwapchainKHR(SwapchainKHR&& other) noexcept
 	: m_pData(other.m_pData)
@@ -157,13 +168,13 @@ VkSwapchainKHR SwapchainKHR::vkHandle() const noexcept { return m_pData->vkHandl
 SwapchainKHR::operator VkSwapchainKHR() const noexcept { return m_pData->vkHandle; }
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata##name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) SwapchainKHR::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #include <snvoxeng/.def/vk/SwapchainKHR.h>
 
 
@@ -292,34 +303,34 @@ Builder& Builder::operator=(Builder&& other) noexcept
 Builder& Builder::with##Name(arg_t name) {\
 	SNBCG_VALIDATE_ON_WITH(name, Name)\
 	std::add_lvalue_reference_t<arg_t> arg = name;\
-	m_pData->subdata##name = store_policy;\
+	m_pData->subdata name = store_policy(store_t);\
 	return *this;\
 }
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 Builder& Builder::with##Name(arg_t name) {\
 	SNBCG_VALIDATE_ON_WITH(name, Name)\
 	std::add_lvalue_reference_t<arg_t> arg = name;\
-	m_pData->subdata##name = store_policy;\
+	m_pData->subdata name = store_policy(store_t);\
 	return *this;\
 }
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 Builder& Builder::with##Name(args_t name) {\
 	SNBCG_VALIDATE_ON_WITH(name, Name)\
 	std::add_lvalue_reference_t<args_t> arg = name;\
-	m_pData->subdata##name = store_policy;\
+	m_pData->subdata name = store_policy(store_t);\
 	return *this;\
 }\
 Builder& Builder::add##Name(args_t name) {\
 	SNBCG_VALIDATE_ON_ADD(name, Name)\
 	std::add_lvalue_reference_t<args_t> args = name;\
-	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata name;\
 	DETAIL_##store_action##_MULTI;\
 	return *this;\
 }\
 Builder& Builder::add##Name(arg_t name) {\
 	SNBCG_VALIDATE_ON_ADD(name, Name)\
 	std::add_lvalue_reference_t<arg_t> arg = name;\
-	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata name;\
 	DETAIL_##store_action##_SINGLE;\
 	return *this;\
 }
@@ -327,20 +338,20 @@ Builder& Builder::add##Name(arg_t name) {\
 Builder& Builder::with##Name(args_t name) {\
 	SNBCG_VALIDATE_ON_WITH(name, Name)\
 	std::add_lvalue_reference_t<args_t> arg = name;\
-	m_pData->subdata##name = store_policy;\
+	m_pData->subdata name = store_policy(store_t);\
 	return *this;\
 }\
 Builder& Builder::add##Name(args_t name) {\
 	SNBCG_VALIDATE_ON_ADD(name, Name)\
 	std::add_lvalue_reference_t<args_t> args = name;\
-	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata name;\
 	DETAIL_##store_action##_MULTI;\
 	return *this;\
 }\
 Builder& Builder::add##Name(arg_t name) {\
 	SNBCG_VALIDATE_ON_ADD(name, Name)\
 	std::add_lvalue_reference_t<arg_t> arg = name;\
-	std::add_lvalue_reference_t<store_t> val = m_pData->subdata##name;\
+	std::add_lvalue_reference_t<store_t> val = m_pData->subdata name;\
 	DETAIL_##store_action##_SINGLE;\
 	return *this;\
 }

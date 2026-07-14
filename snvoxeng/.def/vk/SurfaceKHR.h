@@ -68,12 +68,14 @@ SNBCG_THIS(
 	, windowDescription, WindowDescription,
 	SNBCG_POLICY_RETURN_CREF, SNBCG_POLICY_STORE_COPY
 )
+#undef SNBCG_THIS
 #endif
 
 #ifdef SNBCG_OPTIONAL
 #define SNBCG_THIS SNBCG_OPTIONAL
 // --- v Optional Fields v ---
 SNBCG_THIS(const VkAllocationCallbacks*, const VkAllocationCallbacks*, , vkPAllocator, Allocator, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+#undef SNBCG_THIS
 #endif
 
 // --- V -------------- V ---
@@ -83,21 +85,34 @@ SNBCG_THIS(const VkAllocationCallbacks*, const VkAllocationCallbacks*, , vkPAllo
 #ifdef SNBCG_REQUIRED_ADDITIVE
 #define SNBCG_THIS SNBCG_REQUIRED_ADDITIVE
 // --- v Required Fields v ---
+#undef SNBCG_THIS
 #endif
 
 #ifdef SNBCG_OPTIONAL_ADDITIVE
 #define SNBCG_THIS SNBCG_OPTIONAL_ADDITIVE
 // --- v Optional Fields v ---
+#undef SNBCG_THIS
 #endif
 
 // --- V -------------- V ---
 // === V      MISC      V ===
 // --- V -------------- V ---
 
-#undef SNBCG_THIS
+#ifdef SNBCG_HEADER_INCLUDE
 #undef SNBCG_HEADER_INCLUDE
+#endif
+#ifdef SNBCG_DEFAULT_VALUES
 #undef SNBCG_DEFAULT_VALUES
+#endif
+#ifdef SNBCG_REQUIRED
 #undef SNBCG_REQUIRED
+#endif
+#ifdef SNBCG_OPTIONAL
 #undef SNBCG_OPTIONAL
+#endif
+#ifdef SNBCG_REQUIRED_ADDITIVE
 #undef SNBCG_REQUIRED_ADDITIVE
+#endif
+#ifdef SNBCG_OPTIONAL_ADDITIVE
 #undef SNBCG_OPTIONAL_ADDITIVE
+#endif

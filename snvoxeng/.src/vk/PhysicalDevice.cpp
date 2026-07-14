@@ -40,11 +40,11 @@ const VkPhysicalDeviceMemoryProperties& PhysicalDevice::getMemoryProperties() co
 {
     return m_pRegistry->getMemoryProperties(m_registryIdx);
 }
-const std::vector<VkQueueFamilyProperties>& PhysicalDevice::getQueueFamilyProperties() const noexcept
+std::span<const VkQueueFamilyProperties> PhysicalDevice::getQueueFamilyProperties() const noexcept
 {
     return m_pRegistry->getQueueFamilyProperties(m_registryIdx);
 }
-const std::vector<VkExtensionProperties>& PhysicalDevice::getExtensionProperties() const noexcept
+std::span<const VkExtensionProperties> PhysicalDevice::getExtensionProperties() const noexcept
 {
     return m_pRegistry->getExtensionProperties(m_registryIdx);
 }
@@ -53,10 +53,10 @@ const VkExtensionProperties* PhysicalDevice::findExtensionProperties(const char*
     return m_pRegistry->findExtensionProperties(m_registryIdx, extensionName);
 }
 
-std::optional<uint32_t> PhysicalDevice::findQueueFamily(const QueueRequest& request) const noexcept
+uint32_t PhysicalDevice::findQueueFamily(const QueueRequest& request) const noexcept
 {
     const auto& queueFamilies = getQueueFamilyProperties();
-    std::optional<uint32_t> backupMatch;
+    uint32_t backupMatch = nmatch;
 
     for (uint32_t i = 0; i < static_cast<uint32_t>(queueFamilies.size()); ++i)
     {
@@ -87,7 +87,7 @@ std::optional<uint32_t> PhysicalDevice::findQueueFamily(const QueueRequest& requ
                 return i;
         }
 
-        if (!backupMatch.has_value())
+        if (backupMatch == nmatch)
             backupMatch = i;
     }
 

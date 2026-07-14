@@ -5,8 +5,6 @@
 
 #include <ThirdParty/snbcg/bcg.hpp>
 
-#include <vector>
-
 #define SNBCG_HEADER_INCLUDE
 #include <snvoxeng/.def/vk/CommandBuffersContainer.h>
 

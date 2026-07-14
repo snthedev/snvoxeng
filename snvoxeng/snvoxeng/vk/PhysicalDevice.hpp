@@ -1,11 +1,10 @@
 #pragma once
 
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
-
 #include <snvoxeng/snvoxeng/vk/VkMinimal.hpp>
 
+#include <span>
 #include <optional>
-#include <vector>
 
 namespace sn::voxeng::vk
 {
@@ -28,9 +27,11 @@ namespace sn::voxeng::vk
         const VkPhysicalDeviceProperties& getProperties() const noexcept;
         const VkPhysicalDeviceFeatures& getFeatures() const noexcept;
         const VkPhysicalDeviceMemoryProperties& getMemoryProperties() const noexcept;
-        const std::vector<VkQueueFamilyProperties>& getQueueFamilyProperties() const noexcept;
-        const std::vector<VkExtensionProperties>& getExtensionProperties() const noexcept;
+        std::span<const VkQueueFamilyProperties> getQueueFamilyProperties() const noexcept;
+        std::span<const VkExtensionProperties> getExtensionProperties() const noexcept;
         const VkExtensionProperties* findExtensionProperties(const char* extensionName) const noexcept;
+
+        static inline constexpr uint32_t nmatch = ~(uint32_t)(0);
 
         struct QueueRequest
         {
@@ -39,6 +40,7 @@ namespace sn::voxeng::vk
             bool preferDedicated = true;
         };
 
-        std::optional<uint32_t> findQueueFamily(const QueueRequest& request) const noexcept;
+        // returns PhysicalDevice::nmatch if queue family is not found
+        uint32_t findQueueFamily(const QueueRequest& request) const noexcept;
     };
 }

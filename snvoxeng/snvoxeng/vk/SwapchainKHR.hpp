@@ -19,9 +19,6 @@ namespace sn::voxeng::vk
 		struct data_t;
 		data_t* m_pData;
 
-		std::vector<Image> m_images;
-		std::vector<ImageView> m_imageViews;
-
 		void onCreate(data_t& data);
 		void onDestroy(data_t& data) noexcept;
 
@@ -37,8 +34,8 @@ namespace sn::voxeng::vk
 		VkExtent2D getImageExtent() const noexcept;
 		VkSurfaceTransformFlagBitsKHR getPreTransform() const noexcept;
 
-		const std::vector<Image>& getImages() const noexcept;
-		const std::vector<ImageView>& getImageViews() const noexcept;
+		std::span<const Image> getImages() const noexcept;
+		std::span<const ImageView> getImageViews() const noexcept;
 
 		SwapchainKHR(const SwapchainKHR&) = delete;
 		SwapchainKHR& operator=(const SwapchainKHR&) = delete;
