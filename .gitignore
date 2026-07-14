@@ -1,5 +1,14 @@
 # Build folder
 build/
+# except resources folder
+!build/.res/
+!build/.res/**
+# just in case
+*.exp
+*.pdb
+*.lib
+*.dll
+*.exe
 
 # Vcpkg
 vcpkg_installed/
