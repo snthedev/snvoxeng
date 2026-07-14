@@ -1,10 +1,13 @@
 #include <snvoxeng/snvoxeng/vk/Device.hpp>
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
+
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
 
 #include <string>
+#include <vector>
 
 using namespace sn::voxeng::vk;
 
@@ -93,8 +96,11 @@ void Device::onCreate(data_t& data)
 	data.vkCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	data.vkCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-	snassert(vkCreateDevice(data.pPhysicalDevice->getHandle(), &data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkDevice", "Check Builder settings");
+	{
+		auto result = vkCreateDevice(data.pPhysicalDevice->getHandle(), &data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkDevice", "Check Builder settings");
+	}
 
 	data.namedQueues.resize(data.queueRequests.size());
 	for (const auto& group : uniqueFamilies)
@@ -115,10 +121,18 @@ void Device::onCreate(data_t& data)
 			};
 		}
 	}
+
+	if (m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream())
+		*m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream()
+		<< "[trace]: Device 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void Device::onDestroy(data_t& data) noexcept
 {
 	vkDestroyDevice(data.vkHandle, data.vkPAllocator);
+
+	if (m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream())
+		*m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream()
+		<< "[trace]: Device 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 Device::Device(data_t*& pData)
@@ -155,7 +169,7 @@ const Device::NamedQueue* Device::getQueueInfo(const char* name) const noexcept
 	if (it == m_pData->namedQueues.end()) return nullptr;
 	return &(*it);
 }
-const std::vector<Device::NamedQueue>& Device::getQueueInfos() const noexcept { return m_pData->namedQueues; }
+std::span<const Device::NamedQueue> Device::getQueueInfos() const noexcept { return m_pData->namedQueues; }
 
 void Device::getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const
 {
@@ -237,6 +251,63 @@ VkResult Device::allocateCommandBuffers(const VkCommandBufferAllocateInfo* pAllo
 void Device::freeCommandBuffers(VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers) const
 {
 	vkFreeCommandBuffers(m_pData->vkHandle, commandPool, commandBufferCount, pCommandBuffers);
+}
+
+void Device::getImageMemoryRequirements(VkImage image, VkMemoryRequirements* pMemoryRequirements) const
+{
+	vkGetImageMemoryRequirements(m_pData->vkHandle, image, pMemoryRequirements);
+}
+
+VkResult Device::allocateMemory(const VkMemoryAllocateInfo* pAllocateInfo, const VkAllocationCallbacks* pAllocator, VkDeviceMemory* pMemory) const
+{
+	return vkAllocateMemory(m_pData->vkHandle, pAllocateInfo, pAllocator, pMemory);
+}
+
+void Device::freeMemory(VkDeviceMemory memory, const VkAllocationCallbacks* pAllocator) const
+{
+	vkFreeMemory(m_pData->vkHandle, memory, pAllocator);
+}
+
+VkResult Device::bindImageMemory(VkImage image, VkDeviceMemory memory, VkDeviceSize memoryOffset) const
+{
+	return vkBindImageMemory(m_pData->vkHandle, image, memory, memoryOffset);
+}
+
+VkResult Device::createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout) const
+{
+	return vkCreateDescriptorSetLayout(m_pData->vkHandle, pCreateInfo, pAllocator, pSetLayout);
+}
+void Device::destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyDescriptorSetLayout(m_pData->vkHandle, descriptorSetLayout, pAllocator);
+}
+
+VkResult Device::createPipelineLayout(const VkPipelineLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineLayout* pPipelineLayout) const
+{
+	return vkCreatePipelineLayout(m_pData->vkHandle, pCreateInfo, pAllocator, pPipelineLayout);
+}
+
+void Device::destroyPipelineLayout(VkPipelineLayout pipelineLayout, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyPipelineLayout(m_pData->vkHandle, pipelineLayout, pAllocator);
+}
+
+VkResult Device::createShaderModule(const VkShaderModuleCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkShaderModule* pShaderModule) const
+{
+	return vkCreateShaderModule(m_pData->vkHandle, pCreateInfo, pAllocator, pShaderModule);
+}
+void Device::destroyShaderModule(VkShaderModule shaderModule, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyShaderModule(m_pData->vkHandle, shaderModule, pAllocator);
+}
+
+VkResult Device::createComputePipelines(VkPipelineCache pipelineCache, uint32_t createInfoCount, const VkComputePipelineCreateInfo* pCreateInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines) const
+{
+	return vkCreateComputePipelines(m_pData->vkHandle, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
+}
+void Device::destroyPipeline(VkPipeline pipeline, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyPipeline(m_pData->vkHandle, pipeline, pAllocator);
 }
 
 Device::Device(Device&& other) noexcept
@@ -465,26 +536,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 Device Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Device{ m_pData };
 }
 Device* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Device{ m_pData };
 }
 
 Device Builder::sbuild(VkDevice view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Device{ m_pData, view };
 }
 Device* Builder::build(VkDevice view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Device{ m_pData, view };
 }

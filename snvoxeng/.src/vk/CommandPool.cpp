@@ -2,6 +2,7 @@
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
 #include <snvoxeng/snvoxeng/vk/CommandBuffersContainer.hpp>
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
@@ -47,12 +48,23 @@ struct CommandPool::data_t
 
 void CommandPool::onCreate(data_t& data)
 {
-	snassert(data.pDevice->createCommandPool(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkCommandPool", "Check Builder settings");
+	{
+		auto result = data.pDevice->createCommandPool(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkCommandPool", "Check Builder settings");
+	}
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: CommandPool 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void CommandPool::onDestroy(data_t& data) noexcept
 {
 	data.pDevice->destroyCommandPool(data.vkHandle, data.vkPAllocator);
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: CommandPool 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 CommandPool::CommandPool(data_t*& pData)
@@ -301,26 +313,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 CommandPool Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return CommandPool{ m_pData };
 }
 CommandPool* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new CommandPool{ m_pData };
 }
 
 CommandPool Builder::sbuild(VkCommandPool view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return CommandPool{ m_pData, view };
 }
 CommandPool* Builder::build(VkCommandPool view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new CommandPool{ m_pData, view };
 }

@@ -13,6 +13,7 @@
 
 #include <ostream>
 #include <iostream>
+#include <vector>
 
 static sn::voxeng::WindowDescription_t glfw_get_window_descripton(GLFWwindow* window)
 {
@@ -92,8 +93,8 @@ static cstrs::cstr u2bin_str(const T& val)
 static cstrs::cstr VkQueueFlags2str(VkQueueFlags val)
 {
 	size_t at = 0u;
-	cstrs::cstr buf(512);
-	at = buf.fill("[", at);
+	cstrs::cstr buf(512, '\0');
+	at = buf.fill("[ ", at);
 	if ((val & VK_QUEUE_GRAPHICS_BIT) != 0) at = buf.fill("\"GRAPHICS_BIT\", ", at);
 	if ((val & VK_QUEUE_COMPUTE_BIT) != 0) at = buf.fill("\"COMPUTE_BIT\", ", at);
 	if ((val & VK_QUEUE_TRANSFER_BIT) != 0) at = buf.fill("\"TRANSFER_BIT\", ", at);
@@ -103,8 +104,9 @@ static cstrs::cstr VkQueueFlags2str(VkQueueFlags val)
 	if ((val & VK_QUEUE_VIDEO_ENCODE_BIT_KHR) != 0) at = buf.fill("\"VIDEO_ENCODE_BIT_KHR\", ", at);
 	if ((val & VK_QUEUE_OPTICAL_FLOW_BIT_NV) != 0) at = buf.fill("\"OPTICAL_FLOW_BIT_NV\", ", at);
 	if ((val & VK_QUEUE_DATA_GRAPH_BIT_ARM) != 0) at = buf.fill("\"DATA_GRAPH_BIT_ARM\", ", at);
-	buf.truncate(buf.find_last_of(cstrs::cset("\"[")) + 2u);
-	buf.back() = ']';
+	buf.truncate(at);
+	if (at > 2u) buf[at - 2u] = ' ';
+	buf[at - 1u] = ']';
 	return buf;
 }
 
@@ -161,11 +163,13 @@ int main()
 			.withApiVersion(VK_API_VERSION_1_3)
 			.withApplicationName("snvoxeng test")
 			.withApplicationVersion(VK_MAKE_API_VERSION(0, 0, 1, 0))
+			.addExtensions(instance_extensions)
+#ifndef NDEBUG
 			.addValidationLayers({ "VK_LAYER_KHRONOS_validation" })
 			.addExtensions({ "VK_EXT_debug_utils" })
-			.addExtensions(instance_extensions)
 			.withDebugMessengerEnabled(true)
 			.withDebugStream(std::cout)
+#endif
 			.sbuild();
 
 		auto surface_khr = sn::voxeng::vk::SurfaceKHR::Builder()
@@ -180,15 +184,15 @@ int main()
 			using namespace sn::voxeng::vk::fPhysicalDeviseSelectors;
 
 			std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
-			fExtensions_user_data_t fExtensions_user_data {
+			fExtensions_user_data_t fExtensions_user_data{
 				.ppExtensionNames = deviceExtensions.data(),
 				.extensionCount = deviceExtensions.size(),
 			};
-			fQueueSupport_user_data_t fQueueSupport_user_data {
+			fQueueSupport_user_data_t fQueueSupport_user_data{
 				.requiredFlagsOr = VkQueueFlagBits::VK_QUEUE_COMPUTE_BIT | VkQueueFlagBits::VK_QUEUE_TRANSFER_BIT,
 				.requiredFlagsAnd = VkQueueFlagBits::VK_QUEUE_GRAPHICS_BIT,
 			};
-			fSurfaceSupport_user_data_t fSurfaceSupport_user_data {
+			fSurfaceSupport_user_data_t fSurfaceSupport_user_data{
 				.surface = surface_khr.vkHandle(),
 			};
 
@@ -198,7 +202,7 @@ int main()
 				.pick(fSurfaceSupport, &fSurfaceSupport_user_data)
 				;
 
-			fDeviceType_user_data_t fDeviceType_user_data {
+			fDeviceType_user_data_t fDeviceType_user_data{
 				.deviceType = VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU,
 			};
 
@@ -225,23 +229,21 @@ int main()
 			"Failed to find requested GPU's compute queue family",
 			"See GPU pick impl");
 
-		std::cout 
-			<< "GPU's graphics_family: " << graphics_family 
+		std::cout
+			<< "GPU's graphics_family: " << graphics_family
 			<< " " << gpu.getQueueFamilyProperties()[graphics_family] << "\n";
-		std::cout 
+		std::cout
 			<< "GPU's transfer_family: " << transfer_family
 			<< " " << gpu.getQueueFamilyProperties()[transfer_family] << "\n";
-		std::cout 
+		std::cout
 			<< "GPU's compute_family: " << compute_family
 			<< " " << gpu.getQueueFamilyProperties()[compute_family] << "\n";
 
 		auto device = sn::voxeng::vk::Device::Builder()
 			.withPhysicalDevice(gpu)
-			.withQueueRequests({
-				{ .name = "graphics", .familyIndex = graphics_family, .priority = 1.0f },
-				{ .name = "compute",  .familyIndex = compute_family,  .priority = 0.8f },
-				{ .name = "transfer", .familyIndex = transfer_family, .priority = 0.5f },
-				})
+			.addQueueRequests({ .name = "graphics", .familyIndex = graphics_family, .priority = 1.0f })
+			.addQueueRequests({ .name = "compute",  .familyIndex = compute_family,  .priority = 0.8f })
+			.addQueueRequests({ .name = "transfer", .familyIndex = transfer_family, .priority = 0.5f })
 			.addExtensions(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
 			.withPhysicalDevice13Features({ .dynamicRendering = VK_TRUE })
 			.sbuild();
@@ -283,6 +285,115 @@ int main()
 			std::cout << "Command buffer " << buf.getContainerIdx() << " (Compute): 0x" << std::hex << buf.vkHandle() << std::dec << "\n";
 		}
 
+		auto storage_image = sn::voxeng::vk::Image::Builder()
+			.withDevice(device)
+			.withImageType(VK_IMAGE_TYPE_2D)
+			.withFormat(VK_FORMAT_R8G8B8A8_UNORM)
+			.withExtent({ window_description.width, window_description.height, 1 })
+			.withMipLevels(1)
+			.withArrayLayers(1)
+			.withSamples(VK_SAMPLE_COUNT_1_BIT)
+			.withTiling(VK_IMAGE_TILING_OPTIMAL)
+			.withUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+			.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
+			.withInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+			.sbuild();
+		std::cout << "Storage Image 0x " << std::hex << storage_image.vkHandle() << std::dec << "\n";
+
+		auto storage_image_mem_req = storage_image.getMemoryRequirements();
+		auto storage_image_mem_type = gpu.findMemoryType(storage_image_mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		snassert(storage_image_mem_type != sn::voxeng::vk::PhysicalDevice::nmatch,
+			"Failed to find requested GPU's memory", "");
+
+		auto storage_image_memory = sn::voxeng::vk::DeviceMemory::Builder()
+			.withDevice(device)
+			.withAllocationSize(storage_image_mem_req.size)
+			.withMemoryTypeIndex(storage_image_mem_type)
+			.sbuild();
+
+		storage_image_memory.bindImage(storage_image, 0);
+
+		auto storage_image_view = sn::voxeng::vk::ImageView::Builder()
+			.withImage(storage_image)
+			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
+			.withSubresourceRange({
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+				})
+			.sbuild();
+		std::cout << "Storage Image View 0x " << std::hex << storage_image_view.vkHandle() << std::dec << "\n";
+
+		auto storage_image_cmdbuf = command_buffers.get(0);
+		storage_image_cmdbuf.begin({ .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT });
+		VkImageMemoryBarrier storage_image_barrier{
+			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+			.srcAccessMask = 0,
+			.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+			.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+			.newLayout = VK_IMAGE_LAYOUT_GENERAL,
+			.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+			.image = storage_image.vkHandle(),
+			.subresourceRange = {
+				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				.baseMipLevel = 0,
+				.levelCount = 1,
+				.baseArrayLayer = 0,
+				.layerCount = 1
+			}
+		};
+		storage_image_cmdbuf.cmdPipelineBarrier(
+			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+			0,
+			{},
+			{},
+			{ &storage_image_barrier, 1 }
+		);
+		storage_image_cmdbuf.end();
+
+		auto compiler_settings = sn::voxeng::ShaderCompiler::getSettings();
+		compiler_settings.apiVersion = instance.getApiVersion();
+		sn::voxeng::ShaderCompiler::setSettings(compiler_settings);
+		
+		auto compute_shader_spv = sn::voxeng::ShaderCompiler::loadFromFile(".res/shaders/test.comp");
+		std::cout << "Shader compiled (" << compute_shader_spv.getSize() << " bytes)\n";
+
+		auto compute_shader = sn::voxeng::vk::ShaderModule::Builder()
+			.withDevice(device)
+			.withCode(compute_shader_spv)
+			.sbuild();
+
+		auto descriptor_set_layout = sn::voxeng::vk::DescriptorSetLayout::Builder()
+			.withDevice(device)
+			.addBindings(VkDescriptorSetLayoutBinding{
+				.binding = 0,
+				.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				.descriptorCount = 1u,
+				.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+				.pImmutableSamplers = nullptr,
+				})
+			.sbuild();
+
+		auto pipeline_layout = sn::voxeng::vk::PipelineLayout::Builder()
+			.withDevice(device)
+			.addSetLayouts(descriptor_set_layout.vkHandle())
+			.sbuild();
+
+		auto compute_pipeline = sn::voxeng::vk::ComputePipeline::Builder()
+			.withDevice(device)
+			.withLayout(pipeline_layout)
+			.withStage(VkPipelineShaderStageCreateInfo{
+				.stage = VK_SHADER_STAGE_COMPUTE_BIT,
+				.module = compute_shader.vkHandle(),
+				.pName = "main",
+				})
+			.sbuild();
+		std::cout << "Compute Pipeline 0x " << std::hex << compute_pipeline.vkHandle() << std::dec << "\n";
+		
 		std::cout << "[main()]: OK\n";
 	}
 	catch (const std::exception& e)

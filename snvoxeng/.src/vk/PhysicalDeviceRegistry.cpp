@@ -1,15 +1,18 @@
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
-
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceSelector.hpp>
+#include <snvoxeng/snvoxeng/vk/PhysicalDevice.hpp>
 
 #include <snassert/snassert.hpp>
+
+#include <vector>
+#include <optional>
 
 using namespace sn::voxeng::vk;
 
 struct PhysicalDeviceRegistry::data_t
 {
-    const Instance* const pInstance;
-    const std::vector<VkPhysicalDevice> physicalDevices;
+    const Instance* pInstance;
+    std::vector<VkPhysicalDevice> physicalDevices;
 
     mutable std::vector<std::optional<VkPhysicalDeviceProperties>> cached_properties;
     mutable std::vector<std::optional<VkPhysicalDeviceFeatures>> cached_features;
@@ -19,13 +22,25 @@ struct PhysicalDeviceRegistry::data_t
 
     data_t(const Instance& instance)
         : pInstance(&instance)
-        , physicalDevices(pInstance->enumeratePhysicalDevices())
-        , cached_properties(physicalDevices.size(), std::nullopt)
-        , cached_features(physicalDevices.size(), std::nullopt)
-        , cached_memoryProperties(physicalDevices.size(), std::nullopt)
-        , cached_queueFamilyProperties(physicalDevices.size(), std::nullopt)
-        , cached_extensionProperties(physicalDevices.size(), std::nullopt)
     {
+        uint32_t physicalDevicesCount{ 0u };
+        {
+            auto result = pInstance->enumeratePhysicalDevices(&physicalDevicesCount, nullptr);
+            snassert(result == VK_SUCCESS,
+                "Failed to enumeratePhysicalDevices", "");
+        }
+        physicalDevices.resize(physicalDevicesCount);
+        {
+            auto result = pInstance->enumeratePhysicalDevices(&physicalDevicesCount, physicalDevices.data());
+            snassert(result == VK_SUCCESS,
+                "Failed to enumeratePhysicalDevices", "");
+        }
+
+        cached_properties.resize(physicalDevices.size(), std::nullopt);
+        cached_features.resize(physicalDevices.size(), std::nullopt);
+        cached_memoryProperties.resize(physicalDevices.size(), std::nullopt);
+        cached_queueFamilyProperties.resize(physicalDevices.size(), std::nullopt);
+        cached_extensionProperties.resize(physicalDevices.size(), std::nullopt);
     }
     ~data_t() noexcept = default;
 };
@@ -35,13 +50,16 @@ VkPhysicalDevice PhysicalDeviceRegistry::vkHandle(size_t idx) const noexcept { r
 PhysicalDeviceRegistry::PhysicalDeviceRegistry(const Instance& instance)
     : m_pData(new data_t{ instance })
 {
-	if (m_pData->pInstance->getDebugStream()) (*m_pData->pInstance->getDebugStream())
-		<< "[PhysicalDeviceRegistry()]: device count "
-		<< m_pData->physicalDevices.size()
-		<< "\n";
+    if (m_pData->pInstance->getDebugStream())
+        *m_pData->pInstance->getDebugStream()
+        << "[trace]: PhysicalDeviceRegistry 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 PhysicalDeviceRegistry::~PhysicalDeviceRegistry() noexcept
 {
+    if (m_pData->pInstance->getDebugStream())
+        *m_pData->pInstance->getDebugStream()
+        << "[trace]: PhysicalDeviceRegistry 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
+
     delete m_pData;
 }
 

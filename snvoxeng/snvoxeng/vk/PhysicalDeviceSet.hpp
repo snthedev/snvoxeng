@@ -1,7 +1,6 @@
 #pragma once
 
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
-
 #include <snvoxeng/snvoxeng/vk/VkMinimal.hpp>
 
 #include <snvoxeng/snvoxeng/vk/PhysicalDevice.hpp>

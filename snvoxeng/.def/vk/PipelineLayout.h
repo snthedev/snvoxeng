@@ -42,15 +42,13 @@
 
 #ifdef SNBCG_HEADER_INCLUDE
 // --- v Includes v ---
-#include <snvoxeng/snvoxeng/vk/PhysicalDevice.hpp>
+#include <snvoxeng/snvoxeng/vk/Device.hpp>
+#include <snvoxeng/snvoxeng/vk/DescriptorSetLayout.hpp>
 #endif
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static constexpr auto physicalDeviceFeatures = VkPhysicalDeviceFeatures{};
-static constexpr auto physicalDevice13Features = VkPhysicalDeviceVulkan13Features{};
-
-static const auto extensions = std::vector<const char*>{};
+static const auto pushConstantRanges = std::vector<VkPushConstantRange>{};
 
 static constexpr auto pNext = nullptr;
 static constexpr auto flags = 0u;
@@ -65,8 +63,8 @@ static constexpr auto vkPAllocator = nullptr;
 #define SNBCG_THIS SNBCG_REQUIRED
 // --- v Required Fields v ---
 SNBCG_THIS(
-	const PhysicalDevice*, const PhysicalDevice&,
-	, pPhysicalDevice, PhysicalDevice,
+	const Device*, const Device&,
+	, pDevice, Device,
 	SNBCG_POLICY_RETURN_UNPTR, SNBCG_POLICY_STORE_ADDR
 )
 #undef SNBCG_THIS
@@ -75,19 +73,8 @@ SNBCG_THIS(
 #ifdef SNBCG_OPTIONAL
 #define SNBCG_THIS SNBCG_OPTIONAL
 // --- v Optional Fields v ---
-SNBCG_THIS(
-	VkPhysicalDeviceFeatures, const VkPhysicalDeviceFeatures&,
-	, physicalDeviceFeatures, PhysicalDeviceFeatures,
-	SNBCG_POLICY_RETURN_CREF, SNBCG_POLICY_STORE_COPY
-)
-SNBCG_THIS(
-	VkPhysicalDeviceVulkan13Features, const VkPhysicalDeviceVulkan13Features&,
-	, physicalDevice13Features, PhysicalDevice13Features,
-	SNBCG_POLICY_RETURN_CREF, SNBCG_POLICY_STORE_COPY
-)
-
 SNBCG_THIS(const void*, const void*, vkCreateInfo., pNext, Next, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
-SNBCG_THIS(VkDeviceCreateFlags, VkDeviceCreateFlags, vkCreateInfo., flags, Flags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+SNBCG_THIS(VkPipelineLayoutCreateFlags, VkPipelineLayoutCreateFlags, vkCreateInfo., flags, Flags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 SNBCG_THIS(const VkAllocationCallbacks*, const VkAllocationCallbacks*, , vkPAllocator, Allocator, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 #undef SNBCG_THIS
 #endif
@@ -100,8 +87,8 @@ SNBCG_THIS(const VkAllocationCallbacks*, const VkAllocationCallbacks*, , vkPAllo
 #define SNBCG_THIS SNBCG_REQUIRED_ADDITIVE
 // --- v Required Fields v ---
 SNBCG_THIS(
-	std::vector<Device::QueueRequest>, const Device::QueueRequest&, std::span<const Device::QueueRequest>,
-	, queueRequests, QueueRequests,
+	std::vector<VkDescriptorSetLayout>, VkDescriptorSetLayout, std::span<VkDescriptorSetLayout>,
+	, setLayouts, SetLayouts,
 	SNBCG_POLICY_RETURN_SPAN, SNBCG_POLICY_STORE_SPAN_COPY, SNBCG_ACTION_APPEND_EMPLACE
 )
 #undef SNBCG_THIS
@@ -111,8 +98,8 @@ SNBCG_THIS(
 #define SNBCG_THIS SNBCG_OPTIONAL_ADDITIVE
 // --- v Optional Fields v ---
 SNBCG_THIS(
-	std::vector<const char*>, const char*, std::span<const char*>,
-	, extensions, Extensions,
+	std::vector<VkPushConstantRange>, const VkPushConstantRange&, std::span<const VkPushConstantRange>,
+	, pushConstantRanges, PushConstantRanges,
 	SNBCG_POLICY_RETURN_SPAN, SNBCG_POLICY_STORE_SPAN_COPY, SNBCG_ACTION_APPEND_EMPLACE
 )
 #undef SNBCG_THIS

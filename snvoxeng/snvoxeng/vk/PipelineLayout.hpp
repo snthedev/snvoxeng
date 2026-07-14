@@ -6,12 +6,12 @@
 #include <ThirdParty/snbcg/bcg.hpp>
 
 #define SNBCG_HEADER_INCLUDE
-#include <snvoxeng/.def/vk/Image.h>
+#include <snvoxeng/.def/vk/PipelineLayout.h>
 
 namespace sn::voxeng::vk
 {
-	// Use Image::Builder for build
-	class SNVOXENG_API Image
+	// Use PipelineLayout::Builder for build
+	class SNVOXENG_API PipelineLayout
 	{
 		struct data_t;
 		data_t* m_pData;
@@ -21,21 +21,19 @@ namespace sn::voxeng::vk
 
 		bool m_isView;
 
-		Image(data_t*& pData);
-		Image(data_t*& pData, VkImage view);
+		PipelineLayout(data_t*& pData);
+		PipelineLayout(data_t*& pData, VkPipelineLayout view);
 
 	public:
-		~Image() noexcept;
+		~PipelineLayout() noexcept;
 
-		VkMemoryRequirements getMemoryRequirements() const;
+		PipelineLayout(const PipelineLayout&) = delete;
+		PipelineLayout& operator=(const PipelineLayout&) = delete;
+		PipelineLayout(PipelineLayout&& other) noexcept;
+		PipelineLayout& operator=(PipelineLayout&& other) noexcept;
 
-		Image(const Image&) = delete;
-		Image& operator=(const Image&) = delete;
-		Image(Image&& other) noexcept;
-		Image& operator=(Image&& other) noexcept;
-
-		VkImage vkHandle() const noexcept;
-		operator VkImage() const noexcept;
+		VkPipelineLayout vkHandle() const noexcept;
+		operator VkPipelineLayout() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
@@ -45,13 +43,13 @@ namespace sn::voxeng::vk
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
-#include <snvoxeng/.def/vk/Image.h>
+#include <snvoxeng/.def/vk/PipelineLayout.h>
 	
 		class Builder;
 		friend class Builder;
-	}; // ^ class Image ^
+	}; // ^ class PipelineLayout ^
 
-	class SNVOXENG_API Image::Builder
+	class SNVOXENG_API PipelineLayout::Builder
 	{
 		data_t* m_pData;
 		void finalize(data_t& data);
@@ -85,22 +83,20 @@ namespace sn::voxeng::vk
 		Builder& with##Name(args_t name);\
 		Builder& add##Name(args_t name);\
 		Builder& add##Name(arg_t name);
-#include <snvoxeng/.def/vk/Image.h>
+#include <snvoxeng/.def/vk/PipelineLayout.h>
 
-		// Builds Image on stack;
+		// Builds PipelineLayout on stack;
 		// Builder is invalid after .sbuild()
-		Image sbuild();
-		// Builds Image on heap;
+		PipelineLayout sbuild();
+		// Builds PipelineLayout on heap;
 		// Builder is invalid after .build()
-		Image* build();
+		PipelineLayout* build();
 
-		// Builds Image (view) on stack;
-		// Builder is invalid after .sbuild(VkImage)
-		// Fork for SwapchainKHR
-		Image sbuild(VkImage view);
-		// Builds Image (view) on heap;
-		// Builder is invalid after .build(VkImage)
-		// Fork for SwapchainKHR
-		Image* build(VkImage view);
-	}; // ^ class Image::Builder ^
+		// Builds PipelineLayout (view) on stack;
+		// Builder is invalid after .sbuild(VkPipelineLayout)
+		PipelineLayout sbuild(VkPipelineLayout view);
+		// Builds PipelineLayout (view) on heap;
+		// Builder is invalid after .build(VkPipelineLayout)
+		PipelineLayout* build(VkPipelineLayout view);
+	}; // ^ class PipelineLayout::Builder ^
 } // ^ namespace sn::voxeng::vk ^

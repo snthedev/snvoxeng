@@ -75,7 +75,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;C:\_storage\projects\_sn\snassert\build</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;snassert-d.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;shaderc_combinedd.lib;snassert-d.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -97,7 +97,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VULKAN_SDK)\Lib;C:\_storage\projects\_sn\snassert\build</AdditionalLibraryDirectories>
-      <AdditionalDependencies>vulkan-1.lib;snassert.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>vulkan-1.lib;shaderc_combined.lib;snassert.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -106,21 +106,31 @@
   <ItemGroup>
     <ClInclude Include=".def\vk\CommandBuffersContainer.h" />
     <ClInclude Include=".def\vk\CommandPool.h" />
+    <ClInclude Include=".def\vk\ComputePipeline.h" />
+    <ClInclude Include=".def\vk\DescriptorSetLayout.h" />
     <ClInclude Include=".def\vk\Device.h" />
+    <ClInclude Include=".def\vk\DeviceMemory.h" />
     <ClInclude Include=".def\vk\Fence.h" />
     <ClInclude Include=".def\vk\Image.h" />
     <ClInclude Include=".def\vk\ImageView.h" />
     <ClInclude Include=".def\vk\Instance.h" />
+    <ClInclude Include=".def\vk\PipelineLayout.h" />
     <ClInclude Include=".def\vk\Semaphore.h" />
+    <ClInclude Include=".def\vk\ShaderModule.h" />
     <ClInclude Include=".def\vk\SurfaceKHR.h" />
     <ClInclude Include=".def\vk\SwapchainKHR.h" />
     <ClInclude Include="snvoxeng.hpp" />
     <ClInclude Include="snvoxeng\dll-defines.hpp" />
+    <ClInclude Include="snvoxeng\ShaderCompiler.hpp" />
+    <ClInclude Include="snvoxeng\ShaderStages.hpp" />
     <ClInclude Include="snvoxeng\utils\vk-getSType.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffersContainer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandPool.hpp" />
+    <ClInclude Include="snvoxeng\vk\ComputePipeline.hpp" />
+    <ClInclude Include="snvoxeng\vk\DescriptorSetLayout.hpp" />
     <ClInclude Include="snvoxeng\vk\Device.hpp" />
+    <ClInclude Include="snvoxeng\vk\DeviceMemory.hpp" />
     <ClInclude Include="snvoxeng\vk\Fence.hpp" />
     <ClInclude Include="snvoxeng\vk\Image.hpp" />
     <ClInclude Include="snvoxeng\vk\ImageView.hpp" />
@@ -129,17 +139,23 @@
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceRegistry.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceSelector.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceSet.hpp" />
+    <ClInclude Include="snvoxeng\vk\PipelineLayout.hpp" />
     <ClInclude Include="snvoxeng\vk\Semaphore.hpp" />
+    <ClInclude Include="snvoxeng\vk\ShaderModule.hpp" />
     <ClInclude Include="snvoxeng\vk\SurfaceKHR.hpp" />
     <ClInclude Include="snvoxeng\vk\SwapchainKHR.hpp" />
     <ClInclude Include="snvoxeng\vk\VkMinimal.hpp" />
     <ClInclude Include="snvoxeng\WindowDescription.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include=".src\ShaderCompiler.cpp" />
     <ClCompile Include=".src\vk\CommandBuffer.cpp" />
     <ClCompile Include=".src\vk\CommandBuffersContainer.cpp" />
     <ClCompile Include=".src\vk\CommandPool.cpp" />
+    <ClCompile Include=".src\vk\ComputePipeline.cpp" />
+    <ClCompile Include=".src\vk\DescriptorSetLayout.cpp" />
     <ClCompile Include=".src\vk\Device.cpp" />
+    <ClCompile Include=".src\vk\DeviceMemory.cpp" />
     <ClCompile Include=".src\vk\Fence.cpp" />
     <ClCompile Include=".src\vk\Image.cpp" />
     <ClCompile Include=".src\vk\ImageView.cpp" />
@@ -148,9 +164,14 @@
     <ClCompile Include=".src\vk\PhysicalDeviceRegistry.cpp" />
     <ClCompile Include=".src\vk\PhysicalDeviceSelector.cpp" />
     <ClCompile Include=".src\vk\PhysicalDeviceSet.cpp" />
+    <ClCompile Include=".src\vk\PipelineLayout.cpp" />
     <ClCompile Include=".src\vk\Semaphore.cpp" />
+    <ClCompile Include=".src\vk\ShaderModule.cpp" />
     <ClCompile Include=".src\vk\SurfaceKHR.cpp" />
     <ClCompile Include=".src\vk\SwapchainKHR.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".res\shaders\test.comp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

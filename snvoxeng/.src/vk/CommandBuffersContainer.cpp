@@ -2,9 +2,12 @@
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
 #include <snvoxeng/snvoxeng/vk/CommandBuffer.hpp>
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
+
+#include <vector>
 
 using namespace sn::voxeng::vk;
 
@@ -47,13 +50,24 @@ struct CommandBuffersContainer::data_t
 
 void CommandBuffersContainer::onCreate(data_t& data)
 {
-	snassert(data.pCommandPool->getDevice().allocateCommandBuffers(&data.vkAllocateInfo, data.vkHandle.data()) == VK_SUCCESS,
-		"Failed to allocate VkCommandBuffer-s", "Check builder settings");
+	{
+		auto result = data.pCommandPool->getDevice().allocateCommandBuffers(&data.vkAllocateInfo, data.vkHandle.data());
+		snassert(result == VK_SUCCESS,
+			"Failed to allocate VkCommandBuffer-s", "Check builder settings");
+	}
+
+	if (m_pData->pCommandPool->getDevice().getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pCommandPool->getDevice().getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+			<< "[trace]: CommandBuffersContainer 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void CommandBuffersContainer::onDestroy(data_t& data) noexcept
 {
 	data.pCommandPool->getDevice().freeCommandBuffers(
 		data.pCommandPool->vkHandle(), data.vkAllocateInfo.commandBufferCount, data.vkHandle.data());
+
+	if (m_pData->pCommandPool->getDevice().getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pCommandPool->getDevice().getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: CommandBuffersContainer 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 CommandBuffersContainer::CommandBuffersContainer(data_t*& pData)
@@ -291,13 +305,17 @@ Builder& Builder::add##Name(arg_t name) {\
 
 CommandBuffersContainer Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return CommandBuffersContainer{ m_pData };
 }
 CommandBuffersContainer* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new CommandBuffersContainer{ m_pData };
 }

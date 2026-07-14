@@ -27,7 +27,7 @@ namespace sn::voxeng::vk
 	public:
 		~Instance() noexcept;
 
-		std::vector<VkPhysicalDevice> enumeratePhysicalDevices() const;
+		VkResult enumeratePhysicalDevices(uint32_t* pPhysicalDeviceCount, VkPhysicalDevice* pPhysicalDevices) const;
 
 		Instance(const Instance&) = delete;
 		Instance& operator=(const Instance&) = delete;

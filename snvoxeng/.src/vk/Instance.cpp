@@ -82,24 +82,35 @@ void Instance::onCreate(data_t& data)
 		};
 		data.vkCreateInfo.pNext = &debugCreateInfo;
 	}
-	snassert(vkCreateInstance(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkInstance", "Check Builder settings");
+	{
+		auto result = vkCreateInstance(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkInstance", "Check Builder settings");
+	}
 
 	if (data.isDebugMessengerEnabled)
 	{
 		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(data.vkHandle, "vkCreateDebugUtilsMessengerEXT");
-		if (func != nullptr) func(data.vkHandle, &debugCreateInfo, data.vkPAllocator, &m_pData->vkDebugUtilsMessengerEXT);
+		if (func != nullptr) func(data.vkHandle, &debugCreateInfo, data.vkPAllocator, &data.vkDebugUtilsMessengerEXT);
 	}
+
+	if (data.debugStream)
+		*data.debugStream
+			<< "[trace]: Instance 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void Instance::onDestroy(data_t& data) noexcept
 {
-	if (m_pData->vkDebugUtilsMessengerEXT != VK_NULL_HANDLE)
+	if (data.vkDebugUtilsMessengerEXT != VK_NULL_HANDLE)
 	{
 		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(data.vkHandle, "vkDestroyDebugUtilsMessengerEXT");
-		if (func != nullptr) func(data.vkHandle, m_pData->vkDebugUtilsMessengerEXT, data.vkPAllocator);
+		if (func != nullptr) func(data.vkHandle, data.vkDebugUtilsMessengerEXT, data.vkPAllocator);
 	}
 
 	vkDestroyInstance(data.vkHandle, data.vkPAllocator);
+
+	if (data.debugStream)
+		*data.debugStream
+			<< "[trace]: Instance 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 Instance::Instance(data_t*& pData)
@@ -127,17 +138,9 @@ Instance::~Instance() noexcept
 	}
 }
 
-std::vector<VkPhysicalDevice> Instance::enumeratePhysicalDevices() const
+VkResult Instance::enumeratePhysicalDevices(uint32_t* pPhysicalDeviceCount, VkPhysicalDevice* pPhysicalDevices) const
 {
-	uint32_t physicalDeviceCount;
-	snassert(vkEnumeratePhysicalDevices(vkHandle(), &physicalDeviceCount, nullptr) == VK_SUCCESS,
-		"Failed to enumerate physical devices", "");
-
-	std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
-	snassert(vkEnumeratePhysicalDevices(vkHandle(), &physicalDeviceCount, physicalDevices.data()) == VK_SUCCESS,
-		"Failed to enumerate physical devices", "");
-
-	return physicalDevices;
+	return vkEnumeratePhysicalDevices(vkHandle(), pPhysicalDeviceCount, pPhysicalDevices);
 }
 
 Instance::Instance(Instance&& other) noexcept
@@ -356,26 +359,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 Instance Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Instance{ m_pData };
 }
 Instance* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Instance{ m_pData };
 }
 
 Instance Builder::sbuild(VkInstance view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Instance{ m_pData, view };
 }
 Instance* Builder::build(VkInstance view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new Instance{ m_pData, view };
 }

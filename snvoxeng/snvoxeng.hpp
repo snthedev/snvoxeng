@@ -21,3 +21,12 @@
 #include <snvoxeng/snvoxeng/vk/CommandPool.hpp>
 #include <snvoxeng/snvoxeng/vk/CommandBuffersContainer.hpp>
 #include <snvoxeng/snvoxeng/vk/CommandBuffer.hpp>
+
+#include <snvoxeng/snvoxeng/vk/DeviceMemory.hpp>
+
+#include <snvoxeng/snvoxeng/ShaderCompiler.hpp>
+#include <snvoxeng/snvoxeng/vk/ShaderModule.hpp>
+
+#include <snvoxeng/snvoxeng/vk/DescriptorSetLayout.hpp>
+#include <snvoxeng/snvoxeng/vk/PipelineLayout.hpp>
+#include <snvoxeng/snvoxeng/vk/ComputePipeline.hpp>

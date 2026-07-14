@@ -11,16 +11,20 @@ PhysicalDevice::PhysicalDevice(const PhysicalDeviceRegistry& registry, size_t id
     snassert(m_registryIdx < m_pRegistry->count(), "Out of PhysicalDeviceRegistry::count()", "Provide valid idx");
 }
 
-//VkResult PhysicalDevice::createDevice(const VkDeviceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDevice* pDevice) const
-//{
-//    return vkCreateDevice(getHandle(), pCreateInfo, pAllocator, pDevice);
-//}
-
 VkSurfaceCapabilitiesKHR PhysicalDevice::getSurfaceCapabilities(VkSurfaceKHR surface) const
 {
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(getHandle(), surface, &surfaceCapabilities);
     return surfaceCapabilities;
+}
+
+uint32_t PhysicalDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
+{
+    const auto& memProperties = getMemoryProperties();
+    for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+        if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+            return i;
+    return nmatch;
 }
 
 VkPhysicalDevice PhysicalDevice::getHandle() const noexcept { return m_pRegistry->vkHandle(m_registryIdx); }

@@ -44,7 +44,7 @@ namespace sn::voxeng::vk
 		~Device() noexcept;
 
 		const NamedQueue* getQueueInfo(const char* name) const noexcept;
-		const std::vector<NamedQueue>& getQueueInfos() const noexcept;
+		std::span<const NamedQueue> getQueueInfos() const noexcept;
 
 		void getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const;
 
@@ -72,6 +72,25 @@ namespace sn::voxeng::vk
 
 		VkResult allocateCommandBuffers(const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers) const;
 		void freeCommandBuffers(VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers) const;
+
+		void getImageMemoryRequirements(VkImage image, VkMemoryRequirements* pMemoryRequirements) const;
+
+		VkResult allocateMemory(const VkMemoryAllocateInfo* pAllocateInfo, const VkAllocationCallbacks* pAllocator, VkDeviceMemory* pMemory) const;
+		void freeMemory(VkDeviceMemory memory, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult bindImageMemory(VkImage image, VkDeviceMemory memory, VkDeviceSize memoryOffset) const;
+
+		VkResult createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout) const;
+		void destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult createPipelineLayout(const VkPipelineLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineLayout* pPipelineLayout) const;
+		void destroyPipelineLayout(VkPipelineLayout pipelineLayout, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult createShaderModule(const VkShaderModuleCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkShaderModule* pShaderModule) const;
+		void destroyShaderModule(VkShaderModule shaderModule, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult createComputePipelines(VkPipelineCache pipelineCache, uint32_t createInfoCount, const VkComputePipelineCreateInfo* pCreateInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines) const;
+		void destroyPipeline(VkPipeline pipeline, const VkAllocationCallbacks* pAllocator) const;
 
 		Device(const Device&) = delete;
 		Device& operator=(const Device&) = delete;

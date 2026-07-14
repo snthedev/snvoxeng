@@ -3,9 +3,12 @@
 
 #include <snvoxeng/snvoxeng/vk/Image.hpp>
 #include <snvoxeng/snvoxeng/vk/ImageView.hpp>
+#include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
+
+#include <vector>
 
 using namespace sn::voxeng::vk;
 
@@ -52,15 +55,24 @@ struct SwapchainKHR::data_t
 
 void SwapchainKHR::onCreate(data_t& data)
 {
-	snassert(data.pDevice->createSwapchainKHR(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle) == VK_SUCCESS,
-		"Failed to create VkSwapchainKHR", "Check Builder settings");
+	{
+		auto result = data.pDevice->createSwapchainKHR(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkSwapchainKHR", "Check Builder settings");
+	}
 
-	snassert(data.pDevice->getSwapchainImagesKHR(data.vkHandle, &data.imageCount, nullptr) == VK_SUCCESS,
-		"Failed to get swapchain images", "Check builder settings");
+	{
+		auto result = data.pDevice->getSwapchainImagesKHR(data.vkHandle, &data.imageCount, nullptr);
+		snassert(result == VK_SUCCESS,
+			"Failed to get swapchain images", "Check builder settings");
+	}
 
 	std::vector<VkImage> vkImages(data.imageCount);
-	snassert(data.pDevice->getSwapchainImagesKHR(data.vkHandle, &data.imageCount, vkImages.data()) == VK_SUCCESS,
-		"Failed to get swapchain images", "Check builder settings");
+	{
+		auto result = data.pDevice->getSwapchainImagesKHR(data.vkHandle, &data.imageCount, vkImages.data());
+		snassert(result == VK_SUCCESS,
+			"Failed to get swapchain images", "Check builder settings");
+	}
 
 	data.pImages = static_cast<Image*>(::operator new(data.imageCount * sizeof(Image)));
 	data.pImageViews = static_cast<ImageView*>(::operator new(data.imageCount * sizeof(ImageView)));
@@ -96,6 +108,10 @@ void SwapchainKHR::onCreate(data_t& data)
 				})
 			.sbuild());
 	}
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: SwapchainKHR 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void SwapchainKHR::onDestroy(data_t& data) noexcept
 {
@@ -108,6 +124,10 @@ void SwapchainKHR::onDestroy(data_t& data) noexcept
 	::operator delete(data.pImages);
 
 	data.pDevice->destroySwapchainKHR(data.vkHandle, data.vkPAllocator);
+
+	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+		<< "[trace]: SwapchainKHR 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
 SwapchainKHR::SwapchainKHR(data_t*& pData)
@@ -359,26 +379,34 @@ Builder& Builder::add##Name(arg_t name) {\
 
 SwapchainKHR Builder::sbuild()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return SwapchainKHR{ m_pData };
 }
 SwapchainKHR* Builder::build()
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new SwapchainKHR{ m_pData };
 }
 
 SwapchainKHR Builder::sbuild(VkSwapchainKHR view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return SwapchainKHR{ m_pData, view };
 }
 SwapchainKHR* Builder::build(VkSwapchainKHR view)
 {
+#ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
+#endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return new SwapchainKHR{ m_pData, view };
 }

@@ -6,12 +6,12 @@
 #include <ThirdParty/snbcg/bcg.hpp>
 
 #define SNBCG_HEADER_INCLUDE
-#include <snvoxeng/.def/vk/Image.h>
+#include <snvoxeng/.def/vk/ComputePipeline.h>
 
 namespace sn::voxeng::vk
 {
-	// Use Image::Builder for build
-	class SNVOXENG_API Image
+	// Use ComputePipeline::Builder for build
+	class SNVOXENG_API ComputePipeline
 	{
 		struct data_t;
 		data_t* m_pData;
@@ -21,21 +21,19 @@ namespace sn::voxeng::vk
 
 		bool m_isView;
 
-		Image(data_t*& pData);
-		Image(data_t*& pData, VkImage view);
+		ComputePipeline(data_t*& pData);
+		ComputePipeline(data_t*& pData, VkPipeline view);
 
 	public:
-		~Image() noexcept;
+		~ComputePipeline() noexcept;
 
-		VkMemoryRequirements getMemoryRequirements() const;
+		ComputePipeline(const ComputePipeline&) = delete;
+		ComputePipeline& operator=(const ComputePipeline&) = delete;
+		ComputePipeline(ComputePipeline&& other) noexcept;
+		ComputePipeline& operator=(ComputePipeline&& other) noexcept;
 
-		Image(const Image&) = delete;
-		Image& operator=(const Image&) = delete;
-		Image(Image&& other) noexcept;
-		Image& operator=(Image&& other) noexcept;
-
-		VkImage vkHandle() const noexcept;
-		operator VkImage() const noexcept;
+		VkPipeline vkHandle() const noexcept;
+		operator VkPipeline() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
@@ -45,13 +43,13 @@ namespace sn::voxeng::vk
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
-#include <snvoxeng/.def/vk/Image.h>
+#include <snvoxeng/.def/vk/ComputePipeline.h>
 	
 		class Builder;
 		friend class Builder;
-	}; // ^ class Image ^
+	}; // ^ class ComputePipeline ^
 
-	class SNVOXENG_API Image::Builder
+	class SNVOXENG_API ComputePipeline::Builder
 	{
 		data_t* m_pData;
 		void finalize(data_t& data);
@@ -85,22 +83,20 @@ namespace sn::voxeng::vk
 		Builder& with##Name(args_t name);\
 		Builder& add##Name(args_t name);\
 		Builder& add##Name(arg_t name);
-#include <snvoxeng/.def/vk/Image.h>
+#include <snvoxeng/.def/vk/ComputePipeline.h>
 
-		// Builds Image on stack;
+		// Builds ComputePipeline on stack;
 		// Builder is invalid after .sbuild()
-		Image sbuild();
-		// Builds Image on heap;
+		ComputePipeline sbuild();
+		// Builds ComputePipeline on heap;
 		// Builder is invalid after .build()
-		Image* build();
+		ComputePipeline* build();
 
-		// Builds Image (view) on stack;
-		// Builder is invalid after .sbuild(VkImage)
-		// Fork for SwapchainKHR
-		Image sbuild(VkImage view);
-		// Builds Image (view) on heap;
-		// Builder is invalid after .build(VkImage)
-		// Fork for SwapchainKHR
-		Image* build(VkImage view);
-	}; // ^ class Image::Builder ^
+		// Builds ComputePipeline (view) on stack;
+		// Builder is invalid after .sbuild(VkPipeline)
+		ComputePipeline sbuild(VkPipeline view);
+		// Builds ComputePipeline (view) on heap;
+		// Builder is invalid after .build(VkPipeline)
+		ComputePipeline* build(VkPipeline view);
+	}; // ^ class ComputePipeline::Builder ^
 } // ^ namespace sn::voxeng::vk ^
