@@ -6,14 +6,14 @@
 #include <ThirdParty/snbcg/bcg.hpp>
 
 #define SNBCG_HEADER_INCLUDE
-#include <snvoxeng/.def/vk/CommandBuffersContainer.h>
+#include <snvoxeng/.def/vk/DescriptorSetsContainer.h>
 
 namespace sn::voxeng::vk
 {
-	class CommandBuffer;
+	class DescriptorSet;
 
-	// Use CommandBuffersContainer::Builder for build
-	class SNVOXENG_API CommandBuffersContainer
+	// Use DescriptorSetsContainer::Builder for build
+	class SNVOXENG_API DescriptorSetsContainer
 	{
 		struct data_t;
 		data_t* m_pData;
@@ -21,24 +21,27 @@ namespace sn::voxeng::vk
 		void onCreate(data_t& data);
 		void onDestroy(data_t& data) noexcept;
 
-		CommandBuffersContainer(data_t*& pData);
+		bool m_isView;
+
+		DescriptorSetsContainer(data_t*& pData);
+		DescriptorSetsContainer(data_t*& pData, std::vector<VkDescriptorSet> view);
 
 	public:
-		~CommandBuffersContainer() noexcept;
+		~DescriptorSetsContainer() noexcept;
 
-		CommandBuffer get(size_t idx) const;
-		CommandBuffer first() const;
-		CommandBuffer last() const;
+		DescriptorSet get(size_t idx) const;
+		DescriptorSet first() const;
+		DescriptorSet last() const;
 		size_t count() const noexcept;
 
-		CommandBuffersContainer(const CommandBuffersContainer&) = delete;
-		CommandBuffersContainer& operator=(const CommandBuffersContainer&) = delete;
-		CommandBuffersContainer(CommandBuffersContainer&& other) noexcept;
-		CommandBuffersContainer& operator=(CommandBuffersContainer&& other) noexcept;
+		DescriptorSetsContainer(const DescriptorSetsContainer&) = delete;
+		DescriptorSetsContainer& operator=(const DescriptorSetsContainer&) = delete;
+		DescriptorSetsContainer(DescriptorSetsContainer&& other) noexcept;
+		DescriptorSetsContainer& operator=(DescriptorSetsContainer&& other) noexcept;
 
-		std::span<const VkCommandBuffer> vkHandle() const noexcept;
-		VkCommandBuffer vkHandle(size_t idx) const noexcept;
-		operator std::span<const VkCommandBuffer>() const noexcept;
+		std::span<const VkDescriptorSet> vkHandle() const noexcept;
+		VkDescriptorSet vkHandle(size_t idx) const noexcept;
+		operator std::span<const VkDescriptorSet>() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
@@ -48,13 +51,13 @@ namespace sn::voxeng::vk
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
-#include <snvoxeng/.def/vk/CommandBuffersContainer.h>
+#include <snvoxeng/.def/vk/DescriptorSetsContainer.h>
 	
 		class Builder;
 		friend class Builder;
-	}; // ^ class CommandBuffersContainer ^
+	}; // ^ class DescriptorSetsContainer ^
 
-	class SNVOXENG_API CommandBuffersContainer::Builder
+	class SNVOXENG_API DescriptorSetsContainer::Builder
 	{
 		data_t* m_pData;
 		void finalize(data_t& data);
@@ -88,13 +91,20 @@ namespace sn::voxeng::vk
 		Builder& with##Name(args_t name);\
 		Builder& add##Name(args_t name);\
 		Builder& add##Name(arg_t name);
-#include <snvoxeng/.def/vk/CommandBuffersContainer.h>
+#include <snvoxeng/.def/vk/DescriptorSetsContainer.h>
 
-		// Builds CommandBuffersContainer on stack;
+		// Builds DescriptorSetsContainer on stack;
 		// Builder is invalid after .sbuild()
-		CommandBuffersContainer sbuild();
-		// Builds CommandBuffersContainer on heap;
+		DescriptorSetsContainer sbuild();
+		// Builds DescriptorSetsContainer on heap;
 		// Builder is invalid after .build()
-		CommandBuffersContainer* build();
-	}; // ^ class CommandBuffersContainer::Builder ^
+		DescriptorSetsContainer* build();
+
+		// Builds DescriptorSetsContainer (view) on stack;
+		// Builder is invalid after .sbuild(std::vector<VkDescriptorSet>)
+		DescriptorSetsContainer sbuild(std::vector<VkDescriptorSet> view);
+		// Builds DescriptorSetsContainer (view) on heap;
+		// Builder is invalid after .build(std::vector<VkDescriptorSet>)
+		DescriptorSetsContainer* build(std::vector<VkDescriptorSet> view);
+	}; // ^ class DescriptorSetsContainer::Builder ^
 } // ^ namespace sn::voxeng::vk ^

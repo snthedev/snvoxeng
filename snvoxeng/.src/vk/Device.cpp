@@ -310,6 +310,24 @@ void Device::destroyPipeline(VkPipeline pipeline, const VkAllocationCallbacks* p
 	vkDestroyPipeline(m_pData->vkHandle, pipeline, pAllocator);
 }
 
+VkResult Device::createDescriptorPool(const VkDescriptorPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorPool* pDescriptorPool) const
+{
+	return vkCreateDescriptorPool(m_pData->vkHandle, pCreateInfo, pAllocator, pDescriptorPool);
+}
+void Device::destroyDescriptorPool(VkDescriptorPool descriptorPool, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyDescriptorPool(m_pData->vkHandle, descriptorPool, pAllocator);
+}
+
+VkResult Device::allocateDescriptorSets(const VkDescriptorSetAllocateInfo* pAllocateInfo, VkDescriptorSet* pDescriptorSets) const
+{
+	return vkAllocateDescriptorSets(m_pData->vkHandle, pAllocateInfo, pDescriptorSets);
+}
+VkResult Device::freeDescriptorSets(VkDescriptorPool descriptorPool, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets) const
+{
+	return vkFreeDescriptorSets(m_pData->vkHandle, descriptorPool, descriptorSetCount, pDescriptorSets);
+}
+
 Device::Device(Device&& other) noexcept
 	: m_pData(other.m_pData)
 	, m_isView(other.m_isView)

@@ -141,6 +141,21 @@
     <ClInclude Include=".def\vk\ComputePipeline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="snvoxeng\vk\DescriptorPool.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include=".def\vk\DescriptorPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include=".def\vk\DescriptorSetsContainer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="snvoxeng\vk\DescriptorSetsContainer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="snvoxeng\vk\DescriptorSet.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include=".src\vk\Instance.cpp">
@@ -204,6 +219,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include=".src\vk\ComputePipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include=".src\vk\DescriptorPool.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include=".src\vk\DescriptorSetsContainer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include=".src\vk\DescriptorSet.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -393,6 +393,23 @@ int main()
 				})
 			.sbuild();
 		std::cout << "Compute Pipeline 0x " << std::hex << compute_pipeline.vkHandle() << std::dec << "\n";
+
+		auto descriptor_pool = sn::voxeng::vk::DescriptorPool::Builder()
+			.withDevice(device)
+			.withMaxSets(1u)
+			.addPoolSizes(VkDescriptorPoolSize{
+				.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				.descriptorCount = 1u
+				})
+			.sbuild();
+
+		auto descripor_sets = sn::voxeng::vk::DescriptorSetsContainer::Builder()
+			.withDescriptorPool(descriptor_pool)
+			.addSetLayouts(descriptor_set_layout.vkHandle())
+			.sbuild();
+
+		auto descriptor_set = descripor_sets.get(0u);
+		std::cout << "Descripor Set 0x " << std::hex << descriptor_set.vkHandle() << std::dec << "\n";
 		
 		std::cout << "[main()]: OK\n";
 	}
