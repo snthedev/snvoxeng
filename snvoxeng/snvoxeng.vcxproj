@@ -104,6 +104,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include=".def\vk\Buffer.h" />
     <ClInclude Include=".def\vk\CommandBuffersContainer.h" />
     <ClInclude Include=".def\vk\CommandPool.h" />
     <ClInclude Include=".def\vk\ComputePipeline.h" />
@@ -126,6 +127,7 @@
     <ClInclude Include="snvoxeng\ShaderCompiler.hpp" />
     <ClInclude Include="snvoxeng\ShaderStages.hpp" />
     <ClInclude Include="snvoxeng\utils\vk-getSType.hpp" />
+    <ClInclude Include="snvoxeng\vk\Buffer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffersContainer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandPool.hpp" />
@@ -145,6 +147,7 @@
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceSelector.hpp" />
     <ClInclude Include="snvoxeng\vk\PhysicalDeviceSet.hpp" />
     <ClInclude Include="snvoxeng\vk\PipelineLayout.hpp" />
+    <ClInclude Include="snvoxeng\vk\Queue.hpp" />
     <ClInclude Include="snvoxeng\vk\Semaphore.hpp" />
     <ClInclude Include="snvoxeng\vk\ShaderModule.hpp" />
     <ClInclude Include="snvoxeng\vk\SurfaceKHR.hpp" />
@@ -154,6 +157,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include=".src\ShaderCompiler.cpp" />
+    <ClCompile Include=".src\vk\Buffer.cpp" />
     <ClCompile Include=".src\vk\CommandBuffer.cpp" />
     <ClCompile Include=".src\vk\CommandBuffersContainer.cpp" />
     <ClCompile Include=".src\vk\CommandPool.cpp" />
@@ -173,6 +177,7 @@
     <ClCompile Include=".src\vk\PhysicalDeviceSelector.cpp" />
     <ClCompile Include=".src\vk\PhysicalDeviceSet.cpp" />
     <ClCompile Include=".src\vk\PipelineLayout.cpp" />
+    <ClCompile Include=".src\vk\Queue.cpp" />
     <ClCompile Include=".src\vk\Semaphore.cpp" />
     <ClCompile Include=".src\vk\ShaderModule.cpp" />
     <ClCompile Include=".src\vk\SurfaceKHR.cpp" />

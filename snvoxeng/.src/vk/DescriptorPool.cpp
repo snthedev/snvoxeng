@@ -132,6 +132,7 @@ typedef DescriptorPool::Builder Builder;
 // === Builder : private ===
 void Builder::finalize(data_t& data)
 {
+	data.vkCreateInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	data.vkCreateInfo.poolSizeCount = static_cast<uint32_t>(data.poolSizes.size());
 	data.vkCreateInfo.pPoolSizes = data.poolSizes.data();
 }

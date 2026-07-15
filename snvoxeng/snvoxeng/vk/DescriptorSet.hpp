@@ -16,8 +16,10 @@ namespace sn::voxeng::vk
     public:
         DescriptorSet(const DescriptorSetsContainer& container, size_t idx) noexcept;
 
-        VkDescriptorSet vkHandle() const noexcept;
+        void write(VkWriteDescriptorSet write) const;
+        void updateStorageImage(uint32_t binding, VkImageView imageView, VkImageLayout layout) const;
 
+        VkDescriptorSet vkHandle() const noexcept;
         const DescriptorSetsContainer& getContainer() const noexcept;
         size_t getContainerIdx() const noexcept;
     };
