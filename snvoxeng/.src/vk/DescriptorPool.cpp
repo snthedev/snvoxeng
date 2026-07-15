@@ -1,25 +1,25 @@
-#include <snvoxeng/snvoxeng/vk/DeviceMemory.hpp>
+#include <snvoxeng/snvoxeng/vk/DescriptorPool.hpp>
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
-#include <snvoxeng/snvoxeng/vk/Image.hpp>
-#include <snvoxeng/snvoxeng/vk/Buffer.hpp>
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 
 #include <vulkan/vulkan.h>
 #include <snassert/snassert.hpp>
+
+#include <vector>
 
 using namespace sn::voxeng::vk;
 
 namespace default_values
 {
 #define SNBCG_DEFAULT_VALUES
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 }
 
-// === DeviceMemory : private ===
-struct DeviceMemory::data_t
+// === DescriptorPool : private ===
+struct DescriptorPool::data_t
 {
-	VkMemoryAllocateInfo vkAllocateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkMemoryAllocateInfo>() } };
+	VkDescriptorPoolCreateInfo vkCreateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkDescriptorPoolCreateInfo>() } };
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
@@ -29,7 +29,7 @@ struct DeviceMemory::data_t
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 
 	data_t()
 	{
@@ -41,49 +41,47 @@ struct DeviceMemory::data_t
 		subdata name = {};
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		subdata name = default_values::name;
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 	}
 
-	VkDeviceMemory vkHandle{ VK_NULL_HANDLE };
+	VkDescriptorPool vkHandle{ VK_NULL_HANDLE };
 };
 
-void DeviceMemory::onCreate(data_t& data)
+void DescriptorPool::onCreate(data_t& data)
 {
-	{
-		auto result = data.pDevice->allocateMemory(&data.vkAllocateInfo, data.vkPAllocator, &data.vkHandle);
-		snassert(result == VK_SUCCESS,
-			"Failed to create VkDeviceMemory", "Check Builder settings");
-	}
+	auto result = data.pDevice->createDescriptorPool(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+	snassert(result == VK_SUCCESS,
+		"Failed to create VkDescriptorPool", "Check Builder settings");
 
 	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
 		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
-		<< "[trace]: DeviceMemory 0x" << std::hex << this << std::dec << " created" << std::endl;
+		<< "[trace]: DescriptorPool 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
-void DeviceMemory::onDestroy(data_t& data) noexcept
+void DescriptorPool::onDestroy(data_t& data) noexcept
 {
-	data.pDevice->freeMemory(data.vkHandle, data.vkPAllocator);
+	data.pDevice->destroyDescriptorPool(data.vkHandle, data.vkPAllocator);
 
 	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
 		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
-		<< "[trace]: DeviceMemory 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
+		<< "[trace]: DescriptorPool 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
-DeviceMemory::DeviceMemory(data_t*& pData)
+DescriptorPool::DescriptorPool(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
 	pData = nullptr;
 	onCreate(*m_pData);
 }
-DeviceMemory::DeviceMemory(data_t*& pData, VkDeviceMemory view)
+DescriptorPool::DescriptorPool(data_t*& pData, VkDescriptorPool view)
 	: m_pData(pData)
 	, m_isView(true)
 {
 	pData = nullptr;
 }
 
-// === DeviceMemory : public ===
-DeviceMemory::~DeviceMemory() noexcept
+// === DescriptorPool : public ===
+DescriptorPool::~DescriptorPool() noexcept
 {
 	if (m_pData) [[likely]]
 	{
@@ -92,37 +90,13 @@ DeviceMemory::~DeviceMemory() noexcept
 	}
 }
 
-void DeviceMemory::bindImage(const Image& image, VkDeviceSize memoryOffset) const
-{
-	auto result = m_pData->pDevice->bindImageMemory(image.vkHandle(), m_pData->vkHandle, memoryOffset);
-	snassert(result == VK_SUCCESS,
-		"Failed to bind image", "Check memory properties");
-}
-void DeviceMemory::bindBuffer(const Buffer& buffer, VkDeviceSize memoryOffset) const
-{
-	auto result = m_pData->pDevice->bindBufferMemory(buffer.vkHandle(), m_pData->vkHandle, memoryOffset);
-	snassert(result == VK_SUCCESS,
-		"Failed to bind buffer", "Check memory properties");
-}
-
-void DeviceMemory::map(VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData) const
-{
-	auto result = m_pData->pDevice->mapMemory(m_pData->vkHandle, offset, size, flags, ppData);
-	snassert(result == VK_SUCCESS,
-		"Failed to map memory", "Check memory properties");
-}
-void DeviceMemory::unmap() const
-{
-	m_pData->pDevice->unmapMemory(m_pData->vkHandle);
-}
-
-DeviceMemory::DeviceMemory(DeviceMemory&& other) noexcept
+DescriptorPool::DescriptorPool(DescriptorPool&& other) noexcept
 	: m_pData(other.m_pData)
 	, m_isView(other.m_isView)
 {
 	other.m_pData = nullptr;
 }
-DeviceMemory& DeviceMemory::operator=(DeviceMemory&& other) noexcept
+DescriptorPool& DescriptorPool::operator=(DescriptorPool&& other) noexcept
 {
 	if (this != &other) [[likely]]
 	{
@@ -138,26 +112,29 @@ DeviceMemory& DeviceMemory::operator=(DeviceMemory&& other) noexcept
 	return *this;
 }
 
-VkDeviceMemory DeviceMemory::vkHandle() const noexcept { return m_pData->vkHandle; }
-DeviceMemory::operator VkDeviceMemory() const noexcept { return m_pData->vkHandle; }
+VkDescriptorPool DescriptorPool::vkHandle() const noexcept { return m_pData->vkHandle; }
+DescriptorPool::operator VkDescriptorPool() const noexcept { return m_pData->vkHandle; }
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) DeviceMemory::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) DescriptorPool::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-DETAIL_##return_policy##_t(store_t) DeviceMemory::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) DescriptorPool::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) DeviceMemory::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+DETAIL_##return_policy##_t(store_t) DescriptorPool::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-DETAIL_##return_policy##_t(store_t) DeviceMemory::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+DETAIL_##return_policy##_t(store_t) DescriptorPool::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 
 
 
-typedef DeviceMemory::Builder Builder;
+typedef DescriptorPool::Builder Builder;
 
 // === Builder : private ===
 void Builder::finalize(data_t& data)
 {
+	data.vkCreateInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	data.vkCreateInfo.poolSizeCount = static_cast<uint32_t>(data.poolSizes.size());
+	data.vkCreateInfo.pPoolSizes = data.poolSizes.data();
 }
 
 #ifdef DETAIL_SNBCG_DEBUG
@@ -167,7 +144,7 @@ struct Builder::temp_t
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 
 	void validate() const
 	{
@@ -204,7 +181,7 @@ struct Builder::temp_t
 			"  and do not call Builder::with" #Name "(...) after calling\n"\
 			"  Builder::add" #Name "(...)"\
 		);
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 	}
 };
 #define SNBCG_VALIDATE_ON_WITH(name, Name) m_pTemp->name = ((m_pTemp->name << 1u) & 0b11) | 0b01;
@@ -323,38 +300,38 @@ Builder& Builder::add##Name(arg_t name) {\
 	DETAIL_##store_action##_SINGLE;\
 	return *this;\
 }
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 
-DeviceMemory Builder::sbuild()
+DescriptorPool Builder::sbuild()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
+#endif
 	finalize(*m_pData);
-	return DeviceMemory{ m_pData };
+	return DescriptorPool{ m_pData };
 }
-DeviceMemory* Builder::build()
+DescriptorPool* Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
+#endif
 	finalize(*m_pData);
-	return new DeviceMemory{ m_pData };
+	return new DescriptorPool{ m_pData };
 }
 
-DeviceMemory Builder::sbuild(VkDeviceMemory view)
+DescriptorPool Builder::sbuild(VkDescriptorPool view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
+#endif
 	finalize(*m_pData);
-	return DeviceMemory{ m_pData, view };
+	return DescriptorPool{ m_pData, view };
 }
-DeviceMemory* Builder::build(VkDeviceMemory view)
+DescriptorPool* Builder::build(VkDescriptorPool view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
+#endif
 	finalize(*m_pData);
-	return new DeviceMemory{ m_pData, view };
+	return new DescriptorPool{ m_pData, view };
 }

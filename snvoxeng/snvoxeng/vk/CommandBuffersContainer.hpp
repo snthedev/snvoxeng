@@ -36,9 +36,9 @@ namespace sn::voxeng::vk
 		CommandBuffersContainer(CommandBuffersContainer&& other) noexcept;
 		CommandBuffersContainer& operator=(CommandBuffersContainer&& other) noexcept;
 
-		const std::vector<VkCommandBuffer>& vkHandle() const noexcept;
+		std::span<const VkCommandBuffer> vkHandle() const noexcept;
 		VkCommandBuffer vkHandle(size_t idx) const noexcept;
-		operator const std::vector<VkCommandBuffer>&() const noexcept;
+		operator std::span<const VkCommandBuffer>() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;

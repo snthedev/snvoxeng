@@ -30,3 +30,11 @@
 #include <snvoxeng/snvoxeng/vk/DescriptorSetLayout.hpp>
 #include <snvoxeng/snvoxeng/vk/PipelineLayout.hpp>
 #include <snvoxeng/snvoxeng/vk/ComputePipeline.hpp>
+
+#include <snvoxeng/snvoxeng/vk/DescriptorPool.hpp>
+#include <snvoxeng/snvoxeng/vk/DescriptorSetsContainer.hpp>
+#include <snvoxeng/snvoxeng/vk/DescriptorSet.hpp>
+
+#include <snvoxeng/snvoxeng/vk/Buffer.hpp>
+
+#include <snvoxeng/snvoxeng/vk/Queue.hpp>

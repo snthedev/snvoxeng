@@ -1,6 +1,7 @@
 #include <snvoxeng/snvoxeng/vk/Device.hpp>
 #include <snvoxeng/snvoxeng/utils/vk-getSType.hpp>
 
+#include <snvoxeng/snvoxeng/vk/Queue.hpp>
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 
 #include <vulkan/vulkan.h>
@@ -10,6 +11,28 @@
 #include <vector>
 
 using namespace sn::voxeng::vk;
+
+struct QueueFamilyRequest_t
+{
+	uint32_t queueFamilyIndex;
+	std::vector<float> queuePriorities;
+	std::vector<size_t*> pOutQueueIndices;
+
+	QueueFamilyRequest_t() = default;
+	QueueFamilyRequest_t(const Device::QueueRequest_t& request)
+		: queueFamilyIndex(request.queueFamilyIndex)
+	{
+		add(request);
+	}
+
+	void add(const Device::QueueRequest_t& request)
+	{
+		queuePriorities.emplace_back(request.queuePriority);
+		pOutQueueIndices.emplace_back(request.pOutQueueIndex);
+	}
+
+	~QueueFamilyRequest_t() noexcept = default;
+};
 
 namespace default_values
 {
@@ -46,52 +69,22 @@ struct Device::data_t
 	}
 
 	VkDevice vkHandle{ VK_NULL_HANDLE };
-	std::vector<NamedQueue> namedQueues;
+	std::vector<VkQueue> vkQueues;
+
+	std::vector<QueueFamilyRequest_t> queueFamilyRequests;
 };
 
 void Device::onCreate(data_t& data)
 {
-	struct FamilyGroup
-	{
-		uint32_t familyIndex;
-		std::vector<float> priorities;
-		std::vector<size_t> requestIndices;
-	};
-	std::vector<FamilyGroup> uniqueFamilies; // TODO: std::unordered_set
-	for (size_t i = 0; i < data.queueRequests.size(); ++i)
-	{
-		const auto& req = data.queueRequests[i];
-		auto it = std::find_if(uniqueFamilies.begin(), uniqueFamilies.end(),
-			[req](const FamilyGroup& group) { return group.familyIndex == req.familyIndex; });
-		if (it != uniqueFamilies.end())
-		{
-			it->priorities.push_back(req.priority);
-			it->requestIndices.push_back(i);
-			continue;
-		}
-		uniqueFamilies.push_back({
-			.familyIndex = req.familyIndex,
-			.priorities = { req.priority },
-			.requestIndices = { i }
-			});
-	}
-
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	queueCreateInfos.reserve(uniqueFamilies.size());
-	for (const auto& group : uniqueFamilies)
-	{
-		uint32_t maxAvailable = data.pPhysicalDevice->getQueueFamilyProperties()[group.familyIndex].queueCount;
-		snassert(group.priorities.size() <= maxAvailable,
-			"Requested more queues than family contains",
-			("Family idx: " + std::to_string(group.familyIndex) + ", Available: " + std::to_string(maxAvailable)).c_str()
-		);
+	queueCreateInfos.reserve(data.queueFamilyRequests.size());
+	for (const auto& queueFamilyRequest : data.queueFamilyRequests)
 		queueCreateInfos.push_back({
-			.sType = ::sn::voxeng::utils::vk::getSType<VkDeviceQueueCreateInfo>(),
-			.queueFamilyIndex = group.familyIndex,
-			.queueCount = static_cast<uint32_t>(group.priorities.size()),
-			.pQueuePriorities = group.priorities.data(),
+			.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+			.queueFamilyIndex = queueFamilyRequest.queueFamilyIndex,
+			.queueCount = static_cast<uint32_t>(queueFamilyRequest.queuePriorities.size()),
+			.pQueuePriorities = queueFamilyRequest.queuePriorities.data(),
 			});
-	}
 
 	data.vkCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	data.vkCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
@@ -102,23 +95,13 @@ void Device::onCreate(data_t& data)
 			"Failed to create VkDevice", "Check Builder settings");
 	}
 
-	data.namedQueues.resize(data.queueRequests.size());
-	for (const auto& group : uniqueFamilies)
+	size_t queueIndex = 0;
+	for (const auto& queueFamilyRequest : data.queueFamilyRequests)
 	{
-		for (size_t i = 0; i < group.priorities.size(); ++i)
+		for (size_t i = 0; i < queueFamilyRequest.queuePriorities.size(); ++i, ++queueIndex)
 		{
-			size_t reqIdx = group.requestIndices[i];
-			const auto& req = data.queueRequests[reqIdx];
-
-			VkQueue queueHandle = VK_NULL_HANDLE;
-			getDeviceQueue(group.familyIndex, static_cast<uint32_t>(i), &queueHandle);
-
-			data.namedQueues[reqIdx] = {
-				.name = req.name,
-				.handle = queueHandle,
-				.family = group.familyIndex,
-				.index = static_cast<uint32_t>(i),
-			};
+			*queueFamilyRequest.pOutQueueIndices[i] = queueIndex;
+			vkGetDeviceQueue(data.vkHandle, queueFamilyRequest.queueFamilyIndex, static_cast<uint32_t>(i), &data.vkQueues[queueIndex]);
 		}
 	}
 
@@ -160,16 +143,10 @@ Device::~Device() noexcept
 	}
 }
 
-const Device::NamedQueue* Device::getQueueInfo(const char* name) const noexcept
-{
-	auto it = std::find_if(m_pData->namedQueues.begin(), m_pData->namedQueues.end(),
-		[name](const decltype(m_pData->namedQueues)::value_type& val) {
-			return std::strcmp(val.name, name) == 0;
-		});
-	if (it == m_pData->namedQueues.end()) return nullptr;
-	return &(*it);
-}
-std::span<const Device::NamedQueue> Device::getQueueInfos() const noexcept { return m_pData->namedQueues; }
+Queue Device::getQueue(size_t idx) const { return Queue(*this, idx); }
+Queue Device::firstQueue() const { return Queue(*this, 0); }
+Queue Device::lastQueue() const { return Queue(*this, countQueue() - 1u); }
+size_t Device::countQueue() const noexcept { return m_pData->vkQueues.size(); }
 
 void Device::getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const
 {
@@ -257,20 +234,36 @@ void Device::getImageMemoryRequirements(VkImage image, VkMemoryRequirements* pMe
 {
 	vkGetImageMemoryRequirements(m_pData->vkHandle, image, pMemoryRequirements);
 }
+void Device::getBufferMemoryRequirements(VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements) const
+{
+	vkGetBufferMemoryRequirements(m_pData->vkHandle, buffer, pMemoryRequirements);
+}
 
 VkResult Device::allocateMemory(const VkMemoryAllocateInfo* pAllocateInfo, const VkAllocationCallbacks* pAllocator, VkDeviceMemory* pMemory) const
 {
 	return vkAllocateMemory(m_pData->vkHandle, pAllocateInfo, pAllocator, pMemory);
 }
-
 void Device::freeMemory(VkDeviceMemory memory, const VkAllocationCallbacks* pAllocator) const
 {
 	vkFreeMemory(m_pData->vkHandle, memory, pAllocator);
 }
 
+VkResult Device::mapMemory(VkDeviceMemory memory, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData) const
+{
+	return vkMapMemory(m_pData->vkHandle, memory, offset, size, flags, ppData);
+}
+void Device::unmapMemory(VkDeviceMemory memory) const
+{
+	vkUnmapMemory(m_pData->vkHandle, memory);
+}
+
 VkResult Device::bindImageMemory(VkImage image, VkDeviceMemory memory, VkDeviceSize memoryOffset) const
 {
 	return vkBindImageMemory(m_pData->vkHandle, image, memory, memoryOffset);
+}
+VkResult Device::bindBufferMemory(VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset) const
+{
+	return vkBindBufferMemory(m_pData->vkHandle, buffer, memory, memoryOffset);
 }
 
 VkResult Device::createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout) const
@@ -310,6 +303,38 @@ void Device::destroyPipeline(VkPipeline pipeline, const VkAllocationCallbacks* p
 	vkDestroyPipeline(m_pData->vkHandle, pipeline, pAllocator);
 }
 
+VkResult Device::createDescriptorPool(const VkDescriptorPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorPool* pDescriptorPool) const
+{
+	return vkCreateDescriptorPool(m_pData->vkHandle, pCreateInfo, pAllocator, pDescriptorPool);
+}
+void Device::destroyDescriptorPool(VkDescriptorPool descriptorPool, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyDescriptorPool(m_pData->vkHandle, descriptorPool, pAllocator);
+}
+
+VkResult Device::allocateDescriptorSets(const VkDescriptorSetAllocateInfo* pAllocateInfo, VkDescriptorSet* pDescriptorSets) const
+{
+	return vkAllocateDescriptorSets(m_pData->vkHandle, pAllocateInfo, pDescriptorSets);
+}
+VkResult Device::freeDescriptorSets(VkDescriptorPool descriptorPool, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets) const
+{
+	return vkFreeDescriptorSets(m_pData->vkHandle, descriptorPool, descriptorSetCount, pDescriptorSets);
+}
+
+void Device::updateDescriptorSets(uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites, uint32_t descriptorCopyCount, const VkCopyDescriptorSet* pDescriptorCopies) const
+{
+	vkUpdateDescriptorSets(m_pData->vkHandle, descriptorWriteCount, pDescriptorWrites, descriptorCopyCount, pDescriptorCopies);
+}
+
+VkResult Device::createBuffer(const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer) const
+{
+	return vkCreateBuffer(m_pData->vkHandle, pCreateInfo, pAllocator, pBuffer);
+}
+void Device::destroyBuffer(VkBuffer buffer, const VkAllocationCallbacks* pAllocator) const
+{
+	vkDestroyBuffer(m_pData->vkHandle, buffer, pAllocator);
+}
+
 Device::Device(Device&& other) noexcept
 	: m_pData(other.m_pData)
 	, m_isView(other.m_isView)
@@ -332,6 +357,10 @@ Device& Device::operator=(Device&& other) noexcept
 	return *this;
 }
 
+std::span<const VkQueue> Device::vkQueueHandle() const noexcept { return m_pData->vkQueues; }
+VkQueue Device::vkQueueHandle(size_t idx) const noexcept { return m_pData->vkQueues[idx]; }
+Device::operator std::span<const VkQueue>() const noexcept { return m_pData->vkQueues; }
+
 VkDevice Device::vkHandle() const noexcept { return m_pData->vkHandle; }
 Device::operator VkDevice() const noexcept { return m_pData->vkHandle; }
 
@@ -352,10 +381,40 @@ typedef Device::Builder Builder;
 // === Builder : private ===
 void Builder::finalize(data_t& data)
 {
-	snassert(!data.queueRequests.empty(),
+	for (const auto& queue_request : data.queueRequests)
+	{
+		snassert(queue_request.pOutQueueIndex != nullptr,
+			"pOutQueueIndex can not be nullptr.",
+			"Provide valid pOutQueueIndex"
+		);
+	}
+
+	data.queueFamilyRequests.reserve(data.queueRequests.size());
+	for (const auto& queue_request : data.queueRequests)
+	{
+		auto it = std::find_if(data.queueFamilyRequests.begin(), data.queueFamilyRequests.end(),
+			[&queue_request](const QueueFamilyRequest_t& val) { return val.queueFamilyIndex == queue_request.queueFamilyIndex; });
+		if (it != data.queueFamilyRequests.end()) it->add(queue_request);
+		else data.queueFamilyRequests.emplace_back(queue_request);
+	}
+
+	data.vkQueues.resize(data.queueRequests.size());
+	snassert(!data.vkQueues.empty(),
 		"No queues requested",
 		"Add at least one queue request via Builder::addQueueRequests()"
 	);
+
+	for (const auto& queueFamilyRequests : data.queueFamilyRequests)
+	{
+		uint32_t maxAvailable = data.pPhysicalDevice->getQueueFamilyProperties()[queueFamilyRequests.queueFamilyIndex].queueCount;
+		snassert(queueFamilyRequests.queuePriorities.size() <= maxAvailable,
+			"Requested more queues than family contains",
+			(
+				"Family idx: " + std::to_string(queueFamilyRequests.queueFamilyIndex)
+				+ ", Available: " + std::to_string(maxAvailable)
+			).c_str()
+		);
+	}
 
 	data.physicalDeviceFeatures.samplerAnisotropy = VK_TRUE; // required
 

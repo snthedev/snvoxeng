@@ -6,15 +6,14 @@
 #include <ThirdParty/snbcg/bcg.hpp>
 
 #define SNBCG_HEADER_INCLUDE
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorSetsContainer.h>
 
 namespace sn::voxeng::vk
 {
-	class Image;
-	class Buffer;
+	class DescriptorSet;
 
-	// Use DeviceMemory::Builder for build
-	class SNVOXENG_API DeviceMemory
+	// Use DescriptorSetsContainer::Builder for build
+	class SNVOXENG_API DescriptorSetsContainer
 	{
 		struct data_t;
 		data_t* m_pData;
@@ -24,25 +23,25 @@ namespace sn::voxeng::vk
 
 		bool m_isView;
 
-		DeviceMemory(data_t*& pData);
-		DeviceMemory(data_t*& pData, VkDeviceMemory view);
+		DescriptorSetsContainer(data_t*& pData);
+		DescriptorSetsContainer(data_t*& pData, std::vector<VkDescriptorSet> view);
 
 	public:
-		~DeviceMemory() noexcept;
+		~DescriptorSetsContainer() noexcept;
 
-		void bindImage(const Image& image, VkDeviceSize memoryOffset) const;
-		void bindBuffer(const Buffer& buffer, VkDeviceSize memoryOffset) const;
+		DescriptorSet get(size_t idx) const;
+		DescriptorSet first() const;
+		DescriptorSet last() const;
+		size_t count() const noexcept;
 
-		void map(VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData) const;
-		void unmap() const;
+		DescriptorSetsContainer(const DescriptorSetsContainer&) = delete;
+		DescriptorSetsContainer& operator=(const DescriptorSetsContainer&) = delete;
+		DescriptorSetsContainer(DescriptorSetsContainer&& other) noexcept;
+		DescriptorSetsContainer& operator=(DescriptorSetsContainer&& other) noexcept;
 
-		DeviceMemory(const DeviceMemory&) = delete;
-		DeviceMemory& operator=(const DeviceMemory&) = delete;
-		DeviceMemory(DeviceMemory&& other) noexcept;
-		DeviceMemory& operator=(DeviceMemory&& other) noexcept;
-
-		VkDeviceMemory vkHandle() const noexcept;
-		operator VkDeviceMemory() const noexcept;
+		std::span<const VkDescriptorSet> vkHandle() const noexcept;
+		VkDescriptorSet vkHandle(size_t idx) const noexcept;
+		operator std::span<const VkDescriptorSet>() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
@@ -52,13 +51,13 @@ namespace sn::voxeng::vk
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorSetsContainer.h>
 	
 		class Builder;
 		friend class Builder;
-	}; // ^ class DeviceMemory ^
+	}; // ^ class DescriptorSetsContainer ^
 
-	class SNVOXENG_API DeviceMemory::Builder
+	class SNVOXENG_API DescriptorSetsContainer::Builder
 	{
 		data_t* m_pData;
 		void finalize(data_t& data);
@@ -92,20 +91,20 @@ namespace sn::voxeng::vk
 		Builder& with##Name(args_t name);\
 		Builder& add##Name(args_t name);\
 		Builder& add##Name(arg_t name);
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorSetsContainer.h>
 
-		// Builds DeviceMemory on stack;
+		// Builds DescriptorSetsContainer on stack;
 		// Builder is invalid after .sbuild()
-		DeviceMemory sbuild();
-		// Builds DeviceMemory on heap;
+		DescriptorSetsContainer sbuild();
+		// Builds DescriptorSetsContainer on heap;
 		// Builder is invalid after .build()
-		DeviceMemory* build();
+		DescriptorSetsContainer* build();
 
-		// Builds DeviceMemory (view) on stack;
-		// Builder is invalid after .sbuild(VkDeviceMemory)
-		DeviceMemory sbuild(VkDeviceMemory view);
-		// Builds DeviceMemory (view) on heap;
-		// Builder is invalid after .build(VkDeviceMemory)
-		DeviceMemory* build(VkDeviceMemory view);
-	}; // ^ class DeviceMemory::Builder ^
+		// Builds DescriptorSetsContainer (view) on stack;
+		// Builder is invalid after .sbuild(std::vector<VkDescriptorSet>)
+		DescriptorSetsContainer sbuild(std::vector<VkDescriptorSet> view);
+		// Builds DescriptorSetsContainer (view) on heap;
+		// Builder is invalid after .build(std::vector<VkDescriptorSet>)
+		DescriptorSetsContainer* build(std::vector<VkDescriptorSet> view);
+	}; // ^ class DescriptorSetsContainer::Builder ^
 } // ^ namespace sn::voxeng::vk ^

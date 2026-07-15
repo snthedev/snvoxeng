@@ -112,9 +112,9 @@ CommandBuffersContainer& CommandBuffersContainer::operator=(CommandBuffersContai
 	return *this;
 }
 
-const std::vector<VkCommandBuffer>& CommandBuffersContainer::vkHandle() const noexcept { return m_pData->vkHandle; }
+std::span<const VkCommandBuffer> CommandBuffersContainer::vkHandle() const noexcept { return m_pData->vkHandle; }
 VkCommandBuffer CommandBuffersContainer::vkHandle(size_t idx) const noexcept { return m_pData->vkHandle[idx]; }
-CommandBuffersContainer::operator const std::vector<VkCommandBuffer>&() const noexcept { return m_pData->vkHandle; }
+CommandBuffersContainer::operator std::span<const VkCommandBuffer>() const noexcept { return m_pData->vkHandle; }
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 DETAIL_##return_policy##_t(store_t) CommandBuffersContainer::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }

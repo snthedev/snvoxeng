@@ -6,15 +6,12 @@
 #include <ThirdParty/snbcg/bcg.hpp>
 
 #define SNBCG_HEADER_INCLUDE
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/Buffer.h>
 
 namespace sn::voxeng::vk
 {
-	class Image;
-	class Buffer;
-
-	// Use DeviceMemory::Builder for build
-	class SNVOXENG_API DeviceMemory
+	// Use Buffer::Builder for build
+	class SNVOXENG_API Buffer
 	{
 		struct data_t;
 		data_t* m_pData;
@@ -24,25 +21,21 @@ namespace sn::voxeng::vk
 
 		bool m_isView;
 
-		DeviceMemory(data_t*& pData);
-		DeviceMemory(data_t*& pData, VkDeviceMemory view);
+		Buffer(data_t*& pData);
+		Buffer(data_t*& pData, VkBuffer view);
 
 	public:
-		~DeviceMemory() noexcept;
+		~Buffer() noexcept;
 
-		void bindImage(const Image& image, VkDeviceSize memoryOffset) const;
-		void bindBuffer(const Buffer& buffer, VkDeviceSize memoryOffset) const;
+		VkMemoryRequirements getMemoryRequirements() const;
 
-		void map(VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData) const;
-		void unmap() const;
+		Buffer(const Buffer&) = delete;
+		Buffer& operator=(const Buffer&) = delete;
+		Buffer(Buffer&& other) noexcept;
+		Buffer& operator=(Buffer&& other) noexcept;
 
-		DeviceMemory(const DeviceMemory&) = delete;
-		DeviceMemory& operator=(const DeviceMemory&) = delete;
-		DeviceMemory(DeviceMemory&& other) noexcept;
-		DeviceMemory& operator=(DeviceMemory&& other) noexcept;
-
-		VkDeviceMemory vkHandle() const noexcept;
-		operator VkDeviceMemory() const noexcept;
+		VkBuffer vkHandle() const noexcept;
+		operator VkBuffer() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
@@ -52,13 +45,13 @@ namespace sn::voxeng::vk
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/Buffer.h>
 	
 		class Builder;
 		friend class Builder;
-	}; // ^ class DeviceMemory ^
+	}; // ^ class Buffer ^
 
-	class SNVOXENG_API DeviceMemory::Builder
+	class SNVOXENG_API Buffer::Builder
 	{
 		data_t* m_pData;
 		void finalize(data_t& data);
@@ -92,20 +85,20 @@ namespace sn::voxeng::vk
 		Builder& with##Name(args_t name);\
 		Builder& add##Name(args_t name);\
 		Builder& add##Name(arg_t name);
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/Buffer.h>
 
-		// Builds DeviceMemory on stack;
+		// Builds Buffer on stack;
 		// Builder is invalid after .sbuild()
-		DeviceMemory sbuild();
-		// Builds DeviceMemory on heap;
+		Buffer sbuild();
+		// Builds Buffer on heap;
 		// Builder is invalid after .build()
-		DeviceMemory* build();
+		Buffer* build();
 
-		// Builds DeviceMemory (view) on stack;
-		// Builder is invalid after .sbuild(VkDeviceMemory)
-		DeviceMemory sbuild(VkDeviceMemory view);
-		// Builds DeviceMemory (view) on heap;
-		// Builder is invalid after .build(VkDeviceMemory)
-		DeviceMemory* build(VkDeviceMemory view);
-	}; // ^ class DeviceMemory::Builder ^
+		// Builds Buffer (view) on stack;
+		// Builder is invalid after .sbuild(VkBuffer)
+		Buffer sbuild(VkBuffer view);
+		// Builds Buffer (view) on heap;
+		// Builder is invalid after .build(VkBuffer)
+		Buffer* build(VkBuffer view);
+	}; // ^ class Buffer::Builder ^
 } // ^ namespace sn::voxeng::vk ^

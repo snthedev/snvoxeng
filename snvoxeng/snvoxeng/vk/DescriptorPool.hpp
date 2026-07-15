@@ -6,15 +6,12 @@
 #include <ThirdParty/snbcg/bcg.hpp>
 
 #define SNBCG_HEADER_INCLUDE
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 
 namespace sn::voxeng::vk
 {
-	class Image;
-	class Buffer;
-
-	// Use DeviceMemory::Builder for build
-	class SNVOXENG_API DeviceMemory
+	// Use DescriptorPool::Builder for build
+	class SNVOXENG_API DescriptorPool
 	{
 		struct data_t;
 		data_t* m_pData;
@@ -24,25 +21,19 @@ namespace sn::voxeng::vk
 
 		bool m_isView;
 
-		DeviceMemory(data_t*& pData);
-		DeviceMemory(data_t*& pData, VkDeviceMemory view);
+		DescriptorPool(data_t*& pData);
+		DescriptorPool(data_t*& pData, VkDescriptorPool view);
 
 	public:
-		~DeviceMemory() noexcept;
+		~DescriptorPool() noexcept;
 
-		void bindImage(const Image& image, VkDeviceSize memoryOffset) const;
-		void bindBuffer(const Buffer& buffer, VkDeviceSize memoryOffset) const;
+		DescriptorPool(const DescriptorPool&) = delete;
+		DescriptorPool& operator=(const DescriptorPool&) = delete;
+		DescriptorPool(DescriptorPool&& other) noexcept;
+		DescriptorPool& operator=(DescriptorPool&& other) noexcept;
 
-		void map(VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData) const;
-		void unmap() const;
-
-		DeviceMemory(const DeviceMemory&) = delete;
-		DeviceMemory& operator=(const DeviceMemory&) = delete;
-		DeviceMemory(DeviceMemory&& other) noexcept;
-		DeviceMemory& operator=(DeviceMemory&& other) noexcept;
-
-		VkDeviceMemory vkHandle() const noexcept;
-		operator VkDeviceMemory() const noexcept;
+		VkDescriptorPool vkHandle() const noexcept;
+		operator VkDescriptorPool() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
@@ -52,13 +43,13 @@ namespace sn::voxeng::vk
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 	
 		class Builder;
 		friend class Builder;
-	}; // ^ class DeviceMemory ^
+	}; // ^ class DescriptorPool ^
 
-	class SNVOXENG_API DeviceMemory::Builder
+	class SNVOXENG_API DescriptorPool::Builder
 	{
 		data_t* m_pData;
 		void finalize(data_t& data);
@@ -92,20 +83,20 @@ namespace sn::voxeng::vk
 		Builder& with##Name(args_t name);\
 		Builder& add##Name(args_t name);\
 		Builder& add##Name(arg_t name);
-#include <snvoxeng/.def/vk/DeviceMemory.h>
+#include <snvoxeng/.def/vk/DescriptorPool.h>
 
-		// Builds DeviceMemory on stack;
+		// Builds DescriptorPool on stack;
 		// Builder is invalid after .sbuild()
-		DeviceMemory sbuild();
-		// Builds DeviceMemory on heap;
+		DescriptorPool sbuild();
+		// Builds DescriptorPool on heap;
 		// Builder is invalid after .build()
-		DeviceMemory* build();
+		DescriptorPool* build();
 
-		// Builds DeviceMemory (view) on stack;
-		// Builder is invalid after .sbuild(VkDeviceMemory)
-		DeviceMemory sbuild(VkDeviceMemory view);
-		// Builds DeviceMemory (view) on heap;
-		// Builder is invalid after .build(VkDeviceMemory)
-		DeviceMemory* build(VkDeviceMemory view);
-	}; // ^ class DeviceMemory::Builder ^
+		// Builds DescriptorPool (view) on stack;
+		// Builder is invalid after .sbuild(VkDescriptorPool)
+		DescriptorPool sbuild(VkDescriptorPool view);
+		// Builds DescriptorPool (view) on heap;
+		// Builder is invalid after .build(VkDescriptorPool)
+		DescriptorPool* build(VkDescriptorPool view);
+	}; // ^ class DescriptorPool::Builder ^
 } // ^ namespace sn::voxeng::vk ^
