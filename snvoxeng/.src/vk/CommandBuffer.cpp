@@ -29,6 +29,14 @@ void CommandBuffer::end() const
     }
 }
 
+void CommandBuffer::cmdBindPipeline(
+    VkPipelineBindPoint pipelineBindPoint,
+    VkPipeline pipeline
+) const noexcept
+{
+    vkCmdBindPipeline(vkHandle(), pipelineBindPoint, pipeline);
+}
+
 void CommandBuffer::cmdPipelineBarrier(
     VkPipelineStageFlags srcStageMask,
     VkPipelineStageFlags dstStageMask,
@@ -46,6 +54,57 @@ void CommandBuffer::cmdPipelineBarrier(
         static_cast<uint32_t>(memoryBarriers.size()), memoryBarriers.data(),
         static_cast<uint32_t>(bufferMemoryBarriers.size()), bufferMemoryBarriers.data(),
         static_cast<uint32_t>(imageMemoryBarriers.size()), imageMemoryBarriers.data()
+    );
+}
+
+void CommandBuffer::cmdBindDescriptorSets(
+    VkPipelineBindPoint pipelineBindPoint,
+    VkPipelineLayout layout,
+    uint32_t firstSet,
+    std::span<const VkDescriptorSet> descriptorSets,
+    std::span<const uint32_t> dynamicOffsets
+) const noexcept
+{
+    vkCmdBindDescriptorSets(
+        vkHandle(),
+        pipelineBindPoint,
+        layout,
+        firstSet,
+        static_cast<uint32_t>(descriptorSets.size()),
+        descriptorSets.data(),
+        static_cast<uint32_t>(dynamicOffsets.size()),
+        dynamicOffsets.data()
+    );
+}
+
+void CommandBuffer::cmdDispatch(
+    uint32_t groupCountX,
+    uint32_t groupCountY,
+    uint32_t groupCountZ
+) const noexcept
+{
+    vkCmdDispatch(
+        vkHandle(),
+        groupCountX,
+        groupCountY,
+        groupCountZ
+    );
+}
+
+void CommandBuffer::cmdCopyImageToBuffer(
+    VkImage srcImage,
+    VkImageLayout srcImageLayout,
+    VkBuffer dstBuffer,
+    std::span<const VkBufferImageCopy> regions
+) const noexcept
+{
+    vkCmdCopyImageToBuffer(
+        vkHandle(),
+        srcImage,
+        srcImageLayout,
+        dstBuffer,
+        static_cast<uint32_t>(regions.size()),
+        regions.data()
     );
 }
 

@@ -1,13 +1,14 @@
 # Build folder
 build/*
-# except resources folder
-!build/.res/
 # just in case
 *.exp
 *.pdb
 *.lib
 *.dll
 *.exe
+
+# Output files
+build/.out/*
 
 # Vcpkg
 vcpkg_installed/
@@ -18,7 +19,6 @@ tests/vcpkg_installed/
 bcg-ext-vk-config.json
 
 # shaders binaries
-build/.res/shaders/*.spv
 *.spv
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudio,c++

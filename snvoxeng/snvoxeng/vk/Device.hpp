@@ -10,22 +10,19 @@
 
 namespace sn::voxeng::vk
 {
+	class Queue;
+
 	// Use Device::Builder for build
 	class SNVOXENG_API Device
 	{
 	public:
-		struct QueueRequest final
+		struct QueueRequest_t
 		{
-			const char* name = nullptr;
-			uint32_t familyIndex = ~(uint32_t)(0);
-			float priority = 1.0f;
-		};
-		struct NamedQueue final
-		{
-			const char* name = nullptr;
-			VkQueue handle = VK_NULL_HANDLE;
-			uint32_t family = ~(uint32_t)(0);
-			uint32_t index = 0;
+			uint32_t queueFamilyIndex;
+
+			float queuePriority;
+			// Use it in Device::getQueue(idx)
+			size_t* pOutQueueIndex;
 		};
 
 	private:
@@ -43,8 +40,10 @@ namespace sn::voxeng::vk
 	public:
 		~Device() noexcept;
 
-		const NamedQueue* getQueueInfo(const char* name) const noexcept;
-		std::span<const NamedQueue> getQueueInfos() const noexcept;
+		Queue getQueue(size_t idx) const;
+		Queue firstQueue() const;
+		Queue lastQueue() const;
+		size_t countQueue() const noexcept;
 
 		void getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const;
 
@@ -74,11 +73,16 @@ namespace sn::voxeng::vk
 		void freeCommandBuffers(VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers) const;
 
 		void getImageMemoryRequirements(VkImage image, VkMemoryRequirements* pMemoryRequirements) const;
+		void getBufferMemoryRequirements(VkBuffer buffer, VkMemoryRequirements* pMemoryRequirements) const;
 
 		VkResult allocateMemory(const VkMemoryAllocateInfo* pAllocateInfo, const VkAllocationCallbacks* pAllocator, VkDeviceMemory* pMemory) const;
 		void freeMemory(VkDeviceMemory memory, const VkAllocationCallbacks* pAllocator) const;
 
+		VkResult mapMemory(VkDeviceMemory memory, VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags flags, void** ppData) const;
+		void unmapMemory(VkDeviceMemory memory) const;
+
 		VkResult bindImageMemory(VkImage image, VkDeviceMemory memory, VkDeviceSize memoryOffset) const;
+		VkResult bindBufferMemory(VkBuffer buffer, VkDeviceMemory memory, VkDeviceSize memoryOffset) const;
 
 		VkResult createDescriptorSetLayout(const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout) const;
 		void destroyDescriptorSetLayout(VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator) const;
@@ -92,10 +96,25 @@ namespace sn::voxeng::vk
 		VkResult createComputePipelines(VkPipelineCache pipelineCache, uint32_t createInfoCount, const VkComputePipelineCreateInfo* pCreateInfos, const VkAllocationCallbacks* pAllocator, VkPipeline* pPipelines) const;
 		void destroyPipeline(VkPipeline pipeline, const VkAllocationCallbacks* pAllocator) const;
 
+		VkResult createDescriptorPool(const VkDescriptorPoolCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorPool* pDescriptorPool) const;
+		void destroyDescriptorPool(VkDescriptorPool descriptorPool, const VkAllocationCallbacks* pAllocator) const;
+
+		VkResult allocateDescriptorSets(const VkDescriptorSetAllocateInfo* pAllocateInfo, VkDescriptorSet* pDescriptorSets) const;
+		VkResult freeDescriptorSets(VkDescriptorPool descriptorPool, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets) const;
+
+		void updateDescriptorSets(uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites, uint32_t descriptorCopyCount, const VkCopyDescriptorSet* pDescriptorCopies) const;
+
+		VkResult createBuffer(const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer) const;
+		void destroyBuffer(VkBuffer buffer, const VkAllocationCallbacks* pAllocator) const;
+
 		Device(const Device&) = delete;
 		Device& operator=(const Device&) = delete;
 		Device(Device&& other) noexcept;
 		Device& operator=(Device&& other) noexcept;
+
+		std::span<const VkQueue> vkQueueHandle() const noexcept;
+		VkQueue vkQueueHandle(size_t idx) const noexcept;
+		operator std::span<const VkQueue>() const noexcept;
 
 		VkDevice vkHandle() const noexcept;
 		operator VkDevice() const noexcept;
