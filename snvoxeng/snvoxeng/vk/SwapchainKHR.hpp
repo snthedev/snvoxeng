@@ -30,6 +30,8 @@ namespace sn::voxeng::vk
 	public:
 		~SwapchainKHR() noexcept;
 
+		VkResult acquireNextImageKHR(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) const;
+
 		uint32_t getMinImageCount() const noexcept;
 		VkExtent2D getImageExtent() const noexcept;
 		VkSurfaceTransformFlagBitsKHR getPreTransform() const noexcept;

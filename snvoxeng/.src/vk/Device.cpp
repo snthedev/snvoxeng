@@ -161,10 +161,13 @@ void Device::destroySwapchainKHR(VkSwapchainKHR swapchain, const VkAllocationCal
 {
 	vkDestroySwapchainKHR(m_pData->vkHandle, swapchain, pAllocator);
 }
-
 VkResult Device::getSwapchainImagesKHR(VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages) const
 {
 	return vkGetSwapchainImagesKHR(m_pData->vkHandle, swapchain, pSwapchainImageCount, pSwapchainImages);
+}
+VkResult Device::acquireNextImageKHR(VkSwapchainKHR swapchain, uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) const
+{
+	return vkAcquireNextImageKHR(m_pData->vkHandle, swapchain, timeout, semaphore, fence, pImageIndex);
 }
 
 VkResult Device::createImage(const VkImageCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImage* pImage) const

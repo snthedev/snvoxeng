@@ -155,6 +155,11 @@ SwapchainKHR::~SwapchainKHR() noexcept
 	}
 }
 
+VkResult SwapchainKHR::acquireNextImageKHR(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) const
+{
+	return m_pData->pDevice->acquireNextImageKHR(m_pData->vkHandle, timeout, semaphore, fence, pImageIndex);
+}
+
 uint32_t SwapchainKHR::getMinImageCount() const noexcept { return m_pData->vkCreateInfo.minImageCount; }
 VkExtent2D SwapchainKHR::getImageExtent() const noexcept { return m_pData->vkCreateInfo.imageExtent; }
 VkSurfaceTransformFlagBitsKHR SwapchainKHR::getPreTransform() const noexcept { return m_pData->vkCreateInfo.preTransform; }
