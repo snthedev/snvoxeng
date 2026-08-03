@@ -129,6 +129,20 @@ void CommandBuffer::cmdCopyImageToBuffer(
     );
 }
 
+void CommandBuffer::cmdPushConstants(
+    VkPipelineLayout layout, VkShaderStageFlags stageFlags,
+    uint32_t offset, uint32_t size,
+    const void* pValues
+) const noexcept
+{
+    vkCmdPushConstants(
+        vkHandle(),
+        layout, stageFlags,
+        offset, size,
+        pValues
+    );
+}
+
 VkCommandBuffer CommandBuffer::vkHandle() const noexcept { return m_pContainer->vkHandle(m_containerIdx); }
 const CommandBuffersContainer& CommandBuffer::getContainer() const noexcept { return *m_pContainer; }
 size_t CommandBuffer::getContainerIdx() const noexcept { return m_containerIdx; }

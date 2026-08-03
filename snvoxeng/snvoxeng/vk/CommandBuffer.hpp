@@ -59,6 +59,12 @@ namespace sn::voxeng::vk
             std::span<const VkBufferImageCopy> regions
         ) const noexcept;
 
+        void cmdPushConstants(
+            VkPipelineLayout layout, VkShaderStageFlags stageFlags,
+            uint32_t offset, uint32_t size,
+            const void* pValues
+        ) const noexcept;
+
         VkCommandBuffer vkHandle() const noexcept;
 
         const CommandBuffersContainer& getContainer() const noexcept;
