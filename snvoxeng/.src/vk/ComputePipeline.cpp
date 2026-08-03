@@ -86,6 +86,7 @@ ComputePipeline::~ComputePipeline() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
