@@ -16,12 +16,11 @@ namespace sn::voxeng::vk
     public:
         Queue(const Device& container, size_t idx) noexcept;
 
-        void submit(const VkSubmitInfo& submit, VkFence fence) const;
-        void submit(std::span<const VkSubmitInfo> submits, VkFence fence) const;
-        void waitIdle() const;
+        VkResult submit(const VkSubmitInfo& submit, VkFence fence) const;
+        VkResult submit(std::span<const VkSubmitInfo> submits, VkFence fence) const;
+        VkResult waitIdle() const;
 
-        VkResult queueSubmit(uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence) const;
-        VkResult queueWaitIdle() const;
+        VkResult presentKHR(const VkPresentInfoKHR& presentInfo) const;
 
         VkQueue vkHandle() const noexcept;
         const Device& getContainer() const noexcept;
