@@ -85,18 +85,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/DescriptorPool.h>
 
-		// Builds DescriptorPool on stack;
 		// Builder is invalid after .sbuild()
-		DescriptorPool sbuild();
-		// Builds DescriptorPool on heap;
-		// Builder is invalid after .build()
-		DescriptorPool* build();
-
-		// Builds DescriptorPool (view) on stack;
+		DescriptorPool build();
 		// Builder is invalid after .sbuild(VkDescriptorPool)
-		DescriptorPool sbuild(VkDescriptorPool view);
-		// Builds DescriptorPool (view) on heap;
-		// Builder is invalid after .build(VkDescriptorPool)
-		DescriptorPool* build(VkDescriptorPool view);
+		DescriptorPool build(VkDescriptorPool view);
 	}; // ^ class DescriptorPool::Builder ^
 } // ^ namespace sn::voxeng::vk ^

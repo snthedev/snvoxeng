@@ -7,6 +7,10 @@ build/*
 *.dll
 *.exe
 
+# Resources
+!build/.res/
+!build/.res/**
+
 # Output files
 build/.out/*
 

@@ -85,18 +85,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/DescriptorSetLayout.h>
 
-		// Builds DescriptorSetLayout on stack;
 		// Builder is invalid after .sbuild()
-		DescriptorSetLayout sbuild();
-		// Builds DescriptorSetLayout on heap;
-		// Builder is invalid after .build()
-		DescriptorSetLayout* build();
-
-		// Builds DescriptorSetLayout (view) on stack;
+		DescriptorSetLayout build();
 		// Builder is invalid after .sbuild(VkDescriptorSetLayout)
-		DescriptorSetLayout sbuild(VkDescriptorSetLayout view);
-		// Builds DescriptorSetLayout (view) on heap;
-		// Builder is invalid after .build(VkDescriptorSetLayout)
-		DescriptorSetLayout* build(VkDescriptorSetLayout view);
+		DescriptorSetLayout build(VkDescriptorSetLayout view);
 	}; // ^ class DescriptorSetLayout::Builder ^
 } // ^ namespace sn::voxeng::vk ^

@@ -30,6 +30,10 @@ namespace sn::voxeng::vk
 	public:
 		~SwapchainKHR() noexcept;
 
+		bool recreate();
+
+		VkResult acquireNextImageKHR(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) const;
+
 		uint32_t getMinImageCount() const noexcept;
 		VkExtent2D getImageExtent() const noexcept;
 		VkSurfaceTransformFlagBitsKHR getPreTransform() const noexcept;
@@ -95,18 +99,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/SwapchainKHR.h>
 
-		// Builds SwapchainKHR on stack;
 		// Builder is invalid after .sbuild()
-		SwapchainKHR sbuild();
-		// Builds SwapchainKHR on heap;
-		// Builder is invalid after .build()
-		SwapchainKHR* build();
-
-		// Builds SwapchainKHR (view) on stack;
+		SwapchainKHR build();
 		// Builder is invalid after .sbuild(VkSwapchainKHR)
-		SwapchainKHR sbuild(VkSwapchainKHR view);
-		// Builds SwapchainKHR (view) on heap;
-		// Builder is invalid after .build(VkSwapchainKHR)
-		SwapchainKHR* build(VkSwapchainKHR view);
+		SwapchainKHR build(VkSwapchainKHR view);
 	}; // ^ class SwapchainKHR::Builder ^
 } // ^ namespace sn::voxeng::vk ^

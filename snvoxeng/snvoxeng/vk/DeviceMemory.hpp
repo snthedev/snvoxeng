@@ -94,18 +94,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/DeviceMemory.h>
 
-		// Builds DeviceMemory on stack;
 		// Builder is invalid after .sbuild()
-		DeviceMemory sbuild();
-		// Builds DeviceMemory on heap;
-		// Builder is invalid after .build()
-		DeviceMemory* build();
-
-		// Builds DeviceMemory (view) on stack;
+		DeviceMemory build();
 		// Builder is invalid after .sbuild(VkDeviceMemory)
-		DeviceMemory sbuild(VkDeviceMemory view);
-		// Builds DeviceMemory (view) on heap;
-		// Builder is invalid after .build(VkDeviceMemory)
-		DeviceMemory* build(VkDeviceMemory view);
+		DeviceMemory build(VkDeviceMemory view);
 	}; // ^ class DeviceMemory::Builder ^
 } // ^ namespace sn::voxeng::vk ^

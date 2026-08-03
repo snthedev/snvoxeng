@@ -78,6 +78,7 @@ Buffer::Buffer(data_t*& pData, VkBuffer view)
 	, m_isView(true)
 {
 	pData = nullptr;
+	m_pData->vkHandle = view;
 }
 
 // === Buffer : public ===
@@ -87,6 +88,7 @@ Buffer::~Buffer() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
@@ -308,7 +310,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/Buffer.h>
 
-Buffer Builder::sbuild()
+Buffer Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -316,28 +318,11 @@ Buffer Builder::sbuild()
 	finalize(*m_pData);
 	return Buffer{ m_pData };
 }
-Buffer* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new Buffer{ m_pData };
-}
-
-Buffer Builder::sbuild(VkBuffer view)
+Buffer Builder::build(VkBuffer view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif
 	finalize(*m_pData);
 	return Buffer{ m_pData, view };
-}
-Buffer* Builder::build(VkBuffer view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new Buffer{ m_pData, view };
 }

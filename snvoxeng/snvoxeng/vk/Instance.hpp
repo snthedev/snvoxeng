@@ -87,18 +87,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/Instance.h>
 
-		// Builds Instance on stack;
 		// Builder is invalid after .sbuild()
-		Instance sbuild();
-		// Builds Instance on heap;
-		// Builder is invalid after .build()
-		Instance* build();
-
-		// Builds Instance (view) on stack;
+		Instance build();
 		// Builder is invalid after .sbuild(VkInstance)
-		Instance sbuild(VkInstance view);
-		// Builds Instance (view) on heap;
-		// Builder is invalid after .build(VkInstance)
-		Instance* build(VkInstance view);
+		Instance build(VkInstance view);
 	}; // ^ class Instance::Builder ^
 } // ^ namespace sn::voxeng::vk ^

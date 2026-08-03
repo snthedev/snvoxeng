@@ -90,6 +90,7 @@ Image::~Image() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
@@ -311,7 +312,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/Image.h>
 
-Image Builder::sbuild()
+Image Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -319,28 +320,11 @@ Image Builder::sbuild()
 	finalize(*m_pData);
 	return Image{ m_pData };
 }
-Image* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Image{ m_pData };
-}
-
-Image Builder::sbuild(VkImage view)
+Image Builder::build(VkImage view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Image{ m_pData, view };
-}
-Image* Builder::build(VkImage view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Image{ m_pData, view };
 }

@@ -76,6 +76,7 @@ ShaderModule::ShaderModule(data_t*& pData, VkShaderModule view)
 	, m_isView(true)
 {
 	pData = nullptr;
+	m_pData->vkHandle = view;
 }
 
 // === ShaderModule : public ===
@@ -85,6 +86,7 @@ ShaderModule::~ShaderModule() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
@@ -299,7 +301,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/ShaderModule.h>
 
-ShaderModule Builder::sbuild()
+ShaderModule Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -307,28 +309,11 @@ ShaderModule Builder::sbuild()
 	finalize(*m_pData);
 	return ShaderModule{ m_pData };
 }
-ShaderModule* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new ShaderModule{ m_pData };
-}
-
-ShaderModule Builder::sbuild(VkShaderModule view)
+ShaderModule Builder::build(VkShaderModule view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif
 	finalize(*m_pData);
 	return ShaderModule{ m_pData, view };
-}
-ShaderModule* Builder::build(VkShaderModule view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new ShaderModule{ m_pData, view };
 }

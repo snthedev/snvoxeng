@@ -76,6 +76,7 @@ ComputePipeline::ComputePipeline(data_t*& pData, VkPipeline view)
 	, m_isView(true)
 {
 	pData = nullptr;
+	m_pData->vkHandle = view;
 }
 
 // === ComputePipeline : public ===
@@ -85,6 +86,7 @@ ComputePipeline::~ComputePipeline() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
@@ -298,7 +300,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/ComputePipeline.h>
 
-ComputePipeline Builder::sbuild()
+ComputePipeline Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -306,28 +308,11 @@ ComputePipeline Builder::sbuild()
 	finalize(*m_pData);
 	return ComputePipeline{ m_pData };
 }
-ComputePipeline* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new ComputePipeline{ m_pData };
-}
-
-ComputePipeline Builder::sbuild(VkPipeline view)
+ComputePipeline Builder::build(VkPipeline view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif
 	finalize(*m_pData);
 	return ComputePipeline{ m_pData, view };
-}
-ComputePipeline* Builder::build(VkPipeline view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new ComputePipeline{ m_pData, view };
 }

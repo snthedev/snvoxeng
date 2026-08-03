@@ -87,6 +87,7 @@ DescriptorSetLayout::~DescriptorSetLayout() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
@@ -301,7 +302,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/DescriptorSetLayout.h>
 
-DescriptorSetLayout Builder::sbuild()
+DescriptorSetLayout Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -309,28 +310,11 @@ DescriptorSetLayout Builder::sbuild()
 	finalize(*m_pData);
 	return DescriptorSetLayout{ m_pData };
 }
-DescriptorSetLayout* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new DescriptorSetLayout{ m_pData };
-}
-
-DescriptorSetLayout Builder::sbuild(VkDescriptorSetLayout view)
+DescriptorSetLayout Builder::build(VkDescriptorSetLayout view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif
 	finalize(*m_pData);
 	return DescriptorSetLayout{ m_pData, view };
-}
-DescriptorSetLayout* Builder::build(VkDescriptorSetLayout view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new DescriptorSetLayout{ m_pData, view };
 }

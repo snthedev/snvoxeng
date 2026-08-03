@@ -85,18 +85,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/ShaderModule.h>
 
-		// Builds ShaderModule on stack;
 		// Builder is invalid after .sbuild()
-		ShaderModule sbuild();
-		// Builds ShaderModule on heap;
-		// Builder is invalid after .build()
-		ShaderModule* build();
-
-		// Builds ShaderModule (view) on stack;
+		ShaderModule build();
 		// Builder is invalid after .sbuild(VkShaderModule)
-		ShaderModule sbuild(VkShaderModule view);
-		// Builds ShaderModule (view) on heap;
-		// Builder is invalid after .build(VkShaderModule)
-		ShaderModule* build(VkShaderModule view);
+		ShaderModule build(VkShaderModule view);
 	}; // ^ class ShaderModule::Builder ^
 } // ^ namespace sn::voxeng::vk ^

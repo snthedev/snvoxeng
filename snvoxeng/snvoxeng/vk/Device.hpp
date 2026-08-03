@@ -47,9 +47,12 @@ namespace sn::voxeng::vk
 
 		void getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const;
 
+		VkResult waitIdle() const;
+
 		VkResult createSwapchainKHR(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) const;
 		void destroySwapchainKHR(VkSwapchainKHR swapchain, const VkAllocationCallbacks* pAllocator) const;
 		VkResult getSwapchainImagesKHR(VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages) const;
+		VkResult acquireNextImageKHR(VkSwapchainKHR swapchain, uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) const;
 
 		VkResult createImage(const VkImageCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImage* pImage) const;
 		void destroyImage(VkImage image, const VkAllocationCallbacks* pAllocator) const;
@@ -169,18 +172,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/Device.h>
 
-		// Builds Device on stack;
 		// Builder is invalid after .sbuild()
-		Device sbuild();
-		// Builds Device on heap;
-		// Builder is invalid after .build()
-		Device* build();
-
-		// Builds Device (view) on stack;
+		Device build();
 		// Builder is invalid after .sbuild(VkDevice)
-		Device sbuild(VkDevice view);
-		// Builds Device (view) on heap;
-		// Builder is invalid after .build(VkDevice)
-		Device* build(VkDevice view);
+		Device build(VkDevice view);
 	}; // ^ class Device::Builder ^
 } // ^ namespace sn::voxeng::vk ^

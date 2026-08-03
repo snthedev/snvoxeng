@@ -107,6 +107,7 @@ SurfaceKHR::~SurfaceKHR() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
@@ -319,7 +320,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/SurfaceKHR.h>
 
-SurfaceKHR Builder::sbuild()
+SurfaceKHR Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -327,28 +328,11 @@ SurfaceKHR Builder::sbuild()
 	finalize(*m_pData);
 	return SurfaceKHR{ m_pData };
 }
-SurfaceKHR* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new SurfaceKHR{ m_pData };
-}
-
-SurfaceKHR Builder::sbuild(VkSurfaceKHR view)
+SurfaceKHR Builder::build(VkSurfaceKHR view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return SurfaceKHR{ m_pData, view };
-}
-SurfaceKHR* Builder::build(VkSurfaceKHR view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new SurfaceKHR{ m_pData, view };
 }

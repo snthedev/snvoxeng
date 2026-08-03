@@ -60,7 +60,7 @@ void DescriptorSetsContainer::onCreate(data_t& data)
 }
 void DescriptorSetsContainer::onDestroy(data_t& data) noexcept
 {
-	auto result = data.pDescriptorPool->getDevice().freeDescriptorSets(data.pDescriptorPool->vkHandle(), data.vkHandle.size(), data.vkHandle.data());
+	auto result = data.pDescriptorPool->getDevice().freeDescriptorSets(data.pDescriptorPool->vkHandle(), static_cast<uint32_t>(data.vkHandle.size()), data.vkHandle.data());
 	snassert(result == VK_SUCCESS,
 		"Failed to free VkDescriptorSet-s", "Check Builder settings");
 
@@ -76,11 +76,12 @@ DescriptorSetsContainer::DescriptorSetsContainer(data_t*& pData)
 	pData = nullptr;
 	onCreate(*m_pData);
 }
-DescriptorSetsContainer::DescriptorSetsContainer(data_t*& pData, std::vector<VkDescriptorSet> view)
+DescriptorSetsContainer::DescriptorSetsContainer(data_t*& pData, std::span<const VkDescriptorSet> view)
 	: m_pData(pData)
 	, m_isView(true)
 {
 	pData = nullptr;
+	m_pData->vkHandle = { view.begin(), view.end() };
 }
 
 // === DescriptorSetsContainer : public ===
@@ -90,6 +91,7 @@ DescriptorSetsContainer::~DescriptorSetsContainer() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
@@ -311,7 +313,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/DescriptorSetsContainer.h>
 
-DescriptorSetsContainer Builder::sbuild()
+DescriptorSetsContainer Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -319,28 +321,11 @@ DescriptorSetsContainer Builder::sbuild()
 	finalize(*m_pData);
 	return DescriptorSetsContainer{ m_pData };
 }
-DescriptorSetsContainer* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new DescriptorSetsContainer{ m_pData };
-}
-
-DescriptorSetsContainer Builder::sbuild(std::vector<VkDescriptorSet> view)
+DescriptorSetsContainer Builder::build(std::span<const VkDescriptorSet> view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif
 	finalize(*m_pData);
 	return DescriptorSetsContainer{ m_pData, view };
-}
-DescriptorSetsContainer* Builder::build(std::vector<VkDescriptorSet> view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new DescriptorSetsContainer{ m_pData, view };
 }

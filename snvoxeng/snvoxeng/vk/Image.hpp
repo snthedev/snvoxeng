@@ -87,20 +87,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/Image.h>
 
-		// Builds Image on stack;
 		// Builder is invalid after .sbuild()
-		Image sbuild();
-		// Builds Image on heap;
-		// Builder is invalid after .build()
-		Image* build();
-
-		// Builds Image (view) on stack;
+		Image build();
 		// Builder is invalid after .sbuild(VkImage)
-		// Fork for SwapchainKHR
-		Image sbuild(VkImage view);
-		// Builds Image (view) on heap;
-		// Builder is invalid after .build(VkImage)
-		// Fork for SwapchainKHR
-		Image* build(VkImage view);
+		Image build(VkImage view);
 	}; // ^ class Image::Builder ^
 } // ^ namespace sn::voxeng::vk ^

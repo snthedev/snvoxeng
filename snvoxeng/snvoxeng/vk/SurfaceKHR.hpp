@@ -85,18 +85,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/SurfaceKHR.h>
 
-		// Builds SurfaceKHR on stack;
 		// Builder is invalid after .sbuild()
-		SurfaceKHR sbuild();
-		// Builds SurfaceKHR on heap;
-		// Builder is invalid after .build()
-		SurfaceKHR* build();
-
-		// Builds SurfaceKHR (view) on stack;
+		SurfaceKHR build();
 		// Builder is invalid after .sbuild(VkSurfaceKHR)
-		SurfaceKHR sbuild(VkSurfaceKHR view);
-		// Builds SurfaceKHR (view) on heap;
-		// Builder is invalid after .build(VkSurfaceKHR)
-		SurfaceKHR* build(VkSurfaceKHR view);
+		SurfaceKHR build(VkSurfaceKHR view);
 	}; // ^ class SurfaceKHR::Builder ^
 } // ^ namespace sn::voxeng::vk ^

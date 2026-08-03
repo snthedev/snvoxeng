@@ -135,6 +135,7 @@ Instance::~Instance() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
@@ -357,7 +358,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/Instance.h>
 
-Instance Builder::sbuild()
+Instance Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -365,28 +366,11 @@ Instance Builder::sbuild()
 	finalize(*m_pData);
 	return Instance{ m_pData };
 }
-Instance* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Instance{ m_pData };
-}
-
-Instance Builder::sbuild(VkInstance view)
+Instance Builder::build(VkInstance view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Instance{ m_pData, view };
-}
-Instance* Builder::build(VkInstance view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Instance{ m_pData, view };
 }

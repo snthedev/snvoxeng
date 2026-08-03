@@ -140,6 +140,7 @@ Device::~Device() noexcept
 	{
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
+		m_pData = nullptr;
 	}
 }
 
@@ -153,6 +154,11 @@ void Device::getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQu
 	return vkGetDeviceQueue(m_pData->vkHandle, queueFamilyIndex, queueIndex, pQueue);
 }
 
+VkResult Device::waitIdle() const
+{
+	return vkDeviceWaitIdle(m_pData->vkHandle);
+}
+
 VkResult Device::createSwapchainKHR(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) const
 {
 	return vkCreateSwapchainKHR(m_pData->vkHandle, pCreateInfo, pAllocator, pSwapchain);
@@ -161,10 +167,13 @@ void Device::destroySwapchainKHR(VkSwapchainKHR swapchain, const VkAllocationCal
 {
 	vkDestroySwapchainKHR(m_pData->vkHandle, swapchain, pAllocator);
 }
-
 VkResult Device::getSwapchainImagesKHR(VkSwapchainKHR swapchain, uint32_t* pSwapchainImageCount, VkImage* pSwapchainImages) const
 {
 	return vkGetSwapchainImagesKHR(m_pData->vkHandle, swapchain, pSwapchainImageCount, pSwapchainImages);
+}
+VkResult Device::acquireNextImageKHR(VkSwapchainKHR swapchain, uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) const
+{
+	return vkAcquireNextImageKHR(m_pData->vkHandle, swapchain, timeout, semaphore, fence, pImageIndex);
 }
 
 VkResult Device::createImage(const VkImageCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkImage* pImage) const
@@ -593,7 +602,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/Device.h>
 
-Device Builder::sbuild()
+Device Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -601,28 +610,11 @@ Device Builder::sbuild()
 	finalize(*m_pData);
 	return Device{ m_pData };
 }
-Device* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Device{ m_pData };
-}
-
-Device Builder::sbuild(VkDevice view)
+Device Builder::build(VkDevice view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Device{ m_pData, view };
-}
-Device* Builder::build(VkDevice view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Device{ m_pData, view };
 }
