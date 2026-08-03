@@ -38,3 +38,5 @@
 #include <snvoxeng/snvoxeng/vk/Buffer.hpp>
 
 #include <snvoxeng/snvoxeng/vk/Queue.hpp>
+
+#include <snvoxeng/snvoxeng/Renderer.hpp>
