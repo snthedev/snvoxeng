@@ -511,6 +511,18 @@ int main()
 		}
 		storage_image_cmdbuf.end();
 
+		// Sync objects
+		auto inFlightFence = sn::voxeng::vk::Fence::Builder()
+			.withDevice(device)
+			.withFlags(VK_FENCE_CREATE_SIGNALED_BIT)
+			.sbuild();
+		auto imageAvailableSemaphore = sn::voxeng::vk::Semaphore::Builder()
+			.withDevice(device)
+			.sbuild();
+		auto renderFinishedSemaphore = sn::voxeng::vk::Semaphore::Builder()
+			.withDevice(device)
+			.sbuild();
+
 		// STEP 5: Submit & Wait Result
 		{
 			auto cmdbuf_handle = storage_image_cmdbuf.vkHandle();
