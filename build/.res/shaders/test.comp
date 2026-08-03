@@ -3,90 +3,458 @@
 layout (local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
 layout(set = 0, binding = 0, rgba8) uniform writeonly image2D u_Canvas;
 
+// === PUSH COSTANTS ===
+
+layout(push_constant) uniform PushConstants {
+    vec4 cameraPos;    // xyz = camera pos, w = camera fov y (radians)
+    vec4 cameraRot;    // xyz = camera rot (Euler zyx)
+    vec2 resolution;   // px
+    float time;        // seconds
+    uint frameIdx;
+} push;
+
+// === RENDER ===
+
+const uint max_reflections = 32;
+
+// === MATH ===
+
+const float pi = 3.14159265;
+const float pi2 = 2.0 * pi;
+const float pih = 0.5 * pi;
+const float epsilon = 0.00005;
+const float nepsilon = 1.0 - epsilon;
+
+const vec3 ox = vec3(1.0, 0.0, 0.0);
+const vec3 oy = vec3(0.0, 1.0, 0.0);
+const vec3 oz = vec3(0.0, 0.0, 1.0);
+
+vec3 rotate_axis(in vec3 vector, in vec3 axsis, in float angle)
+{
+    float cos_a = cos(angle);
+    float ncos_a = 1.0 - cos_a;
+    float sin_a = sin(angle);
+
+    return vec3(
+        vector.x * (cos_a                       + ncos_a*axsis.x*axsis.x    ) + 
+        vector.y * (ncos_a*axsis.x*axsis.y      - sin_a*axsis.z             ) + 
+        vector.z * (ncos_a*axsis.x*axsis.z      + sin_a*axsis.y             ),
+
+        vector.x * (ncos_a*axsis.y*axsis.x      + sin_a*axsis.z             ) +
+        vector.y * (cos_a                       + ncos_a*axsis.y*axsis.y    ) +
+        vector.z * (ncos_a*axsis.y*axsis.z      - sin_a*axsis.x             ),
+
+        vector.x * (ncos_a*axsis.z*axsis.x      - sin_a*axsis.y             ) +
+        vector.y * (ncos_a*axsis.z*axsis.y      + sin_a*axsis.x             ) +
+        vector.z * (cos_a                       + ncos_a*axsis.z*axsis.z    )
+    );
+}
+
+// yaw pitch roll
+vec3 rotate_yxz(in vec3 vector, in vec3 angle)
+{
+    return rotate_axis(
+        rotate_axis(
+            rotate_axis(vector, oy, angle.y),
+            rotate_axis(ox,     oy, angle.y),
+            angle.x
+        ),
+        rotate_axis(
+            rotate_axis(oz,     oy, angle.y),
+            rotate_axis(ox,     oy, angle.y),
+            angle.x
+        ),
+        angle.z
+    );
+}
+
+// roll pitch yaw
+vec3 rotate_zxy(in vec3 vector, in vec3 angle)
+{
+    return rotate_axis(
+        rotate_axis(
+            rotate_axis(vector, oz, angle.z),
+            rotate_axis(ox,     oz, angle.z),
+            angle.x
+        ),
+        rotate_axis(
+            rotate_axis(oy,     oz, angle.z),
+            rotate_axis(ox,     oz, angle.z),
+            angle.x
+        ),
+        angle.y
+    );
+}
+
+// roll yaw pitch
+vec3 rotate_zyx(in vec3 vector, in vec3 angle)
+{
+    return rotate_axis(
+        rotate_axis(
+            rotate_axis(vector, oz, angle.z),
+            rotate_axis(oy,     oz, angle.z),
+            angle.y
+        ),
+        rotate_axis(
+            rotate_axis(ox,     oz, angle.z),
+            rotate_axis(oy,     oz, angle.z),
+            angle.y
+        ),
+        angle.x
+    );
+}
+
+// === CONSTANTS ===
+
 vec4 sky_color = vec4(0.15, 0.05, 0.45, 1.0);
 
 vec4 light_color = vec4(40.0, 40.0, 40.0, 1.0);
-vec3 light_direction = normalize(vec3(-0.7, 1.0, 0.2));
+vec3 light_direction = normalize(vec3(-0.7, -1.0, 0.2));
 
-vec4 sphere_color = vec4(0.95, 0.7, 0.7, 1.0);
-vec3 sphere_origin = vec3(0.0, 0.0, 60.0);
+vec4 sphere_color = vec4(0.80 + 0.15 * sin(push.time), 0.7, 0.7, 1.0);
+vec3 sphere_origin = vec3(0.0, 0.0, 0.0);
 float sphere_radius = 20.0;
 
-vec3 getNormal_sphere(in vec3 point, in vec3 sphere_origin)
-{
-    return normalize(point - sphere_origin);
-}
+// === MATH (again) ===
 
-bool getIntersect_sphere(in vec3 ro, in vec3 rd, in vec3 sphere_origin, in float sphere_radius, out vec3 p0, out vec3 p1)
+struct Material
 {
-    vec3 target = sphere_origin - ro;
+    vec4 color;
+};
+
+struct Sphere
+{
+  vec3 origin;
+  float radius;
+  Material material;
+};
+struct Cube
+{
+  vec3 pmin;
+  vec3 pmax;
+  Material material;
+};
+
+vec3 getNormal_sphere(in vec3 point, in Sphere sphere)
+{
+    return normalize(point - sphere.origin);
+}
+bool getIntersect_sphere(in vec3 ro, in vec3 rd, in Sphere sphere, out float t0, out float t1)
+{
+    vec3 target = sphere.origin - ro;
 
     // closest point to sphere is ro + t * rd
     float t = (rd.x * target.x + rd.y * target.y + rd.z * target.z) / (rd.x * rd.x + rd.y * rd.y + rd.z * rd.z);
+    if (t + sphere.radius <= 0) return false;
+
     vec3 p_closest = ro + t * rd;
 
-    float r_sq = sphere_radius * sphere_radius;
+    float r_sq = sphere.radius * sphere.radius;
 
-    vec3 p_closest_dir = p_closest - sphere_origin;
+    vec3 p_closest_dir = p_closest - sphere.origin;
     float dst_sq = p_closest_dir.x * p_closest_dir.x + p_closest_dir.y * p_closest_dir.y + p_closest_dir.z * p_closest_dir.z;
-    if (dst_sq > r_sq * 0.9995) return false;
+    if (dst_sq > r_sq * nepsilon) return false;
 
     float hit_radius = sqrt(r_sq - dst_sq);
-    p0 = p_closest - hit_radius * rd;
-    p1 = p_closest + hit_radius * rd;
+    if (t + hit_radius <= 0) return false;
 
+    t1 = t + hit_radius;
+    if (t - hit_radius <= 0) t0 = t1;
+    else t0 = t - hit_radius;
+    
     return true;
 }
+
+vec3 getNormal_cube(in vec3 point, in Cube cube)
+{
+    if(abs(point.x - cube.pmin.x) < epsilon)
+        return vec3(-1.0, 0.0, 0.0);
+    else if (abs(point.x - cube.pmax.x) < epsilon)
+        return vec3(1.0, 0.0, 0.0);
+    else if (abs(point.y - cube.pmin.y) < epsilon)
+        return vec3(0.0, -1.0, 0.0);
+    else if (abs(point.y - cube.pmax.y) < epsilon)
+        return vec3(0.0, 1.0, 0.0);
+    else if (abs(point.z - cube.pmin.z) < epsilon)
+        return vec3(0.0, 0.0, -1.0);
+    else if (abs(point.z - cube.pmax.z) < epsilon)
+        return vec3(0.0, 0.0, 1.0);
+    
+    return vec3(0.0, 0.0, 0.0);
+}
+bool getIntersect_cube(in vec3 ro, in vec3 rd, in Cube cube, out float t0, out float t1)
+{
+    float tx1 = (cube.pmin.x - ro.x) / rd.x;
+    float tx2 = (cube.pmax.x - ro.x) / rd.x;
+
+    t0 = min(tx1, tx2);
+    t1 = max(tx1, tx2);
+
+    float ty1 = (cube.pmin.y - ro.y) / rd.y;
+    float ty2 = (cube.pmax.y - ro.y) / rd.y;
+
+    t0 = max(t0, min(ty1, ty2));
+    t1 = min(t1, max(ty1, ty2));
+
+    float tz1 = (cube.pmin.z - ro.z) / rd.z;
+    float tz2 = (cube.pmax.z - ro.z) / rd.z;
+
+    t0 = max(t0, min(tz1, tz2));
+    t1 = min(t1, max(tz1, tz2));
+
+    if (t0 > t1) return false;
+    
+    if (t0 < 0.0) t0 = t1;
+    return t1 > 0.0;
+}
+
+vec3 sampleSky(vec3 rd, vec3 sunDir)
+{
+    //----------------------------
+    // Sky colors
+    //----------------------------
+
+    const vec3 SKY_ZENITH  = vec3(0.22, 0.47, 1.00);
+    const vec3 SKY_HORIZON = vec3(0.95, 1.08, 1.30);
+    const vec3 HORIZON_TINT = vec3(1.15, 1.00, 0.85);
+    const vec3 SUN_COLOR = vec3(1.00, 0.93, 0.84);
+
+    //----------------------------
+    // HDR intensities
+    //----------------------------
+
+    const float SUN_INTENSITY       = 32.0;
+    const float WIDE_AUREOLE_GAIN   = 2.0;
+    const float NARROW_AUREOLE_GAIN = 12.0;
+    const float DISC_GAIN           = 64.0;
+
+    //----------------------------
+    // Shape parameters
+    //----------------------------
+
+    const float MIE_G = 0.82;
+    const float WIDE_POWER   = 6.0;
+    const float NARROW_POWER = 64.0;
+    const float DISC_POWER   = 4096.0;
+    const float HORIZON_FALLOFF = 18.0;
+
+    //----------------------------
+
+    float mu = clamp(dot(rd, sunDir), -1.0, 1.0);
+    // 0 horizon -> 1 zenith
+    float up = clamp(rd.y * 0.5 + 0.5, 0.0, 1.0);
+
+    //----------------------------
+    // Base gradient
+    //----------------------------
+
+    vec3 sky = mix(
+        SKY_HORIZON,
+        SKY_ZENITH,
+        pow(up, 0.35)
+    );
+
+    //----------------------------
+    // Horizon brightening
+    //----------------------------
+
+    float horizon = exp(-abs(rd.y) * HORIZON_FALLOFF);
+    sky += horizon * HORIZON_TINT * 0.35;
+
+    //----------------------------
+    // Rayleigh
+    //----------------------------
+
+    float rayleigh = 0.75 * (1.0 + mu * mu);
+    sky *= 0.75 + 0.25 * rayleigh;
+
+    //----------------------------
+    // Mie phase approximation
+    //----------------------------
+
+    float g = MIE_G;
+    float mie = (1.0 - g * g) / pow(max(1e-3, 1.0 + g * g - 2.0 * g * mu), 1.5);
+    sky += SUN_COLOR * mie * SUN_INTENSITY * 0.02;
+
+    //----------------------------
+    // Artistic aureoles
+    //----------------------------
+
+    float wideGlow = pow(max(mu, 0.0), WIDE_POWER);
+    float narrowGlow = pow(max(mu, 0.0), NARROW_POWER);
+    sky += SUN_COLOR * wideGlow   * WIDE_AUREOLE_GAIN;
+    sky += SUN_COLOR * narrowGlow * NARROW_AUREOLE_GAIN;
+
+    //----------------------------
+    // Sun disc
+    //----------------------------
+
+    float disc = pow(max(mu, 0.0), DISC_POWER);
+
+    sky += SUN_COLOR * disc * DISC_GAIN;
+
+    //----------------------------
+    // Anti-solar tint
+    //----------------------------
+
+    float back = pow(max(-mu, 0.0), 2.0);
+    sky += vec3(0.02, 0.04, 0.08) * back;
+
+    float sunInfluence = smoothstep(-0.3, 0.8, mu);
+    vec3 warmSky = vec3(1.15, 1.03, 0.90);
+    sky = mix(sky, sky * warmSky, sunInfluence * 0.25);
+
+    return sky;
+}
+
+// === SCENE ===
+
+uint cubes_cnt = 0;
+Cube arr_cubes[24];
+
+uint spheres_cnt = 0;
+Sphere arr_spheres[24];
+
+void init_scene()
+{
+    arr_cubes[cubes_cnt++] = Cube(vec3(-1e10, -1e10, -1e10), vec3(1e10, -5.05, 1e10), Material(vec4(0.5, 0.5, 0.5, 1.0)));
+
+    int obj_count = 7;
+    float obj_sizes = 1.0;
+    float obj_offset = 0.25;
+
+    vec3 cube_size = vec3(obj_sizes, obj_sizes, obj_sizes);
+    vec3 cube_hsize = cube_size * 0.5;
+    for (int i = 0; i < obj_count; ++i)
+    {
+        float a = float(i) / float(obj_count - 1);
+        float offset = obj_sizes * (1.0 + obj_offset) * float(i - obj_count / 2);
+        vec3 center = vec3(-3.0, 0.0, offset);
+
+        arr_cubes[cubes_cnt++] = Cube(
+            center - cube_hsize,
+            center + cube_hsize,
+            Material(vec4(a, a, a, 1.0))
+        );
+    }
+
+    float sphere_r = obj_sizes * 0.5;
+    for (int i = 0; i < obj_count; ++i)
+    {
+        float a = float(i) / float(obj_count - 1);
+        float offset = obj_sizes * (1.0 + obj_offset) * float(i - obj_count / 2);
+        vec3 center = vec3(2.0, 0.0, offset);
+
+        arr_spheres[spheres_cnt++] = Sphere(
+            center,
+            sphere_r,
+            Material(vec4(a, a, a, 1.0))
+        );
+    }
+}
+
+// === RT ===
+
+bool ray_step(inout vec3 ro, inout vec3 rd, inout vec4 col)
+{
+    float t0, t1;
+    vec3 n0, n1;
+    Material m;
+
+    bool hit = false;
+
+    for (int i = 0; i < cubes_cnt; ++i)
+    {
+        Cube obj = arr_cubes[i];
+        float t0_n, t1_n;
+        if (getIntersect_cube(ro, rd, obj, t0_n, t1_n) && (!hit || t0_n < t0) && t0_n > 0.0)
+        {
+            t0 = t0_n;
+            n0 = getNormal_cube(ro + rd * t0_n, obj);
+        
+            t1 = t1_n;
+            n1 = getNormal_cube(ro + rd * t1_n, obj);
+        
+            m = obj.material;
+            hit = true;
+        }
+    }
+
+    for (uint i = 0; i < spheres_cnt; ++i)
+    {
+        Sphere obj = arr_spheres[i];
+        float t0_n, t1_n;
+        if (getIntersect_sphere(ro, rd, obj, t0_n, t1_n) && (!hit || t0_n < t0) && t0_n > 0.0)
+        {
+            t0 = t0_n;
+            n0 = getNormal_sphere(ro + rd * t0_n, obj);
+            
+            t1 = t1_n;
+            n1 = getNormal_sphere(ro + rd * t1_n, obj);
+            
+            m = obj.material;
+            hit = true;
+        }
+    }
+    
+    if (!hit) return false;
+    
+    ro = ro + rd * t0 + n0 * epsilon;
+    rd = reflect(rd, n0);
+    col = col * m.color;
+    
+    return true;
+}
+
+// === MAIN ===
 
 void main()
 {
     ivec2 texelCoords = ivec2(gl_GlobalInvocationID.xy);
+    if (texelCoords.x >= int(push.resolution.x) || texelCoords.y >= int(push.resolution.y)) {
+        return;
+    }
+
+    init_scene();
+
     ivec2 size = imageSize(u_Canvas);
-    vec2 aspect = vec2(
-        min(1.0, float(size.x) / float(size.y)),
-        min(1.0, float(size.y) / float(size.x))
+    vec3 aspect = vec3(
+        min(1.0, float(push.resolution.x) / float(push.resolution.y)),
+        min(1.0, float(push.resolution.y) / float(push.resolution.x)),
+        1.0
+    );
+    aspect.z = aspect.x / aspect.y;
+
+    vec2 uv = vec2(
+        float(texelCoords.x) / float(push.resolution.x) - 0.5,
+        float(texelCoords.y) / float(push.resolution.y) - 0.5
     );
 
-    if (texelCoords.x < size.x && texelCoords.y < size.y)
-    {
-        vec2 uv = vec2(float(texelCoords.x) / float(size.x) - 0.5, float(texelCoords.y) / float(size.y) - 0.5) * aspect * 2.0;
+    vec2 fov = vec2(/* fovy */ push.cameraPos.w * aspect.z, /* fovy */ push.cameraPos.w);
 
-        vec3 ro = vec3(
-            0.0,
-            0.0,
-            0.0
-        );
-        vec3 rd = normalize(vec3(
-            uv.x,
-            uv.y,
-            1.0
-        ));
+    vec3 ro = push.cameraPos.xyz;
+    vec3 rd = rotate_axis(
+        rotate_axis(
+            rotate_axis(oz,     oz, push.cameraRot.z),
+            rotate_axis(oy,     oz, push.cameraRot.z),
+            push.cameraRot.y + fov.x * uv.x
+        ),
+        rotate_axis(
+            rotate_axis(ox,     oz, push.cameraRot.z),
+            rotate_axis(oy,     oz, push.cameraRot.z),
+            push.cameraRot.y
+        ),
+        push.cameraRot.x + fov.y * uv.y
+    );
 
-        vec4 color = vec4(1.0, 1.0, 1.0, 1.0);
+    vec4 avg_col = vec4(0.0);
 
-        vec3 p0 = vec3(0.0, 0.0, 0.0);
-        vec3 p1 = vec3(0.0, 0.0, 0.0);
-        if (getIntersect_sphere(ro, rd, sphere_origin, sphere_radius, p0, p1))
-        {
-            vec3 p0_n = getNormal_sphere(p0, sphere_origin);
-            rd = reflect(rd, p0_n);
-            color = color * sphere_color;
-        }
+    vec4 col = vec4(1.0);
+    for (uint j = 0; j < max_reflections; ++j) if (!ray_step(ro, rd, col)) break;
+    col = vec4(col.rgb * sampleSky(rd, -light_direction), 1.0);
 
-        float light_dot = dot(rd, -light_direction);
-        float light_dot_p = max(0.0, light_dot);
-        float light_dot_n = max(0.0, -light_dot);
+    avg_col = col;
 
-        float light_scalar = (
-            1.0 * pow(light_dot_p, 256.0)
-            + 0.10 * pow(light_dot_p, 1.2)
-            + 0.005
-            ) / (1.0 + 0.1 + 0.005);
-        float light_scalar_n = 1.0 - light_scalar;
-        color = color * (light_color * light_scalar + sky_color * light_scalar_n);
-
-        // rgba -> bgra
-        color.bgr = pow(vec3(0.509295817894) * atan(color.rgb) + vec3(0.2), vec3(2.2));
-        imageStore(u_Canvas, texelCoords, color);
-    }
+    avg_col.bgr = pow(vec3(0.509295817894) * atan(avg_col.rgb) + vec3(0.2), vec3(2.2));
+    imageStore(u_Canvas, texelCoords, avg_col);
 }
