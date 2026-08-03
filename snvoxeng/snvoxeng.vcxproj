@@ -124,6 +124,9 @@
     <ClInclude Include=".def\vk\SwapchainKHR.h" />
     <ClInclude Include="snvoxeng.hpp" />
     <ClInclude Include="snvoxeng\dll-defines.hpp" />
+    <ClInclude Include="snvoxeng\math\vec.hpp" />
+    <ClInclude Include="snvoxeng\math\vec2.hpp" />
+    <ClInclude Include="snvoxeng\math\vec4.hpp" />
     <ClInclude Include="snvoxeng\Renderer.hpp" />
     <ClInclude Include="snvoxeng\ShaderCompiler.hpp" />
     <ClInclude Include="snvoxeng\ShaderStages.hpp" />
