@@ -111,6 +111,7 @@ void Device::onCreate(data_t& data)
 }
 void Device::onDestroy(data_t& data) noexcept
 {
+	waitIdle();
 	vkDestroyDevice(data.vkHandle, data.vkPAllocator);
 
 	if (m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream())
@@ -151,6 +152,11 @@ size_t Device::countQueue() const noexcept { return m_pData->vkQueues.size(); }
 void Device::getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const
 {
 	return vkGetDeviceQueue(m_pData->vkHandle, queueFamilyIndex, queueIndex, pQueue);
+}
+
+VkResult Device::waitIdle() const
+{
+	return vkDeviceWaitIdle(m_pData->vkHandle);
 }
 
 VkResult Device::createSwapchainKHR(const VkSwapchainCreateInfoKHR* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSwapchainKHR* pSwapchain) const
