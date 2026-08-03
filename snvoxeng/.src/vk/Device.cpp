@@ -111,7 +111,6 @@ void Device::onCreate(data_t& data)
 }
 void Device::onDestroy(data_t& data) noexcept
 {
-	waitIdle();
 	vkDestroyDevice(data.vkHandle, data.vkPAllocator);
 
 	if (m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream())
