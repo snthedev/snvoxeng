@@ -29,6 +29,15 @@ void CommandBuffer::end() const
     }
 }
 
+void CommandBuffer::reset(VkCommandBufferResetFlags flags) const
+{
+    {
+        auto result = vkResetCommandBuffer(vkHandle(), flags);
+        snassert(result == VK_SUCCESS,
+            "Failed to reset command buffer", "");
+    }
+}
+
 void CommandBuffer::cmdBindPipeline(
     VkPipelineBindPoint pipelineBindPoint,
     VkPipeline pipeline

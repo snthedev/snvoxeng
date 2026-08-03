@@ -18,6 +18,8 @@ namespace sn::voxeng::vk
 
         void begin(VkCommandBufferBeginInfo info = {}) const;
         void end() const;
+        
+        void reset(VkCommandBufferResetFlags flags = {}) const;
 
         void cmdBindPipeline(
             VkPipelineBindPoint pipelineBindPoint,
