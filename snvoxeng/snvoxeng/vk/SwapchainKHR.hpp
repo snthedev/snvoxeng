@@ -30,7 +30,7 @@ namespace sn::voxeng::vk
 	public:
 		~SwapchainKHR() noexcept;
 
-		void recreate();
+		bool recreate();
 
 		VkResult acquireNextImageKHR(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) const;
 

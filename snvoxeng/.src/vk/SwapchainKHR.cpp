@@ -155,9 +155,21 @@ SwapchainKHR::~SwapchainKHR() noexcept
 	}
 }
 
-void SwapchainKHR::recreate()
+bool SwapchainKHR::recreate()
 {
-	m_pData->vkCreateInfo.oldSwapchain = m_pData->vkHandle;
+	auto capabilities = m_pData->pDevice->getPhysicalDevice().getSurfaceCapabilities(m_pData->pSurfaceKHR->vkHandle());
+	if (capabilities.currentExtent.width == 0 || capabilities.currentExtent.height == 0) return false;
+
+	uint32_t imageCount = capabilities.minImageCount + 1u;
+	if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) imageCount = capabilities.maxImageCount;
+
+	VkSwapchainKHR oldVkSwapchain = m_pData->vkHandle;
+	m_pData->vkCreateInfo.minImageCount = imageCount;
+	m_pData->vkCreateInfo.imageExtent = capabilities.currentExtent;
+	m_pData->vkCreateInfo.preTransform = capabilities.currentTransform;
+	m_pData->vkCreateInfo.oldSwapchain = oldVkSwapchain;
+
+
 	for (size_t i = 0; i < m_pData->imageCount; ++i)
 	{
 		m_pData->pImageViews[i].~ImageView();
@@ -168,7 +180,9 @@ void SwapchainKHR::recreate()
 
 	onCreate(*m_pData);
 
-	m_pData->pDevice->destroySwapchainKHR(m_pData->vkCreateInfo.oldSwapchain, m_pData->vkPAllocator);
+	m_pData->pDevice->destroySwapchainKHR(oldVkSwapchain, m_pData->vkPAllocator);
+
+	return true;
 }
 
 VkResult SwapchainKHR::acquireNextImageKHR(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) const
@@ -228,7 +242,10 @@ void Builder::finalize(data_t& data)
 	data.vkCreateInfo.surface = data.pSurfaceKHR->vkHandle();
 
 	auto capabilities = data.pDevice->getPhysicalDevice().getSurfaceCapabilities(data.pSurfaceKHR->vkHandle());
-	data.vkCreateInfo.minImageCount = capabilities.minImageCount + 1u;
+	uint32_t imageCount = capabilities.minImageCount + 1u;
+	if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount)
+		imageCount = capabilities.maxImageCount;
+	data.vkCreateInfo.minImageCount = imageCount;
 	data.vkCreateInfo.imageExtent = capabilities.currentExtent;
 	data.vkCreateInfo.preTransform = capabilities.currentTransform;
 }
