@@ -283,9 +283,32 @@ int main()
 				})
 			.build();
 
+		static constexpr float PI = 3.14159265f;
+		static constexpr float D2R = PI / 180.f;
+		static constexpr float R2D = 180.f / PI;
+		struct PushConstants
+		{
+			sn::voxeng::math::vec4 cameraPos;  // xyz position, w fovy in rads
+			sn::voxeng::math::vec4 cameraRot;  // xyz rotation Euler zyx in rads
+			sn::voxeng::math::vec2 resolution; // px
+			float time;                        // seconds
+			uint32_t frameCount;
+		} push_constants{
+			.cameraPos{ 0.f, 0.f, 0.f, 060.f * D2R },
+			.cameraRot{ 0.f * D2R, 0.f * D2R, 0.f * D2R },
+			.resolution{ 0u, 0u },
+			.time{ 0.f },
+			.frameCount{ 0u },
+		};
+
 		auto pipeline_layout = sn::voxeng::vk::PipelineLayout::Builder()
 			.withDevice(device)
 			.addSetLayouts(descriptor_set_layout.vkHandle())
+			.addPushConstantRanges(VkPushConstantRange{
+					.stageFlags{ VK_SHADER_STAGE_COMPUTE_BIT },
+					.offset{ 0 },
+					.size{ sizeof(PushConstants) },
+				})
 			.build();
 
 		auto compute_pipeline = sn::voxeng::vk::ComputePipeline::Builder()
@@ -303,6 +326,10 @@ int main()
 			device, surface_khr,
 			graphics_family_index, compute_family_index,
 			graphics_queue_index, compute_queue_index);
+		push_constants.resolution = {
+			static_cast<float>(renderer.getCanvasImage().getExtent().width),
+			static_cast<float>(renderer.getCanvasImage().getExtent().height),
+		};
 
 		auto descriptor_pool = sn::voxeng::vk::DescriptorPool::Builder()
 			.withDevice(device)
@@ -332,6 +359,10 @@ int main()
 				if (renderer.recreateSwapchainKHR())
 				{
 					descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+					push_constants.resolution = {
+						static_cast<float>(renderer.getCanvasImage().getExtent().width),
+						static_cast<float>(renderer.getCanvasImage().getExtent().height),
+					};
 				}
 				continue;
 			}
@@ -366,6 +397,12 @@ int main()
 					compute_pipeline.getLayout(),
 					0u, descriptor_sets, {}
 				);
+
+				frame_context->computeCmd.cmdPushConstants(
+					compute_pipeline.getLayout(), VK_SHADER_STAGE_COMPUTE_BIT,
+					0, sizeof(PushConstants),
+					&push_constants
+				);
 			
 				uint32_t group_count_x = (renderer.getCanvasImage().getExtent().width + 15u) / 16u;
 				uint32_t group_count_y = (renderer.getCanvasImage().getExtent().height + 15u) / 16u;
@@ -397,9 +434,28 @@ int main()
 				if (renderer.recreateSwapchainKHR())
 				{
 					descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+					push_constants.resolution = {
+						static_cast<float>(renderer.getCanvasImage().getExtent().width),
+						static_cast<float>(renderer.getCanvasImage().getExtent().height),
+					};
 				}
 				continue;
 			}
+
+			push_constants.frameCount++;
+			push_constants.time += 1.f / 60.f;
+
+			float r = 8.f;
+			push_constants.cameraPos.x = r * std::sin(push_constants.time);
+			push_constants.cameraPos.y = 1.5f;
+			push_constants.cameraPos.z = r * -std::cos(push_constants.time);
+
+			// VV
+			push_constants.cameraRot.x = 10.f * D2R;
+			// <<
+			push_constants.cameraRot.y = -push_constants.time;
+			// (_>
+			push_constants.cameraRot.z = 0.f;
 		}
 
 		device.waitIdle();
