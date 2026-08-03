@@ -49,9 +49,12 @@ namespace sn::voxeng::vk
             uint32_t groupCountZ
         ) const noexcept;
 
+        void cmdCopyImage(
+            VkImage srcImage, VkImageLayout srcImageLayout,
+            VkImage dstImage, VkImageLayout dstImageLayout,
+            std::span<const VkImageCopy> regions) const noexcept;
         void cmdCopyImageToBuffer(
-            VkImage srcImage,
-            VkImageLayout srcImageLayout,
+            VkImage srcImage, VkImageLayout srcImageLayout,
             VkBuffer dstBuffer,
             std::span<const VkBufferImageCopy> regions
         ) const noexcept;

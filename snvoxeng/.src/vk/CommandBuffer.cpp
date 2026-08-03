@@ -100,9 +100,21 @@ void CommandBuffer::cmdDispatch(
     );
 }
 
+void CommandBuffer::cmdCopyImage(
+    VkImage srcImage, VkImageLayout srcImageLayout,
+    VkImage dstImage, VkImageLayout dstImageLayout,
+    std::span<const VkImageCopy> regions
+) const noexcept
+{
+    vkCmdCopyImage(
+        vkHandle(),
+        srcImage, srcImageLayout,
+        dstImage, dstImageLayout,
+        regions.size(), regions.data()
+    );
+}
 void CommandBuffer::cmdCopyImageToBuffer(
-    VkImage srcImage,
-    VkImageLayout srcImageLayout,
+    VkImage srcImage, VkImageLayout srcImageLayout,
     VkBuffer dstBuffer,
     std::span<const VkBufferImageCopy> regions
 ) const noexcept
