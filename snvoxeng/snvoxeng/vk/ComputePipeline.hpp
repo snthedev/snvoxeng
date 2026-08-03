@@ -85,18 +85,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/ComputePipeline.h>
 
-		// Builds ComputePipeline on stack;
 		// Builder is invalid after .sbuild()
-		ComputePipeline sbuild();
-		// Builds ComputePipeline on heap;
-		// Builder is invalid after .build()
-		ComputePipeline* build();
-
-		// Builds ComputePipeline (view) on stack;
+		ComputePipeline build();
 		// Builder is invalid after .sbuild(VkPipeline)
-		ComputePipeline sbuild(VkPipeline view);
-		// Builds ComputePipeline (view) on heap;
-		// Builder is invalid after .build(VkPipeline)
-		ComputePipeline* build(VkPipeline view);
+		ComputePipeline build(VkPipeline view);
 	}; // ^ class ComputePipeline::Builder ^
 } // ^ namespace sn::voxeng::vk ^

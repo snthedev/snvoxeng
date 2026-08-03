@@ -78,6 +78,7 @@ DescriptorPool::DescriptorPool(data_t*& pData, VkDescriptorPool view)
 	, m_isView(true)
 {
 	pData = nullptr;
+	m_pData->vkHandle = view;
 }
 
 // === DescriptorPool : public ===
@@ -302,7 +303,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/DescriptorPool.h>
 
-DescriptorPool Builder::sbuild()
+DescriptorPool Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -310,28 +311,11 @@ DescriptorPool Builder::sbuild()
 	finalize(*m_pData);
 	return DescriptorPool{ m_pData };
 }
-DescriptorPool* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new DescriptorPool{ m_pData };
-}
-
-DescriptorPool Builder::sbuild(VkDescriptorPool view)
+DescriptorPool Builder::build(VkDescriptorPool view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif
 	finalize(*m_pData);
 	return DescriptorPool{ m_pData, view };
-}
-DescriptorPool* Builder::build(VkDescriptorPool view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new DescriptorPool{ m_pData, view };
 }

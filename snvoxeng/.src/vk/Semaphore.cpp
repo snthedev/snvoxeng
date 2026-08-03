@@ -78,6 +78,7 @@ Semaphore::Semaphore(data_t*& pData, VkSemaphore view)
 	, m_isView(true)
 {
 	pData = nullptr;
+	m_pData->vkHandle = view;
 }
 
 // === Semaphore : public ===
@@ -299,7 +300,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/Semaphore.h>
 
-Semaphore Builder::sbuild()
+Semaphore Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -307,28 +308,11 @@ Semaphore Builder::sbuild()
 	finalize(*m_pData);
 	return Semaphore{ m_pData };
 }
-Semaphore* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Semaphore{ m_pData };
-}
-
-Semaphore Builder::sbuild(VkSemaphore view)
+Semaphore Builder::build(VkSemaphore view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Semaphore{ m_pData, view };
-}
-Semaphore* Builder::build(VkSemaphore view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Semaphore{ m_pData, view };
 }

@@ -76,6 +76,7 @@ PipelineLayout::PipelineLayout(data_t*& pData, VkPipelineLayout view)
 	, m_isView(true)
 {
 	pData = nullptr;
+	m_pData->vkHandle = view;
 }
 
 // === PipelineLayout : public ===
@@ -302,7 +303,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/PipelineLayout.h>
 
-PipelineLayout Builder::sbuild()
+PipelineLayout Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -310,28 +311,11 @@ PipelineLayout Builder::sbuild()
 	finalize(*m_pData);
 	return PipelineLayout{ m_pData };
 }
-PipelineLayout* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new PipelineLayout{ m_pData };
-}
-
-PipelineLayout Builder::sbuild(VkPipelineLayout view)
+PipelineLayout Builder::build(VkPipelineLayout view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif
 	finalize(*m_pData);
 	return PipelineLayout{ m_pData, view };
-}
-PipelineLayout* Builder::build(VkPipelineLayout view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif
-	finalize(*m_pData);
-	return new PipelineLayout{ m_pData, view };
 }

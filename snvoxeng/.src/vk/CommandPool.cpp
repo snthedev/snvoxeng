@@ -98,7 +98,7 @@ CommandBuffersContainer CommandPool::allocateCommandBuffers(uint32_t count, VkCo
 		.withCommandPool(*this)
 		.withCommandBufferCount(count)
 		.withLevel(level)
-		.sbuild();
+		.build();
 }
 
 CommandPool::CommandPool(CommandPool&& other) noexcept
@@ -311,7 +311,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/CommandPool.h>
 
-CommandPool Builder::sbuild()
+CommandPool Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -319,28 +319,11 @@ CommandPool Builder::sbuild()
 	finalize(*m_pData);
 	return CommandPool{ m_pData };
 }
-CommandPool* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new CommandPool{ m_pData };
-}
-
-CommandPool Builder::sbuild(VkCommandPool view)
+CommandPool Builder::build(VkCommandPool view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return CommandPool{ m_pData, view };
-}
-CommandPool* Builder::build(VkCommandPool view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new CommandPool{ m_pData, view };
 }

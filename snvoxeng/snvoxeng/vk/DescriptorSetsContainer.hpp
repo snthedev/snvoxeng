@@ -24,7 +24,7 @@ namespace sn::voxeng::vk
 		bool m_isView;
 
 		DescriptorSetsContainer(data_t*& pData);
-		DescriptorSetsContainer(data_t*& pData, std::vector<VkDescriptorSet> view);
+		DescriptorSetsContainer(data_t*& pData, std::span<const VkDescriptorSet> view);
 
 	public:
 		~DescriptorSetsContainer() noexcept;
@@ -93,18 +93,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/DescriptorSetsContainer.h>
 
-		// Builds DescriptorSetsContainer on stack;
 		// Builder is invalid after .sbuild()
-		DescriptorSetsContainer sbuild();
-		// Builds DescriptorSetsContainer on heap;
-		// Builder is invalid after .build()
-		DescriptorSetsContainer* build();
-
-		// Builds DescriptorSetsContainer (view) on stack;
-		// Builder is invalid after .sbuild(std::vector<VkDescriptorSet>)
-		DescriptorSetsContainer sbuild(std::vector<VkDescriptorSet> view);
-		// Builds DescriptorSetsContainer (view) on heap;
-		// Builder is invalid after .build(std::vector<VkDescriptorSet>)
-		DescriptorSetsContainer* build(std::vector<VkDescriptorSet> view);
+		DescriptorSetsContainer build();
+		// Builder is invalid after .sbuild(std::span<const VkDescriptorSet>)
+		DescriptorSetsContainer build(std::span<const VkDescriptorSet> view);
 	}; // ^ class DescriptorSetsContainer::Builder ^
 } // ^ namespace sn::voxeng::vk ^

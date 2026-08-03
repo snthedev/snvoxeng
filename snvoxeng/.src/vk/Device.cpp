@@ -601,7 +601,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/Device.h>
 
-Device Builder::sbuild()
+Device Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -609,28 +609,11 @@ Device Builder::sbuild()
 	finalize(*m_pData);
 	return Device{ m_pData };
 }
-Device* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Device{ m_pData };
-}
-
-Device Builder::sbuild(VkDevice view)
+Device Builder::build(VkDevice view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Device{ m_pData, view };
-}
-Device* Builder::build(VkDevice view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Device{ m_pData, view };
 }

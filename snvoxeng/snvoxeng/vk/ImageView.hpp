@@ -85,18 +85,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/ImageView.h>
 
-		// Builds ImageView on stack;
 		// Builder is invalid after .sbuild()
-		ImageView sbuild();
-		// Builds ImageView on heap;
-		// Builder is invalid after .build()
-		ImageView* build();
-
-		// Builds ImageView (view) on stack;
+		ImageView build();
 		// Builder is invalid after .sbuild(VkImageView)
-		ImageView sbuild(VkImageView view);
-		// Builds ImageView (view) on heap;
-		// Builder is invalid after .build(VkImageView)
-		ImageView* build(VkImageView view);
+		ImageView build(VkImageView view);
 	}; // ^ class ImageView::Builder ^
 } // ^ namespace sn::voxeng::vk ^

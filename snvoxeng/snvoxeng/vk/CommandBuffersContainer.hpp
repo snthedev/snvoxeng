@@ -21,7 +21,10 @@ namespace sn::voxeng::vk
 		void onCreate(data_t& data);
 		void onDestroy(data_t& data) noexcept;
 
+		bool m_isView;
+
 		CommandBuffersContainer(data_t*& pData);
+		CommandBuffersContainer(data_t*& pData, std::span<const VkCommandBuffer> view);
 
 	public:
 		~CommandBuffersContainer() noexcept;
@@ -90,11 +93,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/CommandBuffersContainer.h>
 
-		// Builds CommandBuffersContainer on stack;
 		// Builder is invalid after .sbuild()
-		CommandBuffersContainer sbuild();
-		// Builds CommandBuffersContainer on heap;
-		// Builder is invalid after .build()
-		CommandBuffersContainer* build();
+		CommandBuffersContainer build();
+		// Builder is invalid after .sbuild(std::span<const VkCommandBuffer>)
+		CommandBuffersContainer build(std::span<const VkCommandBuffer> view);
 	}; // ^ class CommandBuffersContainer::Builder ^
 } // ^ namespace sn::voxeng::vk ^

@@ -172,12 +172,12 @@ int main()
 			.withDebugMessengerEnabled(true)
 			.withDebugStream(std::cout)
 #endif
-			.sbuild();
+			.build();
 
 		auto surface_khr = sn::voxeng::vk::SurfaceKHR::Builder()
 			.withInstance(instance)
 			.withWindowDescription(window_description)
-			.sbuild();
+			.build();
 
 		sn::voxeng::vk::PhysicalDeviceRegistry physical_device_registry(instance);
 
@@ -242,7 +242,7 @@ int main()
 			.addQueueRequests({ .queueFamilyIndex = transfer_family_index, .queuePriority = 0.5f, .pOutQueueIndex = &transfer_queue_index })
 			.addExtensions(VK_KHR_SWAPCHAIN_EXTENSION_NAME)
 			.withPhysicalDevice13Features({ .dynamicRendering = VK_TRUE })
-			.sbuild();
+			.build();
 
 		auto graphics_queue = device.getQueue(graphics_queue_index);
 		auto compute_queue = device.getQueue(compute_queue_index);
@@ -265,7 +265,7 @@ int main()
 			.withSurfaceKHR(surface_khr)
 			.addQueueFamilyIndices(graphics_family_index)
 			.withImageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-			.sbuild();
+			.build();
 
 		std::cout << "VkSwapchainKHR: 0x" << std::hex << swapchain_khr.vkHandle() << std::dec << "\n";
 		std::cout << "Swapchain image count: " << swapchain_khr.getImages().size() << "\n";
@@ -279,15 +279,15 @@ int main()
 			.withDevice(device)
 			.withImageType(VK_IMAGE_TYPE_2D)
 			.withFormat(VK_FORMAT_R8G8B8A8_UNORM)
-			.withExtent({ window_description.width, window_description.height, 1u })
-			.withMipLevels(1)
-			.withArrayLayers(1)
+			.withExtent({ swapchain_khr.getImageExtent().width, swapchain_khr.getImageExtent().height, 1u})
+			.withMipLevels(1u)
+			.withArrayLayers(1u)
 			.withSamples(VK_SAMPLE_COUNT_1_BIT)
 			.withTiling(VK_IMAGE_TILING_OPTIMAL)
 			.withUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 			.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
 			.withInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
-			.sbuild();
+			.build();
 		std::cout << "Storage Image 0x " << std::hex << storage_image.vkHandle() << std::dec << "\n";
 
 		auto storage_image_mem_req = storage_image.getMemoryRequirements();
@@ -302,7 +302,7 @@ int main()
 			.withDevice(device)
 			.withAllocationSize(storage_image_mem_req.size)
 			.withMemoryTypeIndex(storage_image_mem_type)
-			.sbuild();
+			.build();
 
 		storage_image_memory.bindImage(storage_image, 0);
 
@@ -316,7 +316,7 @@ int main()
 				.baseArrayLayer = 0,
 				.layerCount = 1
 				})
-			.sbuild();
+			.build();
 		std::cout << "Storage Image View 0x " << std::hex << storage_image_view.vkHandle() << std::dec << "\n";
 
 		auto compiler_settings = sn::voxeng::ShaderCompiler::getSettings();
@@ -329,7 +329,7 @@ int main()
 		auto compute_shader = sn::voxeng::vk::ShaderModule::Builder()
 			.withDevice(device)
 			.withCode(compute_shader_spv)
-			.sbuild();
+			.build();
 
 		auto descriptor_set_layout = sn::voxeng::vk::DescriptorSetLayout::Builder()
 			.withDevice(device)
@@ -340,12 +340,12 @@ int main()
 				.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
 				.pImmutableSamplers = nullptr,
 				})
-			.sbuild();
+			.build();
 
 		auto pipeline_layout = sn::voxeng::vk::PipelineLayout::Builder()
 			.withDevice(device)
 			.addSetLayouts(descriptor_set_layout.vkHandle())
-			.sbuild();
+			.build();
 
 		auto compute_pipeline = sn::voxeng::vk::ComputePipeline::Builder()
 			.withDevice(device)
@@ -355,7 +355,7 @@ int main()
 				.module = compute_shader.vkHandle(),
 				.pName = "main",
 				})
-			.sbuild();
+			.build();
 		std::cout << "Compute Pipeline 0x " << std::hex << compute_pipeline.vkHandle() << std::dec << "\n";
 
 		auto descriptor_pool = sn::voxeng::vk::DescriptorPool::Builder()
@@ -365,12 +365,12 @@ int main()
 				.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 				.descriptorCount = 1u
 				})
-			.sbuild();
+			.build();
 
 		auto descripor_sets = sn::voxeng::vk::DescriptorSetsContainer::Builder()
 			.withDescriptorPool(descriptor_pool)
 			.addSetLayouts(descriptor_set_layout.vkHandle())
-			.sbuild();
+			.build();
 
 		auto descriptor_set = descripor_sets.get(0u);
 		std::cout << "Descripor Set 0x " << std::hex << descriptor_set.vkHandle() << std::dec << "\n";
@@ -387,7 +387,7 @@ int main()
 			.withDevice(device)
 			.withQueueFamilyIndex(compute_family_index)
 			.withFlags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
-			.sbuild();
+			.build();
 		auto compute_cmdbufs_continer = compute_command_pool.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT * 1u);
 
 		// --- 2. Graphics Command Pool & Buffer ---
@@ -395,7 +395,7 @@ int main()
 			.withDevice(device)
 			.withQueueFamilyIndex(graphics_family_index)
 			.withFlags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
-			.sbuild();
+			.build();
 		auto graphics_cmdbufs_continer = graphics_command_pool.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT * 1u);
 
 		std::vector<sn::voxeng::vk::CommandBuffer> compute_cmdbufs;
@@ -419,19 +419,19 @@ int main()
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
-			imageAvailableSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).sbuild());
-			computeFinishedSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).sbuild());
+			imageAvailableSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).build());
+			computeFinishedSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).build());
 			inFlightFences.push_back(sn::voxeng::vk::Fence::Builder()
 				.withDevice(device)
 				.withFlags(VK_FENCE_CREATE_SIGNALED_BIT)
-				.sbuild());
+				.build());
 		}
 
 		std::vector<sn::voxeng::vk::Semaphore> renderFinishedSemaphores;
 		renderFinishedSemaphores.reserve(swapchain_image_count * 1u);
 		for (size_t i = 0; i < swapchain_image_count; ++i)
 		{
-			renderFinishedSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).sbuild());
+			renderFinishedSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).build());
 		}
 
 		// Main cycle
@@ -465,6 +465,7 @@ int main()
 				// TODO: Recreate swapchain
 				continue;
 			}
+
 			auto& renderFinishedSemaphore = renderFinishedSemaphores[imageIndex];
 
 			VkImage currentSwapchainImage = swapchain_khr.getImages()[imageIndex].vkHandle();

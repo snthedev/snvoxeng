@@ -110,7 +110,7 @@ void CommandBuffer::cmdCopyImage(
         vkHandle(),
         srcImage, srcImageLayout,
         dstImage, dstImageLayout,
-        regions.size(), regions.data()
+        static_cast<uint32_t>(regions.size()), regions.data()
     );
 }
 void CommandBuffer::cmdCopyImageToBuffer(

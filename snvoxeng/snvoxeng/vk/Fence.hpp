@@ -88,18 +88,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/Fence.h>
 
-		// Builds Fence on stack;
 		// Builder is invalid after .sbuild()
-		Fence sbuild();
-		// Builds Fence on heap;
-		// Builder is invalid after .build()
-		Fence* build();
-
-		// Builds Fence (view) on stack;
+		Fence build();
 		// Builder is invalid after .sbuild(VkFence)
-		Fence sbuild(VkFence view);
-		// Builds Fence (view) on heap;
-		// Builder is invalid after .build(VkFence)
-		Fence* build(VkFence view);
+		Fence build(VkFence view);
 	}; // ^ class Fence::Builder ^
 } // ^ namespace sn::voxeng::vk ^

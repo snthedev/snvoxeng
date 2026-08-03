@@ -172,18 +172,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/Device.h>
 
-		// Builds Device on stack;
 		// Builder is invalid after .sbuild()
-		Device sbuild();
-		// Builds Device on heap;
-		// Builder is invalid after .build()
-		Device* build();
-
-		// Builds Device (view) on stack;
+		Device build();
 		// Builder is invalid after .sbuild(VkDevice)
-		Device sbuild(VkDevice view);
-		// Builds Device (view) on heap;
-		// Builder is invalid after .build(VkDevice)
-		Device* build(VkDevice view);
+		Device build(VkDevice view);
 	}; // ^ class Device::Builder ^
 } // ^ namespace sn::voxeng::vk ^

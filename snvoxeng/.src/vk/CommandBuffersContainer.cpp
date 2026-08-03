@@ -72,9 +72,17 @@ void CommandBuffersContainer::onDestroy(data_t& data) noexcept
 
 CommandBuffersContainer::CommandBuffersContainer(data_t*& pData)
 	: m_pData(pData)
+	, m_isView(false)
 {
 	pData = nullptr;
 	onCreate(*m_pData);
+}
+CommandBuffersContainer::CommandBuffersContainer(data_t*& pData, std::span<const VkCommandBuffer> view)
+	: m_pData(pData)
+	, m_isView(true)
+{
+	pData = nullptr;
+	m_pData->vkHandle = { view.begin(), view.end() };
 }
 
 // === CommandBuffersContainer : public ===
@@ -82,7 +90,7 @@ CommandBuffersContainer::~CommandBuffersContainer() noexcept
 {
 	if (m_pData) [[likely]]
 	{
-		onDestroy(*m_pData);
+		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
 	}
 }
@@ -94,6 +102,7 @@ size_t CommandBuffersContainer::count() const noexcept { return m_pData->vkHandl
 
 CommandBuffersContainer::CommandBuffersContainer(CommandBuffersContainer&& other) noexcept
 	: m_pData(other.m_pData)
+	, m_isView(other.m_isView)
 {
 	other.m_pData = nullptr;
 }
@@ -103,10 +112,11 @@ CommandBuffersContainer& CommandBuffersContainer::operator=(CommandBuffersContai
 	{
 		if (m_pData)
 		{
-			onDestroy(*m_pData);
+			if (!m_isView) [[likely]] onDestroy(*m_pData);
 			delete m_pData;
 		}
 		m_pData = other.m_pData;
+		m_isView = other.m_isView;
 		other.m_pData = nullptr;
 	}
 	return *this;
@@ -303,7 +313,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/CommandBuffersContainer.h>
 
-CommandBuffersContainer Builder::sbuild()
+CommandBuffersContainer Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -311,11 +321,11 @@ CommandBuffersContainer Builder::sbuild()
 	finalize(*m_pData);
 	return CommandBuffersContainer{ m_pData };
 }
-CommandBuffersContainer* Builder::build()
+CommandBuffersContainer Builder::build(std::span<const VkCommandBuffer> view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
+#endif
 	finalize(*m_pData);
-	return new CommandBuffersContainer{ m_pData };
+	return CommandBuffersContainer{ m_pData, view };
 }

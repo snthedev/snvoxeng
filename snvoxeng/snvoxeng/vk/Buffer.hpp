@@ -87,18 +87,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/Buffer.h>
 
-		// Builds Buffer on stack;
 		// Builder is invalid after .sbuild()
-		Buffer sbuild();
-		// Builds Buffer on heap;
-		// Builder is invalid after .build()
-		Buffer* build();
-
-		// Builds Buffer (view) on stack;
+		Buffer build();
 		// Builder is invalid after .sbuild(VkBuffer)
-		Buffer sbuild(VkBuffer view);
-		// Builds Buffer (view) on heap;
-		// Builder is invalid after .build(VkBuffer)
-		Buffer* build(VkBuffer view);
+		Buffer build(VkBuffer view);
 	}; // ^ class Buffer::Builder ^
 } // ^ namespace sn::voxeng::vk ^

@@ -79,6 +79,7 @@ Fence::Fence(data_t*& pData, VkFence view)
 	, m_isView(true)
 {
 	pData = nullptr;
+	m_pData->vkHandle = view;
 }
 
 // === Fence : public ===
@@ -309,7 +310,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/Fence.h>
 
-Fence Builder::sbuild()
+Fence Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -317,28 +318,11 @@ Fence Builder::sbuild()
 	finalize(*m_pData);
 	return Fence{ m_pData };
 }
-Fence* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Fence{ m_pData };
-}
-
-Fence Builder::sbuild(VkFence view)
+Fence Builder::build(VkFence view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return Fence{ m_pData, view };
-}
-Fence* Builder::build(VkFence view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new Fence{ m_pData, view };
 }

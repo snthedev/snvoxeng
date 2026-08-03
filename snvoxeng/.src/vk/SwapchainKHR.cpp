@@ -95,7 +95,7 @@ void SwapchainKHR::onCreate(data_t& data)
 			.withSharingMode(data.vkCreateInfo.imageSharingMode)
 			.withInitialLayout({})
 			.withQueueFamilyIndices(data.queueFamilyIndices)
-			.sbuild(vkImages[i]));
+			.build(vkImages[i]));
 		new (&data.pImageViews[i]) ImageView(ImageView::Builder()
 			.withImage(data.pImages[i])
 			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
@@ -106,7 +106,7 @@ void SwapchainKHR::onCreate(data_t& data)
 				.baseArrayLayer = 0,
 				.layerCount = 1,
 				})
-			.sbuild());
+			.build());
 	}
 
 	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
@@ -153,6 +153,22 @@ SwapchainKHR::~SwapchainKHR() noexcept
 		if (!m_isView) [[likely]] onDestroy(*m_pData);
 		delete m_pData;
 	}
+}
+
+void SwapchainKHR::recreate()
+{
+	m_pData->vkCreateInfo.oldSwapchain = m_pData->vkHandle;
+	for (size_t i = 0; i < m_pData->imageCount; ++i)
+	{
+		m_pData->pImageViews[i].~ImageView();
+		m_pData->pImages[i].~Image();
+	}
+	::operator delete(m_pData->pImageViews);
+	::operator delete(m_pData->pImages);
+
+	onCreate(*m_pData);
+
+	m_pData->pDevice->destroySwapchainKHR(m_pData->vkCreateInfo.oldSwapchain, m_pData->vkPAllocator);
 }
 
 VkResult SwapchainKHR::acquireNextImageKHR(uint64_t timeout, VkSemaphore semaphore, VkFence fence, uint32_t* pImageIndex) const
@@ -382,7 +398,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/SwapchainKHR.h>
 
-SwapchainKHR Builder::sbuild()
+SwapchainKHR Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -390,28 +406,11 @@ SwapchainKHR Builder::sbuild()
 	finalize(*m_pData);
 	return SwapchainKHR{ m_pData };
 }
-SwapchainKHR* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new SwapchainKHR{ m_pData };
-}
-
-SwapchainKHR Builder::sbuild(VkSwapchainKHR view)
+SwapchainKHR Builder::build(VkSwapchainKHR view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return SwapchainKHR{ m_pData, view };
-}
-SwapchainKHR* Builder::build(VkSwapchainKHR view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new SwapchainKHR{ m_pData, view };
 }

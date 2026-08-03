@@ -85,18 +85,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/PipelineLayout.h>
 
-		// Builds PipelineLayout on stack;
 		// Builder is invalid after .sbuild()
-		PipelineLayout sbuild();
-		// Builds PipelineLayout on heap;
-		// Builder is invalid after .build()
-		PipelineLayout* build();
-
-		// Builds PipelineLayout (view) on stack;
+		PipelineLayout build();
 		// Builder is invalid after .sbuild(VkPipelineLayout)
-		PipelineLayout sbuild(VkPipelineLayout view);
-		// Builds PipelineLayout (view) on heap;
-		// Builder is invalid after .build(VkPipelineLayout)
-		PipelineLayout* build(VkPipelineLayout view);
+		PipelineLayout build(VkPipelineLayout view);
 	}; // ^ class PipelineLayout::Builder ^
 } // ^ namespace sn::voxeng::vk ^

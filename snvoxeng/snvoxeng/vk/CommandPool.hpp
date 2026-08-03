@@ -89,18 +89,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/CommandPool.h>
 
-		// Builds CommandPool on stack;
 		// Builder is invalid after .sbuild()
-		CommandPool sbuild();
-		// Builds CommandPool on heap;
-		// Builder is invalid after .build()
-		CommandPool* build();
-
-		// Builds CommandPool (view) on stack;
+		CommandPool build();
 		// Builder is invalid after .sbuild(VkCommandPool)
-		CommandPool sbuild(VkCommandPool view);
-		// Builds CommandPool (view) on heap;
-		// Builder is invalid after .build(VkCommandPool)
-		CommandPool* build(VkCommandPool view);
+		CommandPool build(VkCommandPool view);
 	}; // ^ class CommandPool::Builder ^
 } // ^ namespace sn::voxeng::vk ^

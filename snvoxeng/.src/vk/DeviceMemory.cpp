@@ -80,6 +80,7 @@ DeviceMemory::DeviceMemory(data_t*& pData, VkDeviceMemory view)
 	, m_isView(true)
 {
 	pData = nullptr;
+	m_pData->vkHandle = view;
 }
 
 // === DeviceMemory : public ===
@@ -325,7 +326,7 @@ Builder& Builder::add##Name(arg_t name) {\
 }
 #include <snvoxeng/.def/vk/DeviceMemory.h>
 
-DeviceMemory Builder::sbuild()
+DeviceMemory Builder::build()
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
@@ -333,28 +334,11 @@ DeviceMemory Builder::sbuild()
 	finalize(*m_pData);
 	return DeviceMemory{ m_pData };
 }
-DeviceMemory* Builder::build()
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new DeviceMemory{ m_pData };
-}
-
-DeviceMemory Builder::sbuild(VkDeviceMemory view)
+DeviceMemory Builder::build(VkDeviceMemory view)
 {
 #ifdef DETAIL_SNBCG_DEBUG
 	m_pTemp->validate();
 #endif // ^ DETAIL_SNBCG_DEBUG ^
 	finalize(*m_pData);
 	return DeviceMemory{ m_pData, view };
-}
-DeviceMemory* Builder::build(VkDeviceMemory view)
-{
-#ifdef DETAIL_SNBCG_DEBUG
-	m_pTemp->validate();
-#endif // ^ DETAIL_SNBCG_DEBUG ^
-	finalize(*m_pData);
-	return new DeviceMemory{ m_pData, view };
 }

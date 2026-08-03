@@ -85,18 +85,9 @@ namespace sn::voxeng::vk
 		Builder& add##Name(arg_t name);
 #include <snvoxeng/.def/vk/Semaphore.h>
 
-		// Builds Semaphore on stack;
 		// Builder is invalid after .sbuild()
-		Semaphore sbuild();
-		// Builds Semaphore on heap;
-		// Builder is invalid after .build()
-		Semaphore* build();
-
-		// Builds Semaphore (view) on stack;
+		Semaphore build();
 		// Builder is invalid after .sbuild(VkSemaphore)
-		Semaphore sbuild(VkSemaphore view);
-		// Builds Semaphore (view) on heap;
-		// Builder is invalid after .build(VkSemaphore)
-		Semaphore* build(VkSemaphore view);
+		Semaphore build(VkSemaphore view);
 	}; // ^ class Semaphore::Builder ^
 } // ^ namespace sn::voxeng::vk ^
