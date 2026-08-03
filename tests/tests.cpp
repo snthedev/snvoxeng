@@ -260,65 +260,6 @@ int main()
 		std::cout << "Compute Queue 0x" << std::hex << compute_queue.vkHandle() << std::dec << "\n";
 		std::cout << "Transfer Queue 0x" << std::hex << transfer_queue.vkHandle() << std::dec << "\n";
 
-		auto swapchain_khr = sn::voxeng::vk::SwapchainKHR::Builder()
-			.withDevice(device)
-			.withSurfaceKHR(surface_khr)
-			.addQueueFamilyIndices(graphics_family_index)
-			.withImageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)
-			.build();
-
-		std::cout << "VkSwapchainKHR: 0x" << std::hex << swapchain_khr.vkHandle() << std::dec << "\n";
-		std::cout << "Swapchain image count: " << swapchain_khr.getImages().size() << "\n";
-		for (const auto& image : swapchain_khr.getImages())
-			std::cout << "- 0x" << std::hex << image.vkHandle() << std::dec << "\n";
-		std::cout << "Swapchain image view count: " << swapchain_khr.getImageViews().size() << "\n";
-		for (const auto& image_view : swapchain_khr.getImageViews())
-			std::cout << "- 0x" << std::hex << image_view.vkHandle() << std::dec << "\n";
-
-		auto storage_image = sn::voxeng::vk::Image::Builder()
-			.withDevice(device)
-			.withImageType(VK_IMAGE_TYPE_2D)
-			.withFormat(VK_FORMAT_R8G8B8A8_UNORM)
-			.withExtent({ swapchain_khr.getImageExtent().width, swapchain_khr.getImageExtent().height, 1u})
-			.withMipLevels(1u)
-			.withArrayLayers(1u)
-			.withSamples(VK_SAMPLE_COUNT_1_BIT)
-			.withTiling(VK_IMAGE_TILING_OPTIMAL)
-			.withUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-			.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
-			.withInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
-			.build();
-		std::cout << "Storage Image 0x " << std::hex << storage_image.vkHandle() << std::dec << "\n";
-
-		auto storage_image_mem_req = storage_image.getMemoryRequirements();
-		auto storage_image_mem_type = gpu.findMemoryType(
-			storage_image_mem_req.memoryTypeBits,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		);
-		snassert(storage_image_mem_type != sn::voxeng::vk::PhysicalDevice::nmatch,
-			"Failed to find requested GPU's memory", "");
-
-		auto storage_image_memory = sn::voxeng::vk::DeviceMemory::Builder()
-			.withDevice(device)
-			.withAllocationSize(storage_image_mem_req.size)
-			.withMemoryTypeIndex(storage_image_mem_type)
-			.build();
-
-		storage_image_memory.bindImage(storage_image, 0);
-
-		auto storage_image_view = sn::voxeng::vk::ImageView::Builder()
-			.withImage(storage_image)
-			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
-			.withSubresourceRange({
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1
-				})
-			.build();
-		std::cout << "Storage Image View 0x " << std::hex << storage_image_view.vkHandle() << std::dec << "\n";
-
 		auto compiler_settings = sn::voxeng::ShaderCompiler::getSettings();
 		compiler_settings.apiVersion = instance.getApiVersion();
 		sn::voxeng::ShaderCompiler::setSettings(compiler_settings);
@@ -358,6 +299,11 @@ int main()
 			.build();
 		std::cout << "Compute Pipeline 0x " << std::hex << compute_pipeline.vkHandle() << std::dec << "\n";
 
+		sn::voxeng::Renderer renderer(
+			device, surface_khr,
+			graphics_family_index, compute_family_index,
+			graphics_queue_index, compute_queue_index);
+
 		auto descriptor_pool = sn::voxeng::vk::DescriptorPool::Builder()
 			.withDevice(device)
 			.withMaxSets(1u)
@@ -373,110 +319,30 @@ int main()
 			.build();
 
 		auto descriptor_set = descripor_sets.get(0u);
-		std::cout << "Descripor Set 0x " << std::hex << descriptor_set.vkHandle() << std::dec << "\n";
-
-		descriptor_set.updateStorageImage(0u, storage_image_view.vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
-
-		// ==========================================================
-		constexpr size_t MAX_FRAMES_IN_FLIGHT = 2u;
-		const size_t swapchain_image_count = swapchain_khr.getImages().size();
-		size_t currentFrame = 0;
-
-		// --- 1. Compute Command Pool & Buffer ---
-		auto compute_command_pool = sn::voxeng::vk::CommandPool::Builder()
-			.withDevice(device)
-			.withQueueFamilyIndex(compute_family_index)
-			.withFlags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
-			.build();
-		auto compute_cmdbufs_continer = compute_command_pool.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT * 1u);
-
-		// --- 2. Graphics Command Pool & Buffer ---
-		auto graphics_command_pool = sn::voxeng::vk::CommandPool::Builder()
-			.withDevice(device)
-			.withQueueFamilyIndex(graphics_family_index)
-			.withFlags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
-			.build();
-		auto graphics_cmdbufs_continer = graphics_command_pool.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT * 1u);
-
-		std::vector<sn::voxeng::vk::CommandBuffer> compute_cmdbufs;
-		std::vector<sn::voxeng::vk::CommandBuffer> graphics_cmdbufs;
-		compute_cmdbufs.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
-		graphics_cmdbufs.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-		{
-			compute_cmdbufs.push_back(compute_cmdbufs_continer.get(i * 1u));
-			graphics_cmdbufs.push_back(graphics_cmdbufs_continer.get(i * 1u));
-		}
-
-		// --- Sync objects ---
-		std::vector<sn::voxeng::vk::Semaphore> imageAvailableSemaphores;
-		std::vector<sn::voxeng::vk::Semaphore> computeFinishedSemaphores;
-		std::vector<sn::voxeng::vk::Fence> inFlightFences;
-		imageAvailableSemaphores.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
-		computeFinishedSemaphores.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
-		inFlightFences.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
-
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
-		{
-			imageAvailableSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).build());
-			computeFinishedSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).build());
-			inFlightFences.push_back(sn::voxeng::vk::Fence::Builder()
-				.withDevice(device)
-				.withFlags(VK_FENCE_CREATE_SIGNALED_BIT)
-				.build());
-		}
-
-		std::vector<sn::voxeng::vk::Semaphore> renderFinishedSemaphores;
-		renderFinishedSemaphores.reserve(swapchain_image_count * 1u);
-		for (size_t i = 0; i < swapchain_image_count; ++i)
-		{
-			renderFinishedSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).build());
-		}
+		descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
 
 		// Main cycle
 		while (!glfwWindowShouldClose(pWindow))
 		{
-			auto& imageAvailableSemaphore = imageAvailableSemaphores[currentFrame];
-			auto& computeFinishedSemaphore = computeFinishedSemaphores[currentFrame];
-			auto& inFlightFence = inFlightFences[currentFrame];
-
-			auto& compute_cmdbuf = compute_cmdbufs[currentFrame];
-			auto& graphics_cmdbuf = graphics_cmdbufs[currentFrame];
-
-			currentFrame = (currentFrame + 1u) % MAX_FRAMES_IN_FLIGHT;
+			//auto& imageAvailableSemaphore = imageAvailableSemaphores[currentFrame];
+			//auto& computeFinishedSemaphore = computeFinishedSemaphores[currentFrame];
+			//auto& inFlightFence = inFlightFences[currentFrame];
+			//
+			//auto& compute_cmdbuf = compute_cmdbufs[currentFrame];
+			//auto& graphics_cmdbuf = graphics_cmdbufs[currentFrame];
+			//
+			//currentFrame = (currentFrame + 1u) % MAX_FRAMES_IN_FLIGHT;
 
 			glfwPollEvents();
 
-			// Wait for prev. frame
-			inFlightFence.wait();
-			inFlightFence.reset();
-
-			// Acquire next image
-			uint32_t imageIndex = 0;
-			VkResult acquireRes = swapchain_khr.acquireNextImageKHR(
-				UINT64_MAX,
-				imageAvailableSemaphore,
-				VK_NULL_HANDLE,
-				&imageIndex
-			);
-			if (acquireRes == VK_ERROR_OUT_OF_DATE_KHR)
+			auto frame_context = renderer.beginFrame();
+			if (!frame_context.has_value())
 			{
-				// TODO: Recreate swapchain
+				renderer.recreateSwapchainKHR();
+				descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
 				continue;
 			}
 
-			auto& renderFinishedSemaphore = renderFinishedSemaphores[imageIndex];
-
-			VkImage currentSwapchainImage = swapchain_khr.getImages()[imageIndex].vkHandle();
-
-			// =========================================================================
-			// 1. COMPUTE COMMAND BUFFER (Выполняется на compute_queue / compute_family)
-			// =========================================================================
-			compute_cmdbuf.reset();
-			compute_cmdbuf.begin({ .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT });
-
-			// --- STEP A: storage_image -> GENERAL ---
 			{
 				const VkImageMemoryBarrier image_memory_barriers[]{ {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -486,209 +352,57 @@ int main()
 						.newLayout = VK_IMAGE_LAYOUT_GENERAL,
 						.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 						.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-						.image = storage_image.vkHandle(),
+						.image = renderer.getCanvasImage().vkHandle(),
 						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 					}
 				};
-				compute_cmdbuf.cmdPipelineBarrier(
+				frame_context->computeCmd.cmdPipelineBarrier(
 					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 					0, {}, {}, image_memory_barriers
 				);
 			}
-
-			// --- STEP B: Dispatch ---
 			{
-				compute_cmdbuf.cmdBindPipeline(
+				frame_context->computeCmd.cmdBindPipeline(
 					VK_PIPELINE_BIND_POINT_COMPUTE,
 					compute_pipeline.vkHandle()
 				);
 				const VkDescriptorSet descriptor_sets[] = { descriptor_set.vkHandle() };
-				compute_cmdbuf.cmdBindDescriptorSets(
+				frame_context->computeCmd.cmdBindDescriptorSets(
 					VK_PIPELINE_BIND_POINT_COMPUTE,
 					compute_pipeline.getLayout(),
 					0u, descriptor_sets, {}
 				);
-
-				uint32_t group_count_x = (storage_image.getExtent().width + 15u) / 16u;
-				uint32_t group_count_y = (storage_image.getExtent().height + 15u) / 16u;
-				compute_cmdbuf.cmdDispatch(group_count_x, group_count_y, 1u);
+			
+				uint32_t group_count_x = (renderer.getCanvasImage().getExtent().width + 15u) / 16u;
+				uint32_t group_count_y = (renderer.getCanvasImage().getExtent().height + 15u) / 16u;
+				frame_context->computeCmd.cmdDispatch(group_count_x, group_count_y, 1u);
 			}
-
-			// --- STEP C1: RELEASE Ownership (Compute -> Graphics) ---
 			{
-				const VkImageMemoryBarrier release_barriers[]{ {
-						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-						.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-						.dstAccessMask = 0, // Игнорируется при RELEASE
-						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
-						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						.srcQueueFamilyIndex = compute_family_index,  // Отдаем
-						.dstQueueFamilyIndex = graphics_family_index, // Графической очереди
-						.image = storage_image.vkHandle(),
-						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-					}
+				VkImageMemoryBarrier releaseBarrier{
+					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+					.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+					.dstAccessMask = 0,
+					.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					.srcQueueFamilyIndex = compute_family_index,
+					.dstQueueFamilyIndex = graphics_family_index,
+					.image = renderer.getCanvasImage().vkHandle(),
+					.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
 				};
-				compute_cmdbuf.cmdPipelineBarrier(
+
+				frame_context->computeCmd.cmdPipelineBarrier(
 					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-					0, {}, {}, release_barriers
-				);
-			}
-			compute_cmdbuf.end();
-
-			// =========================================================================
-			// 2. GRAPHICS COMMAND BUFFER (Выполняется на graphics_queue / graphics_family)
-			// =========================================================================
-			graphics_cmdbuf.reset();
-			graphics_cmdbuf.begin({ .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT });
-
-			// --- STEP C2: ACQUIRE Ownership & Prep Swapchain ---
-			{
-				const VkImageMemoryBarrier image_memory_barriers[]{ {
-						// ACQUIRE barrier for Storage Image
-						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-						.srcAccessMask = 0, // Игнорируется при ACQUIRE
-						.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
-						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
-						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						.srcQueueFamilyIndex = compute_family_index,
-						.dstQueueFamilyIndex = graphics_family_index,
-						.image = storage_image.vkHandle(),
-						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-					}, {
-						// Swapchain Image barrier
-						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-						.srcAccessMask = 0,
-						.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-						.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-						.image = currentSwapchainImage,
-						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-					}
-				};
-				graphics_cmdbuf.cmdPipelineBarrier(
-					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-					VK_PIPELINE_STAGE_TRANSFER_BIT,
-					0, {}, {}, image_memory_barriers
+					0, {}, {}, { &releaseBarrier, 1 }
 				);
 			}
 
-			// --- STEP D: Copy Storage Image -> Swapchain Image ---
+			if (!renderer.endFrame(frame_context->imageIndex))
 			{
-				const VkImageCopy copy_regions[]{ {
-						.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
-						.srcOffset = { 0, 0, 0 },
-						.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
-						.dstOffset = { 0, 0, 0 },
-						.extent = { window_description.width, window_description.height, 1u }
-					}
-				};
-				graphics_cmdbuf.cmdCopyImage(
-					storage_image.vkHandle(),
-					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-					currentSwapchainImage,
-					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-					copy_regions
-				);
-			}
-
-			// --- STEP E: Swapchain Image -> PRESENT_SRC_KHR ---
-			{
-				const VkImageMemoryBarrier present_barriers[]{ {
-						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-						.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-						.dstAccessMask = 0,
-						.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-						.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-						.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-						.image = currentSwapchainImage,
-						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-					}
-				};
-				graphics_cmdbuf.cmdPipelineBarrier(
-					VK_PIPELINE_STAGE_TRANSFER_BIT,
-					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-					0, {}, {}, present_barriers
-				);
-			}
-			graphics_cmdbuf.end();
-
-			// =========================================================================
-			// 3. SUBMITS & PRESENT
-			// =========================================================================
-
-			// --- Submit 1: Compute Queue ---
-			{
-				const VkCommandBuffer c_buffers[] = { compute_cmdbuf.vkHandle() };
-				const VkSemaphore c_signals[] = { computeFinishedSemaphore.vkHandle() };
-
-				VkSubmitInfo compute_submit_info{
-					.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-					.commandBufferCount = std::size(c_buffers),
-					.pCommandBuffers = c_buffers,
-					.signalSemaphoreCount = std::size(c_signals),
-					.pSignalSemaphores = c_signals,
-				};
-
-				if (compute_queue.submit(compute_submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
-				{
-					std::cerr << "Failed compute submit()\n";
-					break;
-				}
-			}
-
-			// --- Submit 2: Graphics Queue ---
-			{
-				const VkSemaphore g_waits[] = {
-					imageAvailableSemaphore.vkHandle(),
-					computeFinishedSemaphore.vkHandle()
-				};
-				const VkPipelineStageFlags g_wait_stages[] = {
-					VK_PIPELINE_STAGE_TRANSFER_BIT,
-					VK_PIPELINE_STAGE_TRANSFER_BIT
-				};
-				const VkCommandBuffer g_buffers[] = { graphics_cmdbuf.vkHandle() };
-				const VkSemaphore g_signals[] = { renderFinishedSemaphore.vkHandle() };
-
-				VkSubmitInfo graphics_submit_info{
-					.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-					.waitSemaphoreCount = std::size(g_waits),
-					.pWaitSemaphores = g_waits,
-					.pWaitDstStageMask = g_wait_stages,
-					.commandBufferCount = std::size(g_buffers),
-					.pCommandBuffers = g_buffers,
-					.signalSemaphoreCount = std::size(g_signals),
-					.pSignalSemaphores = g_signals,
-				};
-
-				if (graphics_queue.submit(graphics_submit_info, inFlightFence) != VK_SUCCESS)
-				{
-					std::cerr << "Failed graphics submit()\n";
-					break;
-				}
-			}
-
-			// --- STEP G: Present ---
-			{
-				const VkSemaphore wait_semaphores[] = { renderFinishedSemaphore.vkHandle() };
-				const VkSwapchainKHR swapchains[] = { swapchain_khr.vkHandle() };
-				VkPresentInfoKHR presentInfo{
-					.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-					.waitSemaphoreCount = std::size(wait_semaphores),
-					.pWaitSemaphores = wait_semaphores,
-					.swapchainCount = std::size(swapchains),
-					.pSwapchains = swapchains,
-					.pImageIndices = &imageIndex
-				};
-				if (graphics_queue.presentKHR(presentInfo) != VK_SUCCESS)
-				{
-					std::cerr << "Failed to presentKHR()\n";
-					break;
-				}
+				renderer.recreateSwapchainKHR();
+				descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+				continue;
 			}
 		}
 
