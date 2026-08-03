@@ -324,15 +324,6 @@ int main()
 		// Main cycle
 		while (!glfwWindowShouldClose(pWindow))
 		{
-			//auto& imageAvailableSemaphore = imageAvailableSemaphores[currentFrame];
-			//auto& computeFinishedSemaphore = computeFinishedSemaphores[currentFrame];
-			//auto& inFlightFence = inFlightFences[currentFrame];
-			//
-			//auto& compute_cmdbuf = compute_cmdbufs[currentFrame];
-			//auto& graphics_cmdbuf = graphics_cmdbufs[currentFrame];
-			//
-			//currentFrame = (currentFrame + 1u) % MAX_FRAMES_IN_FLIGHT;
-
 			glfwPollEvents();
 
 			auto frame_context = renderer.beginFrame();
@@ -344,7 +335,7 @@ int main()
 			}
 
 			{
-				const VkImageMemoryBarrier image_memory_barriers[]{ {
+				const VkImageMemoryBarrier acquire_barriers[]{ {
 						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 						.srcAccessMask = 0,
 						.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
@@ -359,7 +350,7 @@ int main()
 				frame_context->computeCmd.cmdPipelineBarrier(
 					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-					0, {}, {}, image_memory_barriers
+					0, {}, {}, acquire_barriers
 				);
 			}
 			{
@@ -379,22 +370,23 @@ int main()
 				frame_context->computeCmd.cmdDispatch(group_count_x, group_count_y, 1u);
 			}
 			{
-				VkImageMemoryBarrier releaseBarrier{
-					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-					.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-					.dstAccessMask = 0,
-					.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
-					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-					.srcQueueFamilyIndex = compute_family_index,
-					.dstQueueFamilyIndex = graphics_family_index,
-					.image = renderer.getCanvasImage().vkHandle(),
-					.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+				const VkImageMemoryBarrier release_barriers[]{ {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+						.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+						.dstAccessMask = 0,
+						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						.srcQueueFamilyIndex = compute_family_index,
+						.dstQueueFamilyIndex = graphics_family_index,
+						.image = renderer.getCanvasImage().vkHandle(),
+						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+					}
 				};
 
 				frame_context->computeCmd.cmdPipelineBarrier(
 					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-					0, {}, {}, { &releaseBarrier, 1 }
+					0, {}, {}, release_barriers
 				);
 			}
 

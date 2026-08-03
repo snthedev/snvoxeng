@@ -62,12 +62,11 @@ struct Renderer::data_t
 	{
 		VkImage currentSwapchainImage = m_swapchainKHR.getImages()[imageIndex].vkHandle();
 
-		// 1. ACQUIRE барьер для Canvas + Prepare Swapchain Image
 		VkImageMemoryBarrier barriers[2]{};
 
 		// Canvas Image: Acquire ownership & transition to TRANSFER_SRC
 		barriers[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barriers[0].srcAccessMask = 0; // Игнорируется при ACQUIRE
+		barriers[0].srcAccessMask = 0;
 		barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 		barriers[0].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
 		barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;

@@ -15,9 +15,7 @@ namespace sn::voxeng
         class SwapchainKHR;
         class Image;
         class ImageView;
-
         class CommandBuffer;
-        //class DeviceMemory;
     }
 
 	class SNVOXENG_API Renderer
