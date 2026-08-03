@@ -264,6 +264,7 @@ int main()
 			.withDevice(device)
 			.withSurfaceKHR(surface_khr)
 			.addQueueFamilyIndices(graphics_family_index)
+			.withImageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 			.sbuild();
 
 		std::cout << "VkSwapchainKHR: 0x" << std::hex << swapchain_khr.vkHandle() << std::dec << "\n";
@@ -377,205 +378,320 @@ int main()
 		descriptor_set.updateStorageImage(0u, storage_image_view.vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
 
 		// ==========================================================
+		constexpr size_t MAX_FRAMES_IN_FLIGHT = 2u;
+		const size_t swapchain_image_count = swapchain_khr.getImages().size();
+		size_t currentFrame = 0;
 
-		VkDeviceSize image_size = storage_image.getExtent().width * storage_image.getExtent().height * 4u;
-		auto staging_buffer = sn::voxeng::vk::Buffer::Builder()
-			.withDevice(device)
-			.withSize(image_size)
-			.withUsage(VK_BUFFER_USAGE_TRANSFER_DST_BIT)
-			.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
-			.addQueueFamilyIndices(transfer_family_index)
-			.sbuild();
-
-		auto staging_buffer_mem_req = staging_buffer.getMemoryRequirements();
-		auto staging_buffer_mem_type = gpu.findMemoryType(
-			staging_buffer_mem_req.memoryTypeBits,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-		);
-		snassert(staging_buffer_mem_type != sn::voxeng::vk::PhysicalDevice::nmatch,
-			"Failed to find requested GPU's memory", "");
-
-		auto staging_buffer_memory = sn::voxeng::vk::DeviceMemory::Builder()
-			.withDevice(device)
-			.withAllocationSize(staging_buffer_mem_req.size)
-			.withMemoryTypeIndex(staging_buffer_mem_type)
-			.sbuild();
-		staging_buffer_memory.bindBuffer(staging_buffer, 0);
-
-		auto command_pool = sn::voxeng::vk::CommandPool::Builder()
+		// --- 1. Compute Command Pool & Buffer ---
+		auto compute_command_pool = sn::voxeng::vk::CommandPool::Builder()
 			.withDevice(device)
 			.withQueueFamilyIndex(compute_family_index)
 			.withFlags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
 			.sbuild();
-		auto command_buffers = command_pool.allocateCommandBuffers(1u);
-		auto storage_image_cmdbuf = command_buffers.get(0);
-		storage_image_cmdbuf.begin({ .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT });
+		auto compute_cmdbufs_continer = compute_command_pool.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT * 1u);
 
-		// STEP 1: Convert the image to GENERAL for shader recording
-		{
-			VkImageMemoryBarrier begin_barrier{
-				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-				.srcAccessMask = 0,
-				.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-				.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-				.newLayout = VK_IMAGE_LAYOUT_GENERAL,
-				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-				.image = storage_image.vkHandle(),
-				.subresourceRange = {
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = 1u,
-					.baseArrayLayer = 0,
-					.layerCount = 1u
-				}
-			};
-			storage_image_cmdbuf.cmdPipelineBarrier(
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-				0,
-				{},
-				{},
-				{ &begin_barrier, 1u }
-			);
-		}
-
-		// STEP 2: Bind the pipeline and descriptors, and FIRE
-		{
-			storage_image_cmdbuf.cmdBindPipeline(VK_PIPELINE_BIND_POINT_COMPUTE, compute_pipeline.vkHandle());
-			storage_image_cmdbuf.cmdBindDescriptorSets(
-				VK_PIPELINE_BIND_POINT_COMPUTE,
-				compute_pipeline.getLayout(),
-				0u,
-				std::vector<VkDescriptorSet>{ descriptor_set.vkHandle() },
-				{}
-			);
-
-			uint32_t group_count_x = (storage_image.getExtent().width + 15u) / 16u;
-			uint32_t group_count_y = (storage_image.getExtent().height + 15u) / 16u;
-			uint32_t group_count_z = 1u;
-
-			storage_image_cmdbuf.cmdDispatch(group_count_x, group_count_y, group_count_z);
-		}
-
-		// STEP 3: Wait for the Compute operation to complete and transition to TRANSFER_SRC
-		{
-			VkImageMemoryBarrier copy_barrier{
-				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-				.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,        // We're waiting for Dispatch to finish writing.
-				.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,       // Preparing for reading and copying
-				.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
-				.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-				.image = storage_image.vkHandle(),
-				.subresourceRange = {
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.baseMipLevel = 0,
-					.levelCount = 1u,
-					.baseArrayLayer = 0,
-					.layerCount = 1u
-				}
-			};
-			storage_image_cmdbuf.cmdPipelineBarrier(
-				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,               // Src - Compute
-				VK_PIPELINE_STAGE_TRANSFER_BIT,                     // Dst - Transfer
-				0,
-				{},
-				{},
-				{ &copy_barrier, 1u }
-			);
-		}
-
-		// STEP 4: Copy the already FILLED image to the Staging Buffer
-		{
-			VkBufferImageCopy region{
-				.bufferOffset = 0,
-				.bufferRowLength = 0,
-				.bufferImageHeight = 0,
-				.imageSubresource = {
-					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-					.mipLevel = 0,
-					.baseArrayLayer = 0,
-					.layerCount = 1
-				},
-				.imageOffset = { 0, 0, 0 },
-				.imageExtent = { window_description.width, window_description.height, 1u }
-			};
-			storage_image_cmdbuf.cmdCopyImageToBuffer(
-				storage_image.vkHandle(),
-				VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				staging_buffer.vkHandle(),
-				{ &region, 1u }
-			);
-		}
-		storage_image_cmdbuf.end();
-
-		// Sync objects
-		auto inFlightFence = sn::voxeng::vk::Fence::Builder()
+		// --- 2. Graphics Command Pool & Buffer ---
+		auto graphics_command_pool = sn::voxeng::vk::CommandPool::Builder()
 			.withDevice(device)
-			.withFlags(VK_FENCE_CREATE_SIGNALED_BIT)
+			.withQueueFamilyIndex(graphics_family_index)
+			.withFlags(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT)
 			.sbuild();
-		auto imageAvailableSemaphore = sn::voxeng::vk::Semaphore::Builder()
-			.withDevice(device)
-			.sbuild();
-		auto renderFinishedSemaphore = sn::voxeng::vk::Semaphore::Builder()
-			.withDevice(device)
-			.sbuild();
+		auto graphics_cmdbufs_continer = graphics_command_pool.allocateCommandBuffers(MAX_FRAMES_IN_FLIGHT * 1u);
 
-		// STEP 5: Submit & Wait Result
+		std::vector<sn::voxeng::vk::CommandBuffer> compute_cmdbufs;
+		std::vector<sn::voxeng::vk::CommandBuffer> graphics_cmdbufs;
+		compute_cmdbufs.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
+		graphics_cmdbufs.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
-			auto cmdbuf_handle = storage_image_cmdbuf.vkHandle();
-			VkSubmitInfo submit_info{
-				.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-				.pNext = nullptr,
-				.waitSemaphoreCount = 0,
-				.pWaitSemaphores = nullptr,
-				.pWaitDstStageMask = nullptr,
-				.commandBufferCount = 1u,
-				.pCommandBuffers = &cmdbuf_handle,
-				.signalSemaphoreCount = 0,
-				.pSignalSemaphores = nullptr
-			};
-
-			compute_queue.submit(submit_info, VK_NULL_HANDLE);
-			compute_queue.waitIdle();
+			compute_cmdbufs.push_back(compute_cmdbufs_continer.get(i * 1u));
+			graphics_cmdbufs.push_back(graphics_cmdbufs_continer.get(i * 1u));
 		}
 
-		// STEP 6: Get & Save Result
-		{
-			void* data{ nullptr };
-			staging_buffer_memory.map(0, image_size, 0, &data);
+		// --- Sync objects ---
+		std::vector<sn::voxeng::vk::Semaphore> imageAvailableSemaphores;
+		std::vector<sn::voxeng::vk::Semaphore> computeFinishedSemaphores;
+		std::vector<sn::voxeng::vk::Fence> inFlightFences;
+		imageAvailableSemaphores.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
+		computeFinishedSemaphores.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
+		inFlightFences.reserve(MAX_FRAMES_IN_FLIGHT * 1u);
 
-			if (data)
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
+		{
+			imageAvailableSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).sbuild());
+			computeFinishedSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).sbuild());
+			inFlightFences.push_back(sn::voxeng::vk::Fence::Builder()
+				.withDevice(device)
+				.withFlags(VK_FENCE_CREATE_SIGNALED_BIT)
+				.sbuild());
+		}
+
+		std::vector<sn::voxeng::vk::Semaphore> renderFinishedSemaphores;
+		renderFinishedSemaphores.reserve(swapchain_image_count * 1u);
+		for (size_t i = 0; i < swapchain_image_count; ++i)
+		{
+			renderFinishedSemaphores.push_back(sn::voxeng::vk::Semaphore::Builder().withDevice(device).sbuild());
+		}
+
+		// Main cycle
+		while (!glfwWindowShouldClose(pWindow))
+		{
+			auto& imageAvailableSemaphore = imageAvailableSemaphores[currentFrame];
+			auto& computeFinishedSemaphore = computeFinishedSemaphores[currentFrame];
+			auto& inFlightFence = inFlightFences[currentFrame];
+
+			auto& compute_cmdbuf = compute_cmdbufs[currentFrame];
+			auto& graphics_cmdbuf = graphics_cmdbufs[currentFrame];
+
+			currentFrame = (currentFrame + 1u) % MAX_FRAMES_IN_FLIGHT;
+
+			glfwPollEvents();
+
+			// Wait for prev. frame
+			inFlightFence.wait();
+			inFlightFence.reset();
+
+			// Acquire next image
+			uint32_t imageIndex = 0;
+			VkResult acquireRes = swapchain_khr.acquireNextImageKHR(
+				UINT64_MAX,
+				imageAvailableSemaphore,
+				VK_NULL_HANDLE,
+				&imageIndex
+			);
+			if (acquireRes == VK_ERROR_OUT_OF_DATE_KHR)
 			{
-				std::filesystem::path output_path(".out/render_result.tga");
-				std::filesystem::create_directories(output_path.parent_path());
+				// TODO: Recreate swapchain
+				continue;
+			}
+			auto& renderFinishedSemaphore = renderFinishedSemaphores[imageIndex];
 
-				std::ofstream file(output_path, std::ios::binary);
-				if (!file.is_open())
-					throw std::runtime_error("Failed to open or create output file at: " + output_path.string());
+			VkImage currentSwapchainImage = swapchain_khr.getImages()[imageIndex].vkHandle();
 
-				uint8_t header[18] = { 0 };
-				header[2] = 2; // Uncompressed true-color image
-				header[12] = storage_image.getExtent().width & 0xFF;
-				header[13] = (storage_image.getExtent().width >> 8) & 0xFF;
-				header[14] = storage_image.getExtent().height & 0xFF;
-				header[15] = (storage_image.getExtent().height >> 8) & 0xFF;
-				header[16] = 32; // 32 bpp (RGBA)
+			// =========================================================================
+			// 1. COMPUTE COMMAND BUFFER (Выполняется на compute_queue / compute_family)
+			// =========================================================================
+			compute_cmdbuf.reset();
+			compute_cmdbuf.begin({ .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT });
 
-				file.write(reinterpret_cast<char*>(header), sizeof(header));
+			// --- STEP A: storage_image -> GENERAL ---
+			{
+				const VkImageMemoryBarrier image_memory_barriers[]{ {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+						.srcAccessMask = 0,
+						.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = VK_IMAGE_LAYOUT_GENERAL,
+						.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+						.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+						.image = storage_image.vkHandle(),
+						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+					}
+				};
+				compute_cmdbuf.cmdPipelineBarrier(
+					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					0, {}, {}, image_memory_barriers
+				);
+			}
 
-				// Vulkan uses RGBA, while TGA expects BGRA.
-				// Solved via shader color conversion
-				file.write(reinterpret_cast<char*>(data), image_size);
-				file.close();
+			// --- STEP B: Dispatch ---
+			{
+				compute_cmdbuf.cmdBindPipeline(
+					VK_PIPELINE_BIND_POINT_COMPUTE,
+					compute_pipeline.vkHandle()
+				);
+				const VkDescriptorSet descriptor_sets[] = { descriptor_set.vkHandle() };
+				compute_cmdbuf.cmdBindDescriptorSets(
+					VK_PIPELINE_BIND_POINT_COMPUTE,
+					compute_pipeline.getLayout(),
+					0u, descriptor_sets, {}
+				);
 
-				staging_buffer_memory.unmap();
+				uint32_t group_count_x = (storage_image.getExtent().width + 15u) / 16u;
+				uint32_t group_count_y = (storage_image.getExtent().height + 15u) / 16u;
+				compute_cmdbuf.cmdDispatch(group_count_x, group_count_y, 1u);
+			}
 
-				std::cout << "Image saved to render_result.tga" << std::endl;
+			// --- STEP C1: RELEASE Ownership (Compute -> Graphics) ---
+			{
+				const VkImageMemoryBarrier release_barriers[]{ {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+						.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+						.dstAccessMask = 0, // Игнорируется при RELEASE
+						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						.srcQueueFamilyIndex = compute_family_index,  // Отдаем
+						.dstQueueFamilyIndex = graphics_family_index, // Графической очереди
+						.image = storage_image.vkHandle(),
+						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+					}
+				};
+				compute_cmdbuf.cmdPipelineBarrier(
+					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+					0, {}, {}, release_barriers
+				);
+			}
+			compute_cmdbuf.end();
+
+			// =========================================================================
+			// 2. GRAPHICS COMMAND BUFFER (Выполняется на graphics_queue / graphics_family)
+			// =========================================================================
+			graphics_cmdbuf.reset();
+			graphics_cmdbuf.begin({ .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT });
+
+			// --- STEP C2: ACQUIRE Ownership & Prep Swapchain ---
+			{
+				const VkImageMemoryBarrier image_memory_barriers[]{ {
+						// ACQUIRE barrier for Storage Image
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+						.srcAccessMask = 0, // Игнорируется при ACQUIRE
+						.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						.srcQueueFamilyIndex = compute_family_index,
+						.dstQueueFamilyIndex = graphics_family_index,
+						.image = storage_image.vkHandle(),
+						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+					}, {
+						// Swapchain Image barrier
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+						.srcAccessMask = 0,
+						.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+						.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+						.image = currentSwapchainImage,
+						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+					}
+				};
+				graphics_cmdbuf.cmdPipelineBarrier(
+					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					0, {}, {}, image_memory_barriers
+				);
+			}
+
+			// --- STEP D: Copy Storage Image -> Swapchain Image ---
+			{
+				const VkImageCopy copy_regions[]{ {
+						.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
+						.srcOffset = { 0, 0, 0 },
+						.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
+						.dstOffset = { 0, 0, 0 },
+						.extent = { window_description.width, window_description.height, 1u }
+					}
+				};
+				graphics_cmdbuf.cmdCopyImage(
+					storage_image.vkHandle(),
+					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					currentSwapchainImage,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					copy_regions
+				);
+			}
+
+			// --- STEP E: Swapchain Image -> PRESENT_SRC_KHR ---
+			{
+				const VkImageMemoryBarrier present_barriers[]{ {
+						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+						.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+						.dstAccessMask = 0,
+						.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+						.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+						.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+						.image = currentSwapchainImage,
+						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+					}
+				};
+				graphics_cmdbuf.cmdPipelineBarrier(
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+					0, {}, {}, present_barriers
+				);
+			}
+			graphics_cmdbuf.end();
+
+			// =========================================================================
+			// 3. SUBMITS & PRESENT
+			// =========================================================================
+
+			// --- Submit 1: Compute Queue ---
+			{
+				const VkCommandBuffer c_buffers[] = { compute_cmdbuf.vkHandle() };
+				const VkSemaphore c_signals[] = { computeFinishedSemaphore.vkHandle() };
+
+				VkSubmitInfo compute_submit_info{
+					.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+					.commandBufferCount = std::size(c_buffers),
+					.pCommandBuffers = c_buffers,
+					.signalSemaphoreCount = std::size(c_signals),
+					.pSignalSemaphores = c_signals,
+				};
+
+				if (compute_queue.submit(compute_submit_info, VK_NULL_HANDLE) != VK_SUCCESS)
+				{
+					std::cerr << "Failed compute submit()\n";
+					break;
+				}
+			}
+
+			// --- Submit 2: Graphics Queue ---
+			{
+				const VkSemaphore g_waits[] = {
+					imageAvailableSemaphore.vkHandle(),
+					computeFinishedSemaphore.vkHandle()
+				};
+				const VkPipelineStageFlags g_wait_stages[] = {
+					VK_PIPELINE_STAGE_TRANSFER_BIT,
+					VK_PIPELINE_STAGE_TRANSFER_BIT
+				};
+				const VkCommandBuffer g_buffers[] = { graphics_cmdbuf.vkHandle() };
+				const VkSemaphore g_signals[] = { renderFinishedSemaphore.vkHandle() };
+
+				VkSubmitInfo graphics_submit_info{
+					.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+					.waitSemaphoreCount = std::size(g_waits),
+					.pWaitSemaphores = g_waits,
+					.pWaitDstStageMask = g_wait_stages,
+					.commandBufferCount = std::size(g_buffers),
+					.pCommandBuffers = g_buffers,
+					.signalSemaphoreCount = std::size(g_signals),
+					.pSignalSemaphores = g_signals,
+				};
+
+				if (graphics_queue.submit(graphics_submit_info, inFlightFence) != VK_SUCCESS)
+				{
+					std::cerr << "Failed graphics submit()\n";
+					break;
+				}
+			}
+
+			// --- STEP G: Present ---
+			{
+				const VkSemaphore wait_semaphores[] = { renderFinishedSemaphore.vkHandle() };
+				const VkSwapchainKHR swapchains[] = { swapchain_khr.vkHandle() };
+				VkPresentInfoKHR presentInfo{
+					.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+					.waitSemaphoreCount = std::size(wait_semaphores),
+					.pWaitSemaphores = wait_semaphores,
+					.swapchainCount = std::size(swapchains),
+					.pSwapchains = swapchains,
+					.pImageIndices = &imageIndex
+				};
+				if (graphics_queue.presentKHR(presentInfo) != VK_SUCCESS)
+				{
+					std::cerr << "Failed to presentKHR()\n";
+					break;
+				}
 			}
 		}
+
+		device.waitIdle();
 
 		std::cout << "[main()]: OK\n";
 	}
