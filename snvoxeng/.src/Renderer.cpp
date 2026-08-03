@@ -309,6 +309,7 @@ public:
 		}
 
 		m_currentFrame = 0;
+		return true;
 	}
 
 

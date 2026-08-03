@@ -329,8 +329,10 @@ int main()
 			auto frame_context = renderer.beginFrame();
 			if (!frame_context.has_value())
 			{
-				renderer.recreateSwapchainKHR();
-				descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+				if (renderer.recreateSwapchainKHR())
+				{
+					descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+				}
 				continue;
 			}
 
@@ -392,8 +394,10 @@ int main()
 
 			if (!renderer.endFrame(frame_context->imageIndex))
 			{
-				renderer.recreateSwapchainKHR();
-				descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+				if (renderer.recreateSwapchainKHR())
+				{
+					descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+				}
 				continue;
 			}
 		}
