@@ -47,14 +47,22 @@
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static constexpr auto physicalDeviceFeatures = VkPhysicalDeviceFeatures{};
-static constexpr auto physicalDevice13Features = VkPhysicalDeviceVulkan13Features{};
+static constexpr auto PhysicalDeviceFeatures = VkPhysicalDeviceFeatures{};
+static constexpr auto PhysicalDevice13Features = VkPhysicalDeviceVulkan13Features{};
 
-static const auto extensions = std::vector<const char*>{};
+static const auto Extensions = std::vector<const char*>{};
 
-static constexpr auto pNext = nullptr;
-static constexpr auto flags = 0u;
-static constexpr auto vkPAllocator = nullptr;
+static constexpr auto Next = nullptr;
+static constexpr auto Flags = 0u;
+static constexpr auto Allocator = nullptr;
+
+static constexpr auto VMAFlags = 0u;
+static constexpr auto VMAPreferredLargeHeapBlockSize = 0u;
+static constexpr auto VMADeviceMemoryCallbacks = nullptr;
+static constexpr auto VMAHeapSizeLimit = nullptr;
+#if VMA_EXTERNAL_MEMORY
+static constexpr auto VMATypeExternalMemoryHandleTypes = nullptr;
+#endif // #if VMA_EXTERNAL_MEMORY
 #endif
 
 // --- V -------------- V ---
@@ -89,6 +97,14 @@ SNBCG_THIS(
 SNBCG_THIS(const void*, const void*, vkCreateInfo., pNext, Next, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 SNBCG_THIS(VkDeviceCreateFlags, VkDeviceCreateFlags, vkCreateInfo., flags, Flags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 SNBCG_THIS(const VkAllocationCallbacks*, const VkAllocationCallbacks*, , vkPAllocator, Allocator, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+
+SNBCG_THIS(VmaAllocatorCreateFlags, VmaAllocatorCreateFlags, vmaCreateInfo., flags, VMAFlags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+SNBCG_THIS(VkDeviceSize, VkDeviceSize, vmaCreateInfo., preferredLargeHeapBlockSize, VMAPreferredLargeHeapBlockSize, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+SNBCG_THIS(const VmaDeviceMemoryCallbacks*, const VmaDeviceMemoryCallbacks*, vmaCreateInfo., pDeviceMemoryCallbacks, VMADeviceMemoryCallbacks, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+SNBCG_THIS(const VkDeviceSize*, const VkDeviceSize*, vmaCreateInfo., pHeapSizeLimit, VMAHeapSizeLimit, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+#if VMA_EXTERNAL_MEMORY
+SNBCG_THIS(const VkExternalMemoryHandleTypeFlagsKHR*, const VkExternalMemoryHandleTypeFlagsKHR*, vmaCreateInfo., pTypeExternalMemoryHandleTypes, VMATypeExternalMemoryHandleTypes, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+#endif // #if VMA_EXTERNAL_MEMORY
 #undef SNBCG_THIS
 #endif
 

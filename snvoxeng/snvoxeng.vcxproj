@@ -162,6 +162,7 @@
   <ItemGroup>
     <ClCompile Include=".src\Renderer.cpp" />
     <ClCompile Include=".src\ShaderCompiler.cpp" />
+    <ClCompile Include=".src\utils\VMA-impl.cpp" />
     <ClCompile Include=".src\vk\Buffer.cpp" />
     <ClCompile Include=".src\vk\CommandBuffer.cpp" />
     <ClCompile Include=".src\vk\CommandBuffersContainer.cpp" />

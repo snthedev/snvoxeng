@@ -14,7 +14,7 @@ PhysicalDevice::PhysicalDevice(const PhysicalDeviceRegistry& registry, size_t id
 VkSurfaceCapabilitiesKHR PhysicalDevice::getSurfaceCapabilities(VkSurfaceKHR surface) const
 {
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(getHandle(), surface, &surfaceCapabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(vkHandle(), surface, &surfaceCapabilities);
     return surfaceCapabilities;
 }
 
@@ -27,7 +27,7 @@ uint32_t PhysicalDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFla
     return nmatch;
 }
 
-VkPhysicalDevice PhysicalDevice::getHandle() const noexcept { return m_pRegistry->vkHandle(m_registryIdx); }
+VkPhysicalDevice PhysicalDevice::vkHandle() const noexcept { return m_pRegistry->vkHandle(m_registryIdx); }
 const PhysicalDeviceRegistry& PhysicalDevice::getRegistry() const noexcept { return *m_pRegistry; }
 size_t PhysicalDevice::getRegistryIdx() const noexcept { return m_registryIdx; }
 
@@ -73,7 +73,7 @@ uint32_t PhysicalDevice::findQueueFamily(const QueueRequest& request) const noex
         if (request.surface != VK_NULL_HANDLE)
         {
             VkBool32 presentSupport = VK_FALSE;
-            vkGetPhysicalDeviceSurfaceSupportKHR(getHandle(), i, request.surface, &presentSupport);
+            vkGetPhysicalDeviceSurfaceSupportKHR(vkHandle(), i, request.surface, &presentSupport);
             if (presentSupport != VK_TRUE) continue;
         }
 

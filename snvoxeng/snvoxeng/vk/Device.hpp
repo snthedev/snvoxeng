@@ -110,6 +110,10 @@ namespace sn::voxeng::vk
 		VkResult createBuffer(const VkBufferCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkBuffer* pBuffer) const;
 		void destroyBuffer(VkBuffer buffer, const VkAllocationCallbacks* pAllocator) const;
 
+		// === VMA Ext ===
+
+
+
 		Device(const Device&) = delete;
 		Device& operator=(const Device&) = delete;
 		Device(Device&& other) noexcept;

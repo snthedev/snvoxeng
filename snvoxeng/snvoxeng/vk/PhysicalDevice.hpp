@@ -25,7 +25,7 @@ namespace sn::voxeng::vk
         // returns PhysicalDevice::nmatch if memory type is not found
         uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
-        VkPhysicalDevice getHandle() const noexcept;
+        VkPhysicalDevice vkHandle() const noexcept;
         const PhysicalDeviceRegistry& getRegistry() const noexcept;
         size_t getRegistryIdx() const noexcept;
 

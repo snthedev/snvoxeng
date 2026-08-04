@@ -206,7 +206,7 @@ SNVOXENG_API_POD bool fPhysicalDeviseSelectors::fSurfaceSupport(size_t idx, cons
     for (uint32_t queueFamilyIdx = 0; queueFamilyIdx < queueFamilies.size(); ++queueFamilyIdx)
     {
         VkBool32 presentSupport = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device.getHandle(), queueFamilyIdx, data->surface, &presentSupport);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device.vkHandle(), queueFamilyIdx, data->surface, &presentSupport);
         if (presentSupport == VK_TRUE) return true;
     }
     return false;

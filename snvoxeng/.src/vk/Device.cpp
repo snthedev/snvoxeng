@@ -5,6 +5,7 @@
 #include <snvoxeng/snvoxeng/vk/PhysicalDeviceRegistry.hpp>
 
 #include <vulkan/vulkan.h>
+#include <vma/vk_mem_alloc.h>
 #include <snassert/snassert.hpp>
 
 #include <string>
@@ -44,6 +45,7 @@ namespace default_values
 struct Device::data_t
 {
 	VkDeviceCreateInfo vkCreateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkDeviceCreateInfo>() } };
+	VmaAllocatorCreateInfo vmaCreateInfo{};
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
@@ -60,15 +62,16 @@ struct Device::data_t
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		subdata name = {};
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		subdata name = default_values::name;
+		subdata name = default_values::Name;
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		subdata name = {};
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		subdata name = default_values::name;
+		subdata name = default_values::Name;
 #include <snvoxeng/.def/vk/Device.h>
 	}
 
 	VkDevice vkHandle{ VK_NULL_HANDLE };
+	VmaAllocator vmaHandle{ VK_NULL_HANDLE };
 	std::vector<VkQueue> vkQueues;
 
 	std::vector<QueueFamilyRequest_t> queueFamilyRequests;
@@ -90,7 +93,7 @@ void Device::onCreate(data_t& data)
 	data.vkCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 
 	{
-		auto result = vkCreateDevice(data.pPhysicalDevice->getHandle(), &data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		auto result = vkCreateDevice(data.pPhysicalDevice->vkHandle(), &data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
 		snassert(result == VK_SUCCESS,
 			"Failed to create VkDevice", "Check Builder settings");
 	}
@@ -105,12 +108,20 @@ void Device::onCreate(data_t& data)
 		}
 	}
 
+	data.vmaCreateInfo.device = data.vkHandle;
+	{
+		auto result = vmaCreateAllocator(&data.vmaCreateInfo, &data.vmaHandle);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VmaAllocator", "Check Builder settings");
+	}
+
 	if (m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream())
 		*m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream()
 		<< "[trace]: Device 0x" << std::hex << this << std::dec << " created" << std::endl;
 }
 void Device::onDestroy(data_t& data) noexcept
 {
+	vmaDestroyAllocator(data.vmaHandle);
 	vkDestroyDevice(data.vkHandle, data.vkPAllocator);
 
 	if (m_pData->pPhysicalDevice->getRegistry().getInstance().getDebugStream())
@@ -288,7 +299,6 @@ VkResult Device::createPipelineLayout(const VkPipelineLayoutCreateInfo* pCreateI
 {
 	return vkCreatePipelineLayout(m_pData->vkHandle, pCreateInfo, pAllocator, pPipelineLayout);
 }
-
 void Device::destroyPipelineLayout(VkPipelineLayout pipelineLayout, const VkAllocationCallbacks* pAllocator) const
 {
 	vkDestroyPipelineLayout(m_pData->vkHandle, pipelineLayout, pAllocator);
@@ -435,47 +445,54 @@ void Builder::finalize(data_t& data)
 	data.vkCreateInfo.enabledExtensionCount = static_cast<uint32_t>(data.extensions.size());
 	data.vkCreateInfo.ppEnabledExtensionNames = data.extensions.data();
 	data.vkCreateInfo.pEnabledFeatures = &data.physicalDeviceFeatures;
+
+	// === VMA Ext ===
+
+	data.vmaCreateInfo.instance = data.pPhysicalDevice->getRegistry().getInstance().vkHandle();
+	data.vmaCreateInfo.vulkanApiVersion = data.pPhysicalDevice->getRegistry().getInstance().getApiVersion();
+	data.vmaCreateInfo.physicalDevice = data.pPhysicalDevice->vkHandle();
+	data.vmaCreateInfo.pAllocationCallbacks = data.vkPAllocator;
 }
 
 #ifdef DETAIL_SNBCG_DEBUG
 struct Builder::temp_t
 {
-#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
-#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
-#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
-#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t Name{ 0 };
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t Name{ 0 };
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t Name{ 0 };
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t Name{ 0 };
 #include <snvoxeng/.def/vk/Device.h>
 
 	void validate() const
 	{
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		snassert((name & 0b01) != 0,\
+		snassert((Name & 0b01) != 0,\
 			#Name " is required, but not defined",\
 			"Call Builder::with" #Name "(...)"\
 		);\
-		snassert((name & 0b10) == 0,\
+		snassert((Name & 0b10) == 0,\
 			#Name " is defined twice",\
 			"Call Builder::with" #Name "(...) once"\
 		);
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		snassert((name & 0b10) == 0,\
+		snassert((Name & 0b10) == 0,\
 			#Name " is defined twice",\
 			"Call Builder::with" #Name "(...) once"\
 		);
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		snassert((name & 0b01) != 0,\
+		snassert((Name & 0b01) != 0,\
 			#Name " is required, but not defined",\
 			"Call Builder::with" #Name "(...)\n"\
 			"  or Builder::add" #Name "(...)"\
 		);\
-		snassert((name & 0b10) == 0,\
+		snassert((Name & 0b10) == 0,\
 			#Name " is defined twice",\
 			"Call Builder::with" #Name "(...) once\n"\
 			"  and do not call Builder::with" #Name "(...) after calling\n"\
 			"  Builder::add" #Name "(...)"\
 		);
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		snassert((name & 0b10) == 0,\
+		snassert((Name & 0b10) == 0,\
 			#Name " is defined twice",\
 			"Call Builder::with" #Name "(...) once\n"\
 			"  and do not call Builder::with" #Name "(...) after calling\n"\
@@ -484,8 +501,8 @@ struct Builder::temp_t
 #include <snvoxeng/.def/vk/Device.h>
 	}
 };
-#define SNBCG_VALIDATE_ON_WITH(name, Name) m_pTemp->name = ((m_pTemp->name << 1u) & 0b11) | 0b01;
-#define SNBCG_VALIDATE_ON_ADD(name, Name) m_pTemp->name = m_pTemp->name | 0b01;
+#define SNBCG_VALIDATE_ON_WITH(name, Name) m_pTemp->Name = ((m_pTemp->Name << 1u) & 0b11) | 0b01;
+#define SNBCG_VALIDATE_ON_ADD(name, Name) m_pTemp->Name = m_pTemp->Name | 0b01;
 #else // ^ DETAIL_SNBCG_DEBUG ^
 #define SNBCG_VALIDATE_ON_WITH(name, Name)
 #define SNBCG_VALIDATE_ON_ADD(name, Name)

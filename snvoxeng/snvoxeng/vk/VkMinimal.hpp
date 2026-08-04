@@ -11,3 +11,4 @@
 #define VK_API_VERSION_1_3 VK_MAKE_API_VERSION(0, 1, 3, 0)*/
 
 #include <vulkan/vulkan.h>
+#include <vma/vk_mem_alloc.h>
