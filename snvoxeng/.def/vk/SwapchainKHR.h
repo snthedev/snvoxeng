@@ -77,19 +77,19 @@ VkSwapchainKHR                   oldSwapchain;
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static constexpr auto imageFormat = VK_FORMAT_B8G8R8A8_SRGB;
-static constexpr auto imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
-static constexpr auto imageArrayLayers = 1u;
-static constexpr auto imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-static constexpr auto imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-static constexpr auto compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-static constexpr auto presentMode = VK_PRESENT_MODE_FIFO_KHR;
-static constexpr auto clipped = VK_FALSE;
-static constexpr auto oldSwapchain = VK_NULL_HANDLE;
+static constexpr auto ImageFormat = VK_FORMAT_B8G8R8A8_SRGB;
+static constexpr auto ImageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+static constexpr auto ImageArrayLayers = 1u;
+static constexpr auto ImageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+static constexpr auto ImageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+static constexpr auto CompositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+static constexpr auto PresentMode = VK_PRESENT_MODE_FIFO_KHR;
+static constexpr auto Clipped = VK_FALSE;
+static constexpr auto OldSwapchain = VK_NULL_HANDLE;
 
-static constexpr auto pNext = nullptr;
-static constexpr auto flags = 0u;
-static constexpr auto vkPAllocator = nullptr;
+static constexpr auto Next = nullptr;
+static constexpr auto Flags = 0u;
+static constexpr auto Allocator = nullptr;
 #endif
 
 // --- V -------------- V ---

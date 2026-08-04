@@ -48,7 +48,7 @@
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static constexpr auto vkPAllocator = nullptr;
+static constexpr auto Allocator = nullptr;
 #endif
 
 // --- V -------------- V ---

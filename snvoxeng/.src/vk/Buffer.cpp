@@ -36,11 +36,11 @@ struct Buffer::data_t
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		subdata name = {};
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		subdata name = default_values::name;
+		subdata name = default_values::Name;
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
 		subdata name = {};
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		subdata name = default_values::name;
+		subdata name = default_values::Name;
 #include <snvoxeng/.def/vk/Buffer.h>
 	}
 
@@ -148,42 +148,42 @@ void Builder::finalize(data_t& data)
 #ifdef DETAIL_SNBCG_DEBUG
 struct Builder::temp_t
 {
-#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
-#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t name{ 0 };
-#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
-#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t name{ 0 };
+#define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t Name{ 0 };
+#define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy) uint8_t Name{ 0 };
+#define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t Name{ 0 };
+#define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action) uint8_t Name{ 0 };
 #include <snvoxeng/.def/vk/Buffer.h>
 
 	void validate() const
 	{
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		snassert((name & 0b01) != 0,\
+		snassert((Name & 0b01) != 0,\
 			#Name " is required, but not defined",\
 			"Call Builder::with" #Name "(...)"\
 		);\
-		snassert((name & 0b10) == 0,\
+		snassert((Name & 0b10) == 0,\
 			#Name " is defined twice",\
 			"Call Builder::with" #Name "(...) once"\
 		);
 #define SNBCG_OPTIONAL(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
-		snassert((name & 0b10) == 0,\
+		snassert((Name & 0b10) == 0,\
 			#Name " is defined twice",\
 			"Call Builder::with" #Name "(...) once"\
 		);
 #define SNBCG_REQUIRED_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		snassert((name & 0b01) != 0,\
+		snassert((Name & 0b01) != 0,\
 			#Name " is required, but not defined",\
 			"Call Builder::with" #Name "(...)\n"\
 			"  or Builder::add" #Name "(...)"\
 		);\
-		snassert((name & 0b10) == 0,\
+		snassert((Name & 0b10) == 0,\
 			#Name " is defined twice",\
 			"Call Builder::with" #Name "(...) once\n"\
 			"  and do not call Builder::with" #Name "(...) after calling\n"\
 			"  Builder::add" #Name "(...)"\
 		);
 #define SNBCG_OPTIONAL_ADDITIVE(store_t, arg_t, args_t, subdata, name, Name, return_policy, store_policy, store_action)\
-		snassert((name & 0b10) == 0,\
+		snassert((Name & 0b10) == 0,\
 			#Name " is defined twice",\
 			"Call Builder::with" #Name "(...) once\n"\
 			"  and do not call Builder::with" #Name "(...) after calling\n"\
@@ -192,8 +192,8 @@ struct Builder::temp_t
 #include <snvoxeng/.def/vk/Buffer.h>
 	}
 };
-#define SNBCG_VALIDATE_ON_WITH(name, Name) m_pTemp->name = ((m_pTemp->name << 1u) & 0b11) | 0b01;
-#define SNBCG_VALIDATE_ON_ADD(name, Name) m_pTemp->name = m_pTemp->name | 0b01;
+#define SNBCG_VALIDATE_ON_WITH(name, Name) m_pTemp->Name = ((m_pTemp->Name << 1u) & 0b11) | 0b01;
+#define SNBCG_VALIDATE_ON_ADD(name, Name) m_pTemp->Name = m_pTemp->Name | 0b01;
 #else // ^ DETAIL_SNBCG_DEBUG ^
 #define SNBCG_VALIDATE_ON_WITH(name, Name)
 #define SNBCG_VALIDATE_ON_ADD(name, Name)

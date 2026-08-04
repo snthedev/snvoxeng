@@ -47,9 +47,9 @@
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static constexpr auto pNext = nullptr;
-static constexpr auto flags = 0u;
-static constexpr auto vkPAllocator = nullptr;
+static constexpr auto Next = nullptr;
+static constexpr auto Flags = 0u;
+static constexpr auto Allocator = nullptr;
 #endif
 
 // --- V -------------- V ---

@@ -47,17 +47,17 @@
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static constexpr auto applicationVersion = VK_MAKE_API_VERSION(0, 0, 1, 0);
-static constexpr auto pEngineName = "snvoxeng";
-static constexpr auto engineVersion = VK_MAKE_API_VERSION(0, 0, 1, 0);
-static constexpr auto debugStream = nullptr;
-static const auto validationLayers = std::vector<const char*>{};
-static const auto extensions = std::vector<const char*>{};
-static constexpr auto isDebugMessengerEnabled = false;
+static constexpr auto ApplicationVersion = VK_MAKE_API_VERSION(0, 0, 1, 0);
+static constexpr auto EngineName = "snvoxeng";
+static constexpr auto EngineVersion = VK_MAKE_API_VERSION(0, 0, 1, 0);
+static constexpr auto DebugStream = nullptr;
+static const auto ValidationLayers = std::vector<const char*>{};
+static const auto Extensions = std::vector<const char*>{};
+static constexpr auto DebugMessengerEnabled = false;
 
-static constexpr auto pNext = nullptr;
-static constexpr auto flags = 0u;
-static constexpr auto vkPAllocator = nullptr;
+static constexpr auto Next = nullptr;
+static constexpr auto Flags = 0u;
+static constexpr auto Allocator = nullptr;
 #endif
 
 // --- V -------------- V ---

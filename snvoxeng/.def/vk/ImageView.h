@@ -47,16 +47,16 @@
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static constexpr auto components = VkComponentMapping{
+static constexpr auto Components = VkComponentMapping{
 	.r = VK_COMPONENT_SWIZZLE_IDENTITY,
 	.g = VK_COMPONENT_SWIZZLE_IDENTITY,
 	.b = VK_COMPONENT_SWIZZLE_IDENTITY,
 	.a = VK_COMPONENT_SWIZZLE_IDENTITY,
 };
 
-static constexpr auto pNext = nullptr;
-static constexpr auto flags = 0u;
-static constexpr auto vkPAllocator = nullptr;
+static constexpr auto Next = nullptr;
+static constexpr auto Flags = 0u;
+static constexpr auto Allocator = nullptr;
 #endif
 
 // --- V -------------- V ---

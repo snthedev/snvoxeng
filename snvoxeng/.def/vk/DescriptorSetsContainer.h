@@ -47,9 +47,9 @@
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static const auto setLayouts = std::vector<VkDescriptorSetLayout>{};
+static const auto SetLayouts = std::vector<VkDescriptorSetLayout>{};
 
-static constexpr auto pNext = nullptr;
+static constexpr auto Next = nullptr;
 #endif
 
 // --- V -------------- V ---

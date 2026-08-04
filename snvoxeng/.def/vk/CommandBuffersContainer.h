@@ -47,7 +47,7 @@
 
 #ifdef SNBCG_DEFAULT_VALUES
 // --- v Defaults v ---
-static constexpr auto pNext = nullptr;
+static constexpr auto Next = nullptr;
 #endif
 
 // --- V -------------- V ---
