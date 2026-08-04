@@ -22,7 +22,7 @@ The up-to-date and detailed project roadmap, including all design specifics, is 
 * [x] Custom analytical intersection testing for Spheres and AABBs (Cubes)
 * [x] Dynamic atmospheric skybox model (Rayleigh/Mie scattering & sun disc simulation)
 * [x] Custom Tonemapping and Gamma Correction Pipeline
-* [/] Integrating VMA into the project
+* [ ] Integrating VMA into the project
 * [ ] Passing camera parameters to the compute shader via UBO.
 * [ ] **Milestone Result:** A smooth 3D sphere rendered on screen that can be fully navigated with a free camera.
 
