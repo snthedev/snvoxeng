@@ -36,8 +36,8 @@ namespace sn::voxeng::vk
 
 		DescriptorSetsContainer(const DescriptorSetsContainer&) = delete;
 		DescriptorSetsContainer& operator=(const DescriptorSetsContainer&) = delete;
-		DescriptorSetsContainer(DescriptorSetsContainer&& other) noexcept;
-		DescriptorSetsContainer& operator=(DescriptorSetsContainer&& other) noexcept;
+		DescriptorSetsContainer(DescriptorSetsContainer&&) = delete;
+		DescriptorSetsContainer& operator=(DescriptorSetsContainer&&) = delete;
 
 		std::span<const VkDescriptorSet> vkHandle() const noexcept;
 		VkDescriptorSet vkHandle(size_t idx) const noexcept;

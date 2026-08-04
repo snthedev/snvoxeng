@@ -36,8 +36,8 @@ namespace sn::voxeng::vk
 
 		CommandBuffersContainer(const CommandBuffersContainer&) = delete;
 		CommandBuffersContainer& operator=(const CommandBuffersContainer&) = delete;
-		CommandBuffersContainer(CommandBuffersContainer&& other) noexcept;
-		CommandBuffersContainer& operator=(CommandBuffersContainer&& other) noexcept;
+		CommandBuffersContainer(CommandBuffersContainer&&) = delete;
+		CommandBuffersContainer& operator=(CommandBuffersContainer&&) = delete;
 
 		std::span<const VkCommandBuffer> vkHandle() const noexcept;
 		VkCommandBuffer vkHandle(size_t idx) const noexcept;

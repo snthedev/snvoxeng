@@ -29,8 +29,8 @@ namespace sn::voxeng::vk
 
 		ImageView(const ImageView&) = delete;
 		ImageView& operator=(const ImageView&) = delete;
-		ImageView(ImageView&& other) noexcept;
-		ImageView& operator=(ImageView&& other) noexcept;
+		ImageView(ImageView&&) = delete;
+		ImageView& operator=(ImageView&&) = delete;
 
 		VkImageView vkHandle() const noexcept;
 		operator VkImageView() const noexcept;

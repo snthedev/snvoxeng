@@ -71,15 +71,15 @@ CommandPool::CommandPool(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 CommandPool::CommandPool(data_t*& pData, VkCommandPool view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === CommandPool : public ===
@@ -100,28 +100,6 @@ CommandBuffersContainer CommandPool::allocateCommandBuffers(uint32_t count, VkCo
 		.withCommandBufferCount(count)
 		.withLevel(level)
 		.build();
-}
-
-CommandPool::CommandPool(CommandPool&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-CommandPool& CommandPool::operator=(CommandPool&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
 }
 
 VkCommandPool CommandPool::vkHandle() const noexcept { return m_pData->vkHandle; }

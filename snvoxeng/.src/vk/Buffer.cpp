@@ -20,6 +20,7 @@ namespace default_values
 struct Buffer::data_t
 {
 	VkBufferCreateInfo vkCreateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkBufferCreateInfo>() } };
+	VmaAllocationCreateInfo vmaCreateInfo{};
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
@@ -45,13 +46,19 @@ struct Buffer::data_t
 	}
 
 	VkBuffer vkHandle{ VK_NULL_HANDLE };
+	VmaAllocation vmaHandle{ VK_NULL_HANDLE };
+	VmaAllocationInfo vmaHandleInfo{};
 };
 
 void Buffer::onCreate(data_t& data)
 {
-	auto result = data.pDevice->createBuffer(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
-	snassert(result == VK_SUCCESS,
-		"Failed to create VkBuffer", "Check Builder settings");
+	{
+		auto result = data.isMemoryAllocationDeferred
+			? data.pDevice->createBuffer(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle)
+			: data.pDevice->createBuffer(&data.vkCreateInfo, &data.vmaCreateInfo, &data.vkHandle, &data.vmaHandle, &data.vmaHandleInfo);
+		snassert(result == VK_SUCCESS,
+			"Failed to create VkBuffer", "Check Builder settings");
+	}
 
 	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
 		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
@@ -59,7 +66,9 @@ void Buffer::onCreate(data_t& data)
 }
 void Buffer::onDestroy(data_t& data) noexcept
 {
-	data.pDevice->destroyBuffer(data.vkHandle, data.vkPAllocator);
+	data.isMemoryAllocationDeferred
+		? data.pDevice->destroyBuffer(data.vkHandle, data.vkPAllocator)
+		: data.pDevice->destroyBuffer(data.vkHandle, data.vmaHandle);
 
 	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
 		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
@@ -70,15 +79,15 @@ Buffer::Buffer(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 Buffer::Buffer(data_t*& pData, VkBuffer view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === Buffer : public ===
@@ -99,30 +108,14 @@ VkMemoryRequirements Buffer::getMemoryRequirements() const
 	return result;
 }
 
-Buffer::Buffer(Buffer&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-Buffer& Buffer::operator=(Buffer&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
-}
-
 VkBuffer Buffer::vkHandle() const noexcept { return m_pData->vkHandle; }
 Buffer::operator VkBuffer() const noexcept { return m_pData->vkHandle; }
+
+VmaAllocation Buffer::vmaHandle() const noexcept { return m_pData->vmaHandle; }
+Buffer::operator VmaAllocation() const noexcept { return m_pData->vmaHandle; }
+
+VmaAllocationInfo Buffer::vmaHandleInfo() const noexcept { return m_pData->vmaHandleInfo; }
+Buffer::operator VmaAllocationInfo() const noexcept { return m_pData->vmaHandleInfo; }
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 DETAIL_##return_policy##_t(store_t) Buffer::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }

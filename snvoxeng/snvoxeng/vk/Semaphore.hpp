@@ -29,8 +29,8 @@ namespace sn::voxeng::vk
 
 		Semaphore(const Semaphore&) = delete;
 		Semaphore& operator=(const Semaphore&) = delete;
-		Semaphore(Semaphore&& other) noexcept;
-		Semaphore& operator=(Semaphore&& other) noexcept;
+		Semaphore(Semaphore&&) = delete;
+		Semaphore& operator=(Semaphore&&) = delete;
 
 		VkSemaphore vkHandle() const noexcept;
 		operator VkSemaphore() const noexcept;

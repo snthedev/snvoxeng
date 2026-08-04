@@ -70,13 +70,14 @@ DescriptorSetLayout::DescriptorSetLayout(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 DescriptorSetLayout::DescriptorSetLayout(data_t*& pData, VkDescriptorSetLayout view)
 	: m_pData(pData)
 	, m_isView(true)
 {
+	m_pData->vkHandle = view;
 	pData = nullptr;
 }
 
@@ -89,28 +90,6 @@ DescriptorSetLayout::~DescriptorSetLayout() noexcept
 		delete m_pData;
 		m_pData = nullptr;
 	}
-}
-
-DescriptorSetLayout::DescriptorSetLayout(DescriptorSetLayout&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-DescriptorSetLayout& DescriptorSetLayout::operator=(DescriptorSetLayout&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
 }
 
 VkDescriptorSetLayout DescriptorSetLayout::vkHandle() const noexcept { return m_pData->vkHandle; }

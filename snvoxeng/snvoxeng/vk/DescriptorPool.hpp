@@ -29,8 +29,8 @@ namespace sn::voxeng::vk
 
 		DescriptorPool(const DescriptorPool&) = delete;
 		DescriptorPool& operator=(const DescriptorPool&) = delete;
-		DescriptorPool(DescriptorPool&& other) noexcept;
-		DescriptorPool& operator=(DescriptorPool&& other) noexcept;
+		DescriptorPool(DescriptorPool&&) = delete;
+		DescriptorPool& operator=(DescriptorPool&&) = delete;
 
 		VkDescriptorPool vkHandle() const noexcept;
 		operator VkDescriptorPool() const noexcept;

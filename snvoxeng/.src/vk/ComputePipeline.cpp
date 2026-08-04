@@ -68,15 +68,15 @@ ComputePipeline::ComputePipeline(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 ComputePipeline::ComputePipeline(data_t*& pData, VkPipeline view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === ComputePipeline : public ===
@@ -88,28 +88,6 @@ ComputePipeline::~ComputePipeline() noexcept
 		delete m_pData;
 		m_pData = nullptr;
 	}
-}
-
-ComputePipeline::ComputePipeline(ComputePipeline&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-ComputePipeline& ComputePipeline::operator=(ComputePipeline&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
 }
 
 VkPipeline ComputePipeline::vkHandle() const noexcept { return m_pData->vkHandle; }

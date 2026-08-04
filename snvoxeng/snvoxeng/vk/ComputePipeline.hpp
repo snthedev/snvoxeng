@@ -29,8 +29,8 @@ namespace sn::voxeng::vk
 
 		ComputePipeline(const ComputePipeline&) = delete;
 		ComputePipeline& operator=(const ComputePipeline&) = delete;
-		ComputePipeline(ComputePipeline&& other) noexcept;
-		ComputePipeline& operator=(ComputePipeline&& other) noexcept;
+		ComputePipeline(ComputePipeline&&) = delete;
+		ComputePipeline& operator=(ComputePipeline&&) = delete;
 
 		VkPipeline vkHandle() const noexcept;
 		operator VkPipeline() const noexcept;

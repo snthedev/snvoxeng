@@ -9,6 +9,7 @@
 #include <snassert/snassert.hpp>
 
 #include <vector>
+#include <snvoxeng/snvoxeng/utils/dumb_vector.hpp>
 
 using namespace sn::voxeng::vk;
 
@@ -47,10 +48,94 @@ struct SwapchainKHR::data_t
 	}
 
 	VkSwapchainKHR vkHandle{ VK_NULL_HANDLE };
+};
 
-	uint32_t imageCount;
-	Image* pImages;
-	ImageView* pImageViews;
+struct SwapchainKHR::SwapchainResources
+{
+	dumb_vector<Image> images;
+	dumb_vector<ImageView> imageViews;
+
+	SwapchainResources(const vk::Device& device, VkSwapchainKHR vkHandle, const VkSwapchainCreateInfoKHR& vkCreateInfo, std::span<const uint32_t> queueFamilyIndices)
+	{
+		uint32_t imageCount = 0;
+		if (device.getSwapchainImagesKHR(vkHandle, &imageCount, nullptr) != VK_SUCCESS)
+			throw std::runtime_error("Failed to get swapchain images");
+
+		std::vector<VkImage> vkImages(imageCount);
+		if (device.getSwapchainImagesKHR(vkHandle, &imageCount, vkImages.data()) != VK_SUCCESS)
+			throw std::runtime_error("Failed to get swapchain images");
+
+		create(
+			imageCount,
+			Image::Builder()
+				.withDevice(device)
+				.withImageType(VK_IMAGE_TYPE_2D)
+				.withFormat(vkCreateInfo.imageFormat)
+				.withExtent(VkExtent3D{
+					.width = vkCreateInfo.imageExtent.width,
+					.height = vkCreateInfo.imageExtent.height,
+					.depth = 1u,
+					})
+					.withMipLevels(1u)
+				.withArrayLayers(vkCreateInfo.imageArrayLayers)
+				.withSamples({})
+				.withTiling({})
+				.withUsage(vkCreateInfo.imageUsage)
+				.withSharingMode(vkCreateInfo.imageSharingMode)
+				.withInitialLayout({})
+				.withQueueFamilyIndices(queueFamilyIndices),
+			ImageView::Builder()
+				.withViewType(VK_IMAGE_VIEW_TYPE_2D)
+				.withSubresourceRange({
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1,
+					}),
+			vkImages
+		);
+	}
+	SwapchainResources(
+		uint32_t imageCount,
+		Image::Builder& imageBuilderBase,
+		ImageView::Builder& imageViewBuilderBase,
+		std::span<const VkImage> vkImages
+	)
+	{
+		create(imageCount, imageBuilderBase, imageViewBuilderBase, vkImages);
+	}
+	~SwapchainResources() noexcept = default;
+
+	SwapchainResources(const SwapchainResources&) = delete;
+	SwapchainResources& operator=(const SwapchainResources&) = delete;
+	SwapchainResources(SwapchainResources&& other) noexcept
+		: images(std::move(other.images))
+		, imageViews(std::move(other.imageViews))
+	{
+	}
+	SwapchainResources& operator=(SwapchainResources&& other) noexcept
+	{
+		images = std::move(other.images);
+		imageViews = std::move(other.imageViews);
+		return *this;
+	}
+
+private:
+	void create(
+		uint32_t imageCount,
+		Image::Builder& imageBuilderBase,
+		ImageView::Builder& imageViewBuilderBase,
+		std::span<const VkImage> vkImages
+	)
+	{
+		images.reserve(imageCount);
+		for (uint32_t i = 0; i < imageCount; ++i)
+			images.emplace_builder(imageBuilderBase.clone(), vkImages[i]);
+		imageViews.reserve(imageCount);
+		for (uint32_t i = 0; i < imageCount; ++i)
+			imageViews.emplace_builder(imageViewBuilderBase.clone().withImage(images[i]));
+	}
 };
 
 void SwapchainKHR::onCreate(data_t& data)
@@ -61,52 +146,59 @@ void SwapchainKHR::onCreate(data_t& data)
 			"Failed to create VkSwapchainKHR", "Check Builder settings");
 	}
 
+	try
 	{
-		auto result = data.pDevice->getSwapchainImagesKHR(data.vkHandle, &data.imageCount, nullptr);
-		snassert(result == VK_SUCCESS,
-			"Failed to get swapchain images", "Check builder settings");
-	}
+		m_pResources = new SwapchainResources(*data.pDevice, data.vkHandle, data.vkCreateInfo, data.queueFamilyIndices);
 
-	std::vector<VkImage> vkImages(data.imageCount);
-	{
-		auto result = data.pDevice->getSwapchainImagesKHR(data.vkHandle, &data.imageCount, vkImages.data());
-		snassert(result == VK_SUCCESS,
-			"Failed to get swapchain images", "Check builder settings");
+		//uint32_t imageCount = 0;
+		//{
+		//	auto result = data.pDevice->getSwapchainImagesKHR(data.vkHandle, &imageCount, nullptr);
+		//	snassert(result == VK_SUCCESS,
+		//		"Failed to get swapchain images", "Check builder settings");
+		//}
+		//
+		//std::vector<VkImage> vkImages(imageCount);
+		//{
+		//	auto result = data.pDevice->getSwapchainImagesKHR(data.vkHandle, &imageCount, vkImages.data());
+		//	snassert(result == VK_SUCCESS,
+		//		"Failed to get swapchain images", "Check builder settings");
+		//}
+		//
+		//m_pResources = new SwapchainResources{
+		//	imageCount,
+		//	Image::Builder()
+		//		.withDevice(*data.pDevice)
+		//		.withImageType(VK_IMAGE_TYPE_2D)
+		//		.withFormat(data.vkCreateInfo.imageFormat)
+		//		.withExtent(VkExtent3D{
+		//			.width = data.vkCreateInfo.imageExtent.width,
+		//			.height = data.vkCreateInfo.imageExtent.height,
+		//			.depth = 1u,
+		//			})
+		//		.withMipLevels(1u)
+		//		.withArrayLayers(data.vkCreateInfo.imageArrayLayers)
+		//		.withSamples({})
+		//		.withTiling({})
+		//		.withUsage(data.vkCreateInfo.imageUsage)
+		//		.withSharingMode(data.vkCreateInfo.imageSharingMode)
+		//		.withInitialLayout({})
+		//		.withQueueFamilyIndices(data.queueFamilyIndices),
+		//	ImageView::Builder()
+		//		.withViewType(VK_IMAGE_VIEW_TYPE_2D)
+		//		.withSubresourceRange({
+		//			.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+		//			.baseMipLevel = 0,
+		//			.levelCount = 1,
+		//			.baseArrayLayer = 0,
+		//			.layerCount = 1,
+		//			}),
+		//	vkImages
+		//};
 	}
-
-	data.pImages = static_cast<Image*>(::operator new(data.imageCount * sizeof(Image)));
-	data.pImageViews = static_cast<ImageView*>(::operator new(data.imageCount * sizeof(ImageView)));
-	for (size_t i = 0; i < data.imageCount; ++i)
+	catch (...)
 	{
-		new (&data.pImages[i]) Image(Image::Builder()
-			.withDevice(*data.pDevice)
-			.withImageType(VK_IMAGE_TYPE_2D)
-			.withFormat(data.vkCreateInfo.imageFormat)
-			.withExtent(VkExtent3D{
-				.width = data.vkCreateInfo.imageExtent.width,
-				.height = data.vkCreateInfo.imageExtent.height,
-				.depth = 1u,
-				})
-			.withMipLevels(1u)
-			.withArrayLayers(data.vkCreateInfo.imageArrayLayers)
-			.withSamples({})
-			.withTiling({})
-			.withUsage(data.vkCreateInfo.imageUsage)
-			.withSharingMode(data.vkCreateInfo.imageSharingMode)
-			.withInitialLayout({})
-			.withQueueFamilyIndices(data.queueFamilyIndices)
-			.build(vkImages[i]));
-		new (&data.pImageViews[i]) ImageView(ImageView::Builder()
-			.withImage(data.pImages[i])
-			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
-			.withSubresourceRange({
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1,
-				})
-			.build());
+		data.pDevice->destroySwapchainKHR(data.vkHandle, data.vkPAllocator);
+		throw;
 	}
 
 	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
@@ -115,18 +207,12 @@ void SwapchainKHR::onCreate(data_t& data)
 }
 void SwapchainKHR::onDestroy(data_t& data) noexcept
 {
-	for (size_t i = 0; i < data.imageCount; ++i)
-	{
-		data.pImageViews[i].~ImageView();
-		data.pImages[i].~Image();
-	}
-	::operator delete(data.pImageViews);
-	::operator delete(data.pImages);
+	delete m_pResources;
 
 	data.pDevice->destroySwapchainKHR(data.vkHandle, data.vkPAllocator);
 
-	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
-		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
+	if (data.pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
+		*data.pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
 		<< "[trace]: SwapchainKHR 0x" << std::hex << this << std::dec << " destroyed" << std::endl;
 }
 
@@ -134,15 +220,16 @@ SwapchainKHR::SwapchainKHR(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 SwapchainKHR::SwapchainKHR(data_t*& pData, VkSwapchainKHR view)
 	: m_pData(pData)
 	, m_isView(true)
+	, m_pResources(new SwapchainResources(*m_pData->pDevice, view, m_pData->vkCreateInfo, m_pData->queueFamilyIndices))
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === SwapchainKHR : public ===
@@ -158,30 +245,50 @@ SwapchainKHR::~SwapchainKHR() noexcept
 
 bool SwapchainKHR::recreate()
 {
+	VkSwapchainKHR oldVkSwapchain = m_pData->vkHandle;
+	m_pData->vkCreateInfo.oldSwapchain = oldVkSwapchain;
+
 	auto capabilities = m_pData->pDevice->getPhysicalDevice().getSurfaceCapabilities(m_pData->pSurfaceKHR->vkHandle());
-	if (capabilities.currentExtent.width == 0 || capabilities.currentExtent.height == 0) return false;
+	if (capabilities.currentExtent.width == 0
+		|| capabilities.currentExtent.height == 0
+		) return false;
 
 	uint32_t imageCount = capabilities.minImageCount + 1u;
-	if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) imageCount = capabilities.maxImageCount;
-
-	VkSwapchainKHR oldVkSwapchain = m_pData->vkHandle;
+	if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount)
+		imageCount = capabilities.maxImageCount;
 	m_pData->vkCreateInfo.minImageCount = imageCount;
 	m_pData->vkCreateInfo.imageExtent = capabilities.currentExtent;
 	m_pData->vkCreateInfo.preTransform = capabilities.currentTransform;
-	m_pData->vkCreateInfo.oldSwapchain = oldVkSwapchain;
 
-
-	for (size_t i = 0; i < m_pData->imageCount; ++i)
+	/*            _
+				  \`*-.
+				   )  _`-.
+				  .  : `. .
+				  : _   '  \
+				  ; *` _.   `*-._
+				  `-.-'          `-.
+					;       `       `.
+					:.       .        \
+					. \  .   :   .-'   .
+					'  `+.;  ;  '      :
+					:  '  |    ;       ;-.
+	[this piece]	; '   : :`-:     _.`* ;
+	[ of  shit ] .*' /  .*' ; .*`- +'  `*'
+	             `*-*   `*-*  `*-*/
+	try
 	{
-		m_pData->pImageViews[i].~ImageView();
-		m_pData->pImages[i].~Image();
+		SwapchainKHR newSwapchain(m_pData);
+		std::swap(/* nullptr */ m_pData, newSwapchain.m_pData);
+		std::swap(m_pData->vkHandle, oldVkSwapchain);
+		onDestroy(*m_pData);
+		std::swap(oldVkSwapchain, m_pData->vkHandle);
+		std::swap(newSwapchain.m_pResources, m_pResources);
 	}
-	::operator delete(m_pData->pImageViews);
-	::operator delete(m_pData->pImages);
-
-	onCreate(*m_pData);
-
-	m_pData->pDevice->destroySwapchainKHR(oldVkSwapchain, m_pData->vkPAllocator);
+	catch (...)
+	{
+		m_pData->vkHandle = oldVkSwapchain;
+		throw;
+	}
 
 	return true;
 }
@@ -195,30 +302,8 @@ uint32_t SwapchainKHR::getMinImageCount() const noexcept { return m_pData->vkCre
 VkExtent2D SwapchainKHR::getImageExtent() const noexcept { return m_pData->vkCreateInfo.imageExtent; }
 VkSurfaceTransformFlagBitsKHR SwapchainKHR::getPreTransform() const noexcept { return m_pData->vkCreateInfo.preTransform; }
 
-std::span<const Image> SwapchainKHR::getImages() const noexcept { return { m_pData->pImages, m_pData->imageCount }; }
-std::span<const ImageView> SwapchainKHR::getImageViews() const noexcept { return { m_pData->pImageViews, m_pData->imageCount }; }
-
-SwapchainKHR::SwapchainKHR(SwapchainKHR&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-SwapchainKHR& SwapchainKHR::operator=(SwapchainKHR&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
-}
+std::span<const Image> SwapchainKHR::getImages() const noexcept { return m_pResources->images; }
+std::span<const ImageView> SwapchainKHR::getImageViews() const noexcept { return m_pResources->imageViews; }
 
 VkSwapchainKHR SwapchainKHR::vkHandle() const noexcept { return m_pData->vkHandle; }
 SwapchainKHR::operator VkSwapchainKHR() const noexcept { return m_pData->vkHandle; }

@@ -31,11 +31,17 @@ namespace sn::voxeng::vk
 
 		Image(const Image&) = delete;
 		Image& operator=(const Image&) = delete;
-		Image(Image&& other) noexcept;
-		Image& operator=(Image&& other) noexcept;
+		Image(Image&&) = delete;
+		Image& operator=(Image&&) = delete;
 
 		VkImage vkHandle() const noexcept;
 		operator VkImage() const noexcept;
+
+		VmaAllocation vmaHandle() const noexcept;
+		operator VmaAllocation() const noexcept;
+
+		VmaAllocationInfo vmaHandleInfo() const noexcept;
+		operator VmaAllocationInfo() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;

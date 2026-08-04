@@ -130,6 +130,7 @@
     <ClInclude Include="snvoxeng\Renderer.hpp" />
     <ClInclude Include="snvoxeng\ShaderCompiler.hpp" />
     <ClInclude Include="snvoxeng\ShaderStages.hpp" />
+    <ClInclude Include="snvoxeng\utils\dumb_vector.hpp" />
     <ClInclude Include="snvoxeng\utils\vk-getSType.hpp" />
     <ClInclude Include="snvoxeng\vk\Buffer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffer.hpp" />

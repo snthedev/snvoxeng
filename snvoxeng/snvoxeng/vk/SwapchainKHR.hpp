@@ -19,6 +19,9 @@ namespace sn::voxeng::vk
 		struct data_t;
 		data_t* m_pData;
 
+		struct SwapchainResources;
+		SwapchainResources* m_pResources;
+
 		void onCreate(data_t& data);
 		void onDestroy(data_t& data) noexcept;
 
@@ -43,8 +46,8 @@ namespace sn::voxeng::vk
 
 		SwapchainKHR(const SwapchainKHR&) = delete;
 		SwapchainKHR& operator=(const SwapchainKHR&) = delete;
-		SwapchainKHR(SwapchainKHR&& other) noexcept;
-		SwapchainKHR& operator=(SwapchainKHR&& other) noexcept;
+		SwapchainKHR(SwapchainKHR&&) = delete;
+		SwapchainKHR& operator=(SwapchainKHR&&) = delete;
 
 		VkSwapchainKHR vkHandle() const noexcept;
 		operator VkSwapchainKHR() const noexcept;

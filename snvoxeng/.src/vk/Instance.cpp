@@ -117,15 +117,15 @@ Instance::Instance(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 Instance::Instance(data_t*& pData, VkInstance view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === Instance : public ===
@@ -142,28 +142,6 @@ Instance::~Instance() noexcept
 VkResult Instance::enumeratePhysicalDevices(uint32_t* pPhysicalDeviceCount, VkPhysicalDevice* pPhysicalDevices) const
 {
 	return vkEnumeratePhysicalDevices(vkHandle(), pPhysicalDeviceCount, pPhysicalDevices);
-}
-
-Instance::Instance(Instance&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-Instance& Instance::operator=(Instance&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
 }
 
 VkInstance Instance::vkHandle() const noexcept { return m_pData->vkHandle; }

@@ -74,15 +74,15 @@ CommandBuffersContainer::CommandBuffersContainer(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 CommandBuffersContainer::CommandBuffersContainer(data_t*& pData, std::span<const VkCommandBuffer> view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = { view.begin(), view.end() };
+	pData = nullptr;
 }
 
 // === CommandBuffersContainer : public ===
@@ -100,28 +100,6 @@ CommandBuffer CommandBuffersContainer::get(size_t idx) const { return CommandBuf
 CommandBuffer CommandBuffersContainer::first() const { return CommandBuffer(*this, 0); }
 CommandBuffer CommandBuffersContainer::last() const { return CommandBuffer(*this, count() - 1u); }
 size_t CommandBuffersContainer::count() const noexcept { return m_pData->vkHandle.size(); }
-
-CommandBuffersContainer::CommandBuffersContainer(CommandBuffersContainer&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-CommandBuffersContainer& CommandBuffersContainer::operator=(CommandBuffersContainer&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
-}
 
 std::span<const VkCommandBuffer> CommandBuffersContainer::vkHandle() const noexcept { return m_pData->vkHandle; }
 VkCommandBuffer CommandBuffersContainer::vkHandle(size_t idx) const noexcept { return m_pData->vkHandle[idx]; }

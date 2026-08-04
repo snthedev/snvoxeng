@@ -349,21 +349,24 @@ int main()
 		descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
 
 		// Main cycle
+		bool is_swapchain_recreate_needeed{ false };
 		while (!glfwWindowShouldClose(pWindow))
 		{
 			glfwPollEvents();
+			if (is_swapchain_recreate_needeed && renderer.recreateSwapchainKHR())
+			{
+				is_swapchain_recreate_needeed = false;
+				descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+				push_constants.resolution = {
+					static_cast<float>(renderer.getCanvasImage().getExtent().width),
+					static_cast<float>(renderer.getCanvasImage().getExtent().height),
+				};
+			}
 
 			auto frame_context = renderer.beginFrame();
 			if (!frame_context.has_value())
 			{
-				if (renderer.recreateSwapchainKHR())
-				{
-					descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
-					push_constants.resolution = {
-						static_cast<float>(renderer.getCanvasImage().getExtent().width),
-						static_cast<float>(renderer.getCanvasImage().getExtent().height),
-					};
-				}
+				is_swapchain_recreate_needeed = true;
 				continue;
 			}
 
@@ -431,14 +434,7 @@ int main()
 
 			if (!renderer.endFrame(frame_context->imageIndex))
 			{
-				if (renderer.recreateSwapchainKHR())
-				{
-					descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
-					push_constants.resolution = {
-						static_cast<float>(renderer.getCanvasImage().getExtent().width),
-						static_cast<float>(renderer.getCanvasImage().getExtent().height),
-					};
-				}
+				is_swapchain_recreate_needeed = true;
 				continue;
 			}
 

@@ -31,8 +31,8 @@ namespace sn::voxeng::vk
 
 		Instance(const Instance&) = delete;
 		Instance& operator=(const Instance&) = delete;
-		Instance(Instance&& other) noexcept;
-		Instance& operator=(Instance&& other) noexcept;
+		Instance(Instance&&) = delete;
+		Instance& operator=(Instance&&) = delete;
 
 		VkInstance vkHandle() const noexcept;
 		operator VkInstance() const noexcept;

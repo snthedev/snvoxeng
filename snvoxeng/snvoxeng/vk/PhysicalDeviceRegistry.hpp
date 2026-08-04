@@ -25,6 +25,11 @@ namespace sn::voxeng::vk
 		explicit PhysicalDeviceRegistry(const Instance& instance);
 		~PhysicalDeviceRegistry() noexcept;
 
+		PhysicalDeviceRegistry(const PhysicalDeviceRegistry&) = delete;
+		PhysicalDeviceRegistry& operator=(const PhysicalDeviceRegistry&) = delete;
+		PhysicalDeviceRegistry(PhysicalDeviceRegistry&&) = delete;
+		PhysicalDeviceRegistry& operator=(PhysicalDeviceRegistry&&) = delete;
+
 		const VkPhysicalDeviceProperties& getProperties(size_t idx) const noexcept;
 		const VkPhysicalDeviceFeatures& getFeatures(size_t idx) const noexcept;
 		const VkPhysicalDeviceMemoryProperties& getMemoryProperties(size_t idx) const noexcept;

@@ -32,8 +32,8 @@ namespace sn::voxeng::vk
 
 		Fence(const Fence&) = delete;
 		Fence& operator=(const Fence&) = delete;
-		Fence(Fence&& other) noexcept;
-		Fence& operator=(Fence&& other) noexcept;
+		Fence(Fence&&) = delete;
+		Fence& operator=(Fence&&) = delete;
 
 		VkFence vkHandle() const noexcept;
 		operator VkFence() const noexcept;

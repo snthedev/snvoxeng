@@ -33,8 +33,8 @@ namespace sn::voxeng::vk
 
 		CommandPool(const CommandPool&) = delete;
 		CommandPool& operator=(const CommandPool&) = delete;
-		CommandPool(CommandPool&& other) noexcept;
-		CommandPool& operator=(CommandPool&& other) noexcept;
+		CommandPool(CommandPool&&) = delete;
+		CommandPool& operator=(CommandPool&&) = delete;
 
 		VkCommandPool vkHandle() const noexcept;
 		operator VkCommandPool() const noexcept;

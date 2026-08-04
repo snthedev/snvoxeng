@@ -112,12 +112,16 @@ namespace sn::voxeng::vk
 
 		// === VMA Ext ===
 
+		VkResult createImage(const VkImageCreateInfo* pImageCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, VkImage* pImage, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo) const;
+		void destroyImage(VkImage image, VmaAllocation allocation) const;
 
+		VkResult createBuffer(const VkBufferCreateInfo* pBufferCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, VkBuffer* pBuffer, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo) const;
+		void destroyBuffer(VkBuffer buffer, VmaAllocation allocation) const;
 
 		Device(const Device&) = delete;
 		Device& operator=(const Device&) = delete;
-		Device(Device&& other) noexcept;
-		Device& operator=(Device&& other) noexcept;
+		Device(Device&&) = delete;
+		Device& operator=(Device&&) = delete;
 
 		std::span<const VkQueue> vkQueueHandle() const noexcept;
 		VkQueue vkQueueHandle(size_t idx) const noexcept;

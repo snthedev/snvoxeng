@@ -17,6 +17,7 @@
 #include <snvoxeng/snvoxeng/vk/Fence.hpp>
 
 #include <memory>
+#include <snvoxeng/snvoxeng/utils/dumb_vector.hpp>
 
 using namespace sn::voxeng;
 
@@ -38,25 +39,63 @@ struct Renderer::data_t
 	vk::SwapchainKHR m_swapchainKHR;
 	size_t c_swapchainKHR_image_count;
 
-	// --- Canvas Image ---
-	vk::Image m_canvasImage;
-	vk::DeviceMemory m_canvasImageMemory;
-	vk::ImageView m_canvasImageView;
+	// --- Frame Resources ---
+	struct FrameResources
+	{
+		vk::Image canvasImage;
+		vk::ImageView canvasImageView;
+
+		FrameResources(const vk::Device& device, VkExtent3D extent)
+			: canvasImage(vk::Image::Builder()
+				.withDevice(device)
+				.withImageType(VK_IMAGE_TYPE_2D)
+				.withFormat(VK_FORMAT_R8G8B8A8_UNORM)
+				.withExtent(extent)
+				.withMipLevels(1u)
+				.withArrayLayers(1u)
+				.withSamples(VK_SAMPLE_COUNT_1_BIT)
+				.withTiling(VK_IMAGE_TILING_OPTIMAL)
+				.withUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+				.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
+				.withInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
+				.build())
+			, canvasImageView(vk::ImageView::Builder()
+				.withImage(canvasImage)
+				.withViewType(VK_IMAGE_VIEW_TYPE_2D)
+				.withSubresourceRange({
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1
+					})
+				.build()
+			)
+		{
+		}
+		~FrameResources() noexcept = default;
+
+		FrameResources(const FrameResources&) = delete;
+		FrameResources& operator=(const FrameResources&) = delete;
+		FrameResources(FrameResources&&) = delete;
+		FrameResources& operator=(FrameResources&&) = delete;
+	};
+	std::unique_ptr<FrameResources> m_upFrameResources;
 
 	// --- Command Pools & Buffers ---
 	vk::CommandPool m_computeCommandPool;
 	vk::CommandBuffersContainer m_computeCommandBuffersContainer;
-	std::vector<vk::CommandBuffer> m_computeCommandBuffers;
+	dumb_vector<vk::CommandBuffer> m_computeCommandBuffers;
 
 	vk::CommandPool m_graphicsCommandPool;
 	vk::CommandBuffersContainer m_graphicsCommandBuffersContainer;
-	std::vector<vk::CommandBuffer> m_graphicsCommandBuffers;
+	dumb_vector<vk::CommandBuffer> m_graphicsCommandBuffers;
 
 	// --- Sync ---
-	std::vector<vk::Semaphore> m_imageAvailableSemaphores;
-	std::vector<vk::Semaphore> m_computeFinishedSemaphores;
-	std::vector<vk::Semaphore> m_renderFinishedSemaphores;
-	std::vector<vk::Fence> m_inFlightFences;
+	dumb_vector<vk::Semaphore> m_imageAvailableSemaphores;
+	dumb_vector<vk::Semaphore> m_computeFinishedSemaphores;
+	dumb_vector<vk::Semaphore> m_renderFinishedSemaphores;
+	dumb_vector<vk::Fence> m_inFlightFences;
 
 	void recordCopyCanvasToSwapchain(vk::CommandBuffer& graphicsCmd, uint32_t imageIndex) const
 	{
@@ -72,7 +111,7 @@ struct Renderer::data_t
 		barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 		barriers[0].srcQueueFamilyIndex = m_computeQueueFamilyIndex;
 		barriers[0].dstQueueFamilyIndex = m_graphicsQueueFamilyIndex;
-		barriers[0].image = m_canvasImage.vkHandle();
+		barriers[0].image = m_upFrameResources->canvasImage.vkHandle();
 		barriers[0].subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 
 		// Swapchain Image: UNDEFINED -> TRANSFER_DST
@@ -102,7 +141,7 @@ struct Renderer::data_t
 		};
 
 		graphicsCmd.cmdCopyImage(
-			m_canvasImage.vkHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			m_upFrameResources->canvasImage.vkHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			currentSwapchainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			{ &copyRegion, 1 }
 		);
@@ -150,49 +189,10 @@ public:
 			.withImageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 			.build())
 		, c_swapchainKHR_image_count(m_swapchainKHR.getImages().size())
-		// --- Canvas Image ---
-		, m_canvasImage(vk::Image::Builder()
-			.withDevice(*m_pDevice)
-			.withImageType(VK_IMAGE_TYPE_2D)
-			.withFormat(VK_FORMAT_R8G8B8A8_UNORM)
-			.withExtent({ m_swapchainKHR.getImageExtent().width, m_swapchainKHR.getImageExtent().height, 1u })
-			.withMipLevels(1u)
-			.withArrayLayers(1u)
-			.withSamples(VK_SAMPLE_COUNT_1_BIT)
-			.withTiling(VK_IMAGE_TILING_OPTIMAL)
-			.withUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-			.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
-			.withInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
-			.build())
-		, m_canvasImageMemory(
-			[&]() -> vk::DeviceMemory {
-				auto image_mem_req = m_canvasImage.getMemoryRequirements();
-				auto image_mem_type = m_pDevice->getPhysicalDevice().findMemoryType(
-					image_mem_req.memoryTypeBits,
-					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-				);
-				if (image_mem_type == vk::PhysicalDevice::nmatch)
-					throw std::runtime_error("Failed to find requested GPU's memory");
-
-				auto image_memory = vk::DeviceMemory::Builder()
-					.withDevice(*m_pDevice)
-					.withAllocationSize(image_mem_req.size)
-					.withMemoryTypeIndex(image_mem_type)
-					.build();
-				image_memory.bindImage(m_canvasImage, 0);
-				return image_memory;
-			}())
-		, m_canvasImageView(vk::ImageView::Builder()
-			.withImage(m_canvasImage)
-			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
-			.withSubresourceRange({
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1
-				})
-			.build())
+		// --- Frame Resources ---
+		, m_upFrameResources(std::make_unique<FrameResources>(
+			*m_pDevice, VkExtent3D{ m_swapchainKHR.getImageExtent().width, m_swapchainKHR.getImageExtent().height, 1u }
+		))
 		// --- Command Pools & Buffers ---
 		, m_computeCommandPool(vk::CommandPool::Builder()
 			.withDevice(*m_pDevice)
@@ -212,8 +212,8 @@ public:
 		m_graphicsCommandBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
-			m_computeCommandBuffers.push_back(m_computeCommandBuffersContainer.get(i));
-			m_graphicsCommandBuffers.push_back(m_graphicsCommandBuffersContainer.get(i));
+			m_computeCommandBuffers.emplace_back(m_computeCommandBuffersContainer.get(i));
+			m_graphicsCommandBuffers.emplace_back(m_graphicsCommandBuffersContainer.get(i));
 		}
 
 		// --- Sync ---
@@ -222,24 +222,24 @@ public:
 		m_inFlightFences.reserve(MAX_FRAMES_IN_FLIGHT);
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i)
 		{
-			m_imageAvailableSemaphores.push_back(vk::Semaphore::Builder()
+			m_imageAvailableSemaphores.emplace_builder(vk::Semaphore::Builder()
 				.withDevice(*m_pDevice)
-				.build());
-			m_computeFinishedSemaphores.push_back(vk::Semaphore::Builder()
+				);
+			m_computeFinishedSemaphores.emplace_builder(vk::Semaphore::Builder()
 				.withDevice(*m_pDevice)
-				.build());
-			m_inFlightFences.push_back(vk::Fence::Builder()
+				);
+			m_inFlightFences.emplace_builder(vk::Fence::Builder()
 				.withDevice(*m_pDevice)
 				.withFlags(VK_FENCE_CREATE_SIGNALED_BIT)
-				.build());
+				);
 		}
 
 		m_renderFinishedSemaphores.reserve(c_swapchainKHR_image_count);
 		for (size_t i = 0; i < c_swapchainKHR_image_count; ++i)
 		{
-			m_renderFinishedSemaphores.push_back(vk::Semaphore::Builder()
+			m_renderFinishedSemaphores.emplace_builder(vk::Semaphore::Builder()
 				.withDevice(*m_pDevice)
-				.build());
+				);
 		}
 	}
 	~data_t() noexcept = default;
@@ -250,61 +250,19 @@ public:
 		m_pDevice->waitIdle();
 		if (!m_swapchainKHR.recreate()) return false;
 
-		m_canvasImageView.~ImageView();
-		m_canvasImageMemory.~DeviceMemory();
-		m_canvasImage.~Image();
-
-		new (&m_canvasImage) vk::Image(vk::Image::Builder()
-			.withDevice(*m_pDevice)
-			.withImageType(VK_IMAGE_TYPE_2D)
-			.withFormat(VK_FORMAT_R8G8B8A8_UNORM)
-			.withExtent({ m_swapchainKHR.getImageExtent().width, m_swapchainKHR.getImageExtent().height, 1u })
-			.withMipLevels(1u)
-			.withArrayLayers(1u)
-			.withSamples(VK_SAMPLE_COUNT_1_BIT)
-			.withTiling(VK_IMAGE_TILING_OPTIMAL)
-			.withUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
-			.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
-			.withInitialLayout(VK_IMAGE_LAYOUT_UNDEFINED)
-			.build());
-
-		auto image_mem_req = m_canvasImage.getMemoryRequirements();
-		auto image_mem_type = m_pDevice->getPhysicalDevice().findMemoryType(
-			image_mem_req.memoryTypeBits,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-		);
-		if (image_mem_type == vk::PhysicalDevice::nmatch)
-			throw std::runtime_error("Failed to find requested GPU's memory");
-
-		new (&m_canvasImageMemory) vk::DeviceMemory(vk::DeviceMemory::Builder()
-			.withDevice(*m_pDevice)
-			.withAllocationSize(image_mem_req.size)
-			.withMemoryTypeIndex(image_mem_type)
-			.build());
-		m_canvasImageMemory.bindImage(m_canvasImage, 0);
-
-		new (&m_canvasImageView) vk::ImageView(vk::ImageView::Builder()
-			.withImage(m_canvasImage)
-			.withViewType(VK_IMAGE_VIEW_TYPE_2D)
-			.withSubresourceRange({
-				.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-				.baseMipLevel = 0,
-				.levelCount = 1,
-				.baseArrayLayer = 0,
-				.layerCount = 1
-				})
-			.build());
+		m_upFrameResources = std::make_unique<FrameResources>(
+			*m_pDevice, VkExtent3D{ m_swapchainKHR.getImageExtent().width, m_swapchainKHR.getImageExtent().height, 1u }
+			);
 
 		if (c_swapchainKHR_image_count != m_swapchainKHR.getImages().size())
 		{
 			c_swapchainKHR_image_count = m_swapchainKHR.getImages().size();
-			m_renderFinishedSemaphores.clear();
 			m_renderFinishedSemaphores.reserve(c_swapchainKHR_image_count);
 			for (size_t i = 0; i < c_swapchainKHR_image_count; ++i)
 			{
-				m_renderFinishedSemaphores.push_back(vk::Semaphore::Builder()
+				m_renderFinishedSemaphores.emplace_builder(vk::Semaphore::Builder()
 					.withDevice(*m_pDevice)
-					.build());
+					);
 			}
 		}
 
@@ -444,12 +402,12 @@ public:
 
 
 	inline const vk::SwapchainKHR& getSwapchain() const noexcept { return m_swapchainKHR; }
-	inline const vk::Image& getCanvasImage() const noexcept { return m_canvasImage; }
-	inline const vk::ImageView& getCanvasImageView() const noexcept { return m_canvasImageView; }
+	inline const vk::Image& getCanvasImage() const noexcept { return m_upFrameResources->canvasImage; }
+	inline const vk::ImageView& getCanvasImageView() const noexcept { return m_upFrameResources->canvasImageView; }
 
 	inline vk::SwapchainKHR& getSwapchain() noexcept { return m_swapchainKHR; }
-	inline vk::Image& getCanvasImage() noexcept { return m_canvasImage; }
-	inline vk::ImageView& getCanvasImageView() noexcept { return m_canvasImageView; }
+	inline vk::Image& getCanvasImage() noexcept { return m_upFrameResources->canvasImage; }
+	inline vk::ImageView& getCanvasImageView() noexcept { return m_upFrameResources->canvasImageView; }
 };
 
 Renderer::Renderer(

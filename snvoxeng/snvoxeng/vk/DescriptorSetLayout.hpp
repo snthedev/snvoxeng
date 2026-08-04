@@ -29,8 +29,8 @@ namespace sn::voxeng::vk
 
 		DescriptorSetLayout(const DescriptorSetLayout&) = delete;
 		DescriptorSetLayout& operator=(const DescriptorSetLayout&) = delete;
-		DescriptorSetLayout(DescriptorSetLayout&& other) noexcept;
-		DescriptorSetLayout& operator=(DescriptorSetLayout&& other) noexcept;
+		DescriptorSetLayout(DescriptorSetLayout&&) = delete;
+		DescriptorSetLayout& operator=(DescriptorSetLayout&&) = delete;
 
 		VkDescriptorSetLayout vkHandle() const noexcept;
 		operator VkDescriptorSetLayout() const noexcept;

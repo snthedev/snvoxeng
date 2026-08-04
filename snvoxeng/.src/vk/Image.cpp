@@ -18,7 +18,7 @@ namespace default_values
 struct Image::data_t
 {
 	VkImageCreateInfo vkCreateInfo{ .sType{ ::sn::voxeng::utils::vk::getSType<VkImageCreateInfo>() } };
-	// here is your subdata structs
+	VmaAllocationCreateInfo vmaCreateInfo{};
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 	DETAIL_SNBCG_MACRO_ISEMPTY(subdata, store_t name;, )
@@ -44,12 +44,16 @@ struct Image::data_t
 	}
 
 	VkImage vkHandle{ VK_NULL_HANDLE };
+	VmaAllocation vmaHandle{ VK_NULL_HANDLE };
+	VmaAllocationInfo vmaHandleInfo{};
 };
 
 void Image::onCreate(data_t& data)
 {
 	{
-		auto result = data.pDevice->createImage(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle);
+		auto result = data.isMemoryAllocationDeferred
+			? data.pDevice->createImage(&data.vkCreateInfo, data.vkPAllocator, &data.vkHandle)
+			: data.pDevice->createImage(&data.vkCreateInfo, &data.vmaCreateInfo, &data.vkHandle, &data.vmaHandle, &data.vmaHandleInfo);
 		snassert(result == VK_SUCCESS,
 			"Failed to create VkImage", "Check builder settings");
 	}
@@ -60,7 +64,9 @@ void Image::onCreate(data_t& data)
 }
 void Image::onDestroy(data_t& data) noexcept
 {
-	data.pDevice->destroyImage(data.vkHandle, data.vkPAllocator);
+	data.isMemoryAllocationDeferred
+		? data.pDevice->destroyImage(data.vkHandle, data.vkPAllocator)
+		: data.pDevice->destroyImage(data.vkHandle, data.vmaHandle);
 
 	if (m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream())
 		*m_pData->pDevice->getPhysicalDevice().getRegistry().getInstance().getDebugStream()
@@ -71,16 +77,16 @@ Image::Image(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 
 Image::Image(data_t*& pData, VkImage view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === Image : public ===
@@ -101,30 +107,14 @@ VkMemoryRequirements Image::getMemoryRequirements() const
 	return result;
 }
 
-Image::Image(Image&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-Image& Image::operator=(Image&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
-}
-
 VkImage Image::vkHandle() const noexcept { return m_pData->vkHandle; }
 Image::operator VkImage() const noexcept { return m_pData->vkHandle; }
+
+VmaAllocation Image::vmaHandle() const noexcept { return m_pData->vmaHandle; }
+Image::operator VmaAllocation() const noexcept { return m_pData->vmaHandle; }
+
+VmaAllocationInfo Image::vmaHandleInfo() const noexcept { return m_pData->vmaHandleInfo; }
+Image::operator VmaAllocationInfo() const noexcept { return m_pData->vmaHandleInfo; }
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 DETAIL_##return_policy##_t(store_t) Image::get##Name() const noexcept { std::add_lvalue_reference_t<std::add_const_t<store_t>> val = m_pData->subdata name; return return_policy; }

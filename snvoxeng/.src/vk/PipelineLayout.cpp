@@ -68,15 +68,15 @@ PipelineLayout::PipelineLayout(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 PipelineLayout::PipelineLayout(data_t*& pData, VkPipelineLayout view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === PipelineLayout : public ===
@@ -88,28 +88,6 @@ PipelineLayout::~PipelineLayout() noexcept
 		delete m_pData;
 		m_pData = nullptr;
 	}
-}
-
-PipelineLayout::PipelineLayout(PipelineLayout&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-PipelineLayout& PipelineLayout::operator=(PipelineLayout&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
 }
 
 VkPipelineLayout PipelineLayout::vkHandle() const noexcept { return m_pData->vkHandle; }

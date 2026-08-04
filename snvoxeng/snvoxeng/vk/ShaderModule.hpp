@@ -29,8 +29,8 @@ namespace sn::voxeng::vk
 
 		ShaderModule(const ShaderModule&) = delete;
 		ShaderModule& operator=(const ShaderModule&) = delete;
-		ShaderModule(ShaderModule&& other) noexcept;
-		ShaderModule& operator=(ShaderModule&& other) noexcept;
+		ShaderModule(ShaderModule&&) = delete;
+		ShaderModule& operator=(ShaderModule&&) = delete;
 
 		VkShaderModule vkHandle() const noexcept;
 		operator VkShaderModule() const noexcept;

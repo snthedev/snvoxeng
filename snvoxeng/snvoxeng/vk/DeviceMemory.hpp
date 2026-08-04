@@ -38,8 +38,8 @@ namespace sn::voxeng::vk
 
 		DeviceMemory(const DeviceMemory&) = delete;
 		DeviceMemory& operator=(const DeviceMemory&) = delete;
-		DeviceMemory(DeviceMemory&& other) noexcept;
-		DeviceMemory& operator=(DeviceMemory&& other) noexcept;
+		DeviceMemory(DeviceMemory&&) = delete;
+		DeviceMemory& operator=(DeviceMemory&&) = delete;
 
 		VkDeviceMemory vkHandle() const noexcept;
 		operator VkDeviceMemory() const noexcept;

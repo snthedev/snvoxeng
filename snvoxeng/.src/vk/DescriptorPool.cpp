@@ -70,15 +70,15 @@ DescriptorPool::DescriptorPool(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 DescriptorPool::DescriptorPool(data_t*& pData, VkDescriptorPool view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === DescriptorPool : public ===
@@ -90,28 +90,6 @@ DescriptorPool::~DescriptorPool() noexcept
 		delete m_pData;
 		m_pData = nullptr;
 	}
-}
-
-DescriptorPool::DescriptorPool(DescriptorPool&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-DescriptorPool& DescriptorPool::operator=(DescriptorPool&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
 }
 
 VkDescriptorPool DescriptorPool::vkHandle() const noexcept { return m_pData->vkHandle; }

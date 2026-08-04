@@ -133,15 +133,15 @@ Device::Device(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 Device::Device(data_t*& pData, VkDevice view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === Device : public ===
@@ -354,26 +354,24 @@ void Device::destroyBuffer(VkBuffer buffer, const VkAllocationCallbacks* pAlloca
 	vkDestroyBuffer(m_pData->vkHandle, buffer, pAllocator);
 }
 
-Device::Device(Device&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
+// === VMA Ext ===
+
+VkResult Device::createImage(const VkImageCreateInfo* pImageCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, VkImage* pImage, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo) const
 {
-	other.m_pData = nullptr;
+	return vmaCreateImage(m_pData->vmaHandle, pImageCreateInfo, pAllocationCreateInfo, pImage, pAllocation, pAllocationInfo);
 }
-Device& Device::operator=(Device&& other) noexcept
+void Device::destroyImage(VkImage image, VmaAllocation allocation) const
 {
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
+	vmaDestroyImage(m_pData->vmaHandle, image, allocation);
+}
+
+VkResult Device::createBuffer(const VkBufferCreateInfo* pBufferCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, VkBuffer* pBuffer, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo) const
+{
+	return vmaCreateBuffer(m_pData->vmaHandle, pBufferCreateInfo, pAllocationCreateInfo, pBuffer, pAllocation, pAllocationInfo);
+}
+void Device::destroyBuffer(VkBuffer buffer, VmaAllocation allocation) const
+{
+	vmaDestroyBuffer(m_pData->vmaHandle, buffer, allocation);
 }
 
 std::span<const VkQueue> Device::vkQueueHandle() const noexcept { return m_pData->vkQueues; }

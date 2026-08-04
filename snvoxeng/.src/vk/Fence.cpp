@@ -71,15 +71,15 @@ Fence::Fence(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 Fence::Fence(data_t*& pData, VkFence view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === Fence : public ===
@@ -100,28 +100,6 @@ VkResult Fence::wait(uint64_t timeout) const
 VkResult Fence::reset() const
 {
 	return m_pData->pDevice->resetFences(1u, &m_pData->vkHandle);
-}
-
-Fence::Fence(Fence&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-Fence& Fence::operator=(Fence&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
 }
 
 VkFence Fence::vkHandle() const noexcept { return m_pData->vkHandle; }

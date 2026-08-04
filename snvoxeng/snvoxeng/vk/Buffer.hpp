@@ -31,11 +31,17 @@ namespace sn::voxeng::vk
 
 		Buffer(const Buffer&) = delete;
 		Buffer& operator=(const Buffer&) = delete;
-		Buffer(Buffer&& other) noexcept;
-		Buffer& operator=(Buffer&& other) noexcept;
+		Buffer(Buffer&&) = delete;
+		Buffer& operator=(Buffer&&) = delete;
 
 		VkBuffer vkHandle() const noexcept;
 		operator VkBuffer() const noexcept;
+
+		VmaAllocation vmaHandle() const noexcept;
+		operator VmaAllocation() const noexcept;
+
+		VmaAllocationInfo vmaHandleInfo() const noexcept;
+		operator VmaAllocationInfo() const noexcept;
 
 #define SNBCG_REQUIRED(store_t, arg_t, subdata, name, Name, return_policy, store_policy)\
 		DETAIL_##return_policy##_t(store_t) get##Name() const noexcept;

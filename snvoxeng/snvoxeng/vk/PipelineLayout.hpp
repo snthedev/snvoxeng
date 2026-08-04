@@ -29,8 +29,8 @@ namespace sn::voxeng::vk
 
 		PipelineLayout(const PipelineLayout&) = delete;
 		PipelineLayout& operator=(const PipelineLayout&) = delete;
-		PipelineLayout(PipelineLayout&& other) noexcept;
-		PipelineLayout& operator=(PipelineLayout&& other) noexcept;
+		PipelineLayout(PipelineLayout&&) = delete;
+		PipelineLayout& operator=(PipelineLayout&&) = delete;
 
 		VkPipelineLayout vkHandle() const noexcept;
 		operator VkPipelineLayout() const noexcept;

@@ -72,15 +72,15 @@ DeviceMemory::DeviceMemory(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 DeviceMemory::DeviceMemory(data_t*& pData, VkDeviceMemory view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = view;
+	pData = nullptr;
 }
 
 // === DeviceMemory : public ===
@@ -116,28 +116,6 @@ void DeviceMemory::map(VkDeviceSize offset, VkDeviceSize size, VkMemoryMapFlags 
 void DeviceMemory::unmap() const
 {
 	m_pData->pDevice->unmapMemory(m_pData->vkHandle);
-}
-
-DeviceMemory::DeviceMemory(DeviceMemory&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-DeviceMemory& DeviceMemory::operator=(DeviceMemory&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
 }
 
 VkDeviceMemory DeviceMemory::vkHandle() const noexcept { return m_pData->vkHandle; }

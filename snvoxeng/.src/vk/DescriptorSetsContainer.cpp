@@ -73,15 +73,15 @@ DescriptorSetsContainer::DescriptorSetsContainer(data_t*& pData)
 	: m_pData(pData)
 	, m_isView(false)
 {
-	pData = nullptr;
 	onCreate(*m_pData);
+	pData = nullptr;
 }
 DescriptorSetsContainer::DescriptorSetsContainer(data_t*& pData, std::span<const VkDescriptorSet> view)
 	: m_pData(pData)
 	, m_isView(true)
 {
-	pData = nullptr;
 	m_pData->vkHandle = { view.begin(), view.end() };
+	pData = nullptr;
 }
 
 // === DescriptorSetsContainer : public ===
@@ -99,28 +99,6 @@ DescriptorSet DescriptorSetsContainer::get(size_t idx) const { return Descriptor
 DescriptorSet DescriptorSetsContainer::first() const { return DescriptorSet(*this, 0); }
 DescriptorSet DescriptorSetsContainer::last() const { return DescriptorSet(*this, count() - 1u); }
 size_t DescriptorSetsContainer::count() const noexcept { return m_pData->vkHandle.size(); }
-
-DescriptorSetsContainer::DescriptorSetsContainer(DescriptorSetsContainer&& other) noexcept
-	: m_pData(other.m_pData)
-	, m_isView(other.m_isView)
-{
-	other.m_pData = nullptr;
-}
-DescriptorSetsContainer& DescriptorSetsContainer::operator=(DescriptorSetsContainer&& other) noexcept
-{
-	if (this != &other) [[likely]]
-	{
-		if (m_pData)
-		{
-			if (!m_isView) [[likely]] onDestroy(*m_pData);
-			delete m_pData;
-		}
-		m_pData = other.m_pData;
-		m_isView = other.m_isView;
-		other.m_pData = nullptr;
-	}
-	return *this;
-}
 
 std::span<const VkDescriptorSet> DescriptorSetsContainer::vkHandle() const noexcept { return m_pData->vkHandle; }
 VkDescriptorSet DescriptorSetsContainer::vkHandle(size_t idx) const noexcept { return m_pData->vkHandle[idx]; }

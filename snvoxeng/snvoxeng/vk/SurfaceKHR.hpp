@@ -29,8 +29,8 @@ namespace sn::voxeng::vk
 
 		SurfaceKHR(const SurfaceKHR&) = delete;
 		SurfaceKHR& operator=(const SurfaceKHR&) = delete;
-		SurfaceKHR(SurfaceKHR&& other) noexcept;
-		SurfaceKHR& operator=(SurfaceKHR&& other) noexcept;
+		SurfaceKHR(SurfaceKHR&&) = delete;
+		SurfaceKHR& operator=(SurfaceKHR&&) = delete;
 
 		VkSurfaceKHR vkHandle() const noexcept;
 		operator VkSurfaceKHR() const noexcept;
