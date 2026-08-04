@@ -6,8 +6,8 @@
 
 Custom high-performance Vulkan-based voxel execution and rendering engine built from scratch.
 
-![First Compute Render](docs/media/render_screenshot.png) 
-*Current state: Raymarching & Tone Mapping (2/pi * atan(x) with 2.2 gamma correction) implemented via Vulkan Compute pipeline.*
+![Current Render View](docs/media/render_record.gif)
+*Current state: Analytic Ray Tracing with Perfect Specular Reflections, Procedural Atmospheric Skybox & Tonemapping (`2/pi * atan(x)` with gamma correction) implemented via Vulkan Compute pipeline.*
 
 ---
 
@@ -16,18 +16,18 @@ Custom high-performance Vulkan-based voxel execution and rendering engine built 
 The up-to-date and detailed project roadmap, including all design specifics, is always available on our Discord server:  
 📢 **[Join our Discord](https://discord.gg/9HsRDdFBFV)**
 
-### 📍 Current Stage: **Milestone 2: Compute Pipeline & Screen Space (The First Pixel)**
-* [x] **VRAM Storage Image**: Create a container frame in VRAM for the compute shader to write its output into.
-* [x] **Procedural Compute Shader**: Write a basic Compute Shader that generates a procedural image (Ray-traced sphere with Blinn-Phong lighting and tone mapping).
-* [x] **Memory Barriers & Synchronization**: Set up Memory Barriers for proper queue synchronization (Compute Shader writes -> Swapchain reads and presents).
-* [x] **The First Pixel on Screen**: Output the compute-generated texture directly to the Swapchain.
-* [x] **Milestone Result**: A bare window where the GPU generates a procedural image completely free of vertex buffers in real-time.
+### 📍 Current Stage: **Milestone 3: Analytical Ray Marching (Math Foundations)**
+* [x] Passing camera parameters to the compute shader via Push Constants
+* [x] Iterative Ray Tracing loop with multi-bounce reflections
+* [x] Custom analytical intersection testing for Spheres and AABBs (Cubes)
+* [x] Dynamic atmospheric skybox model (Rayleigh/Mie scattering & sun disc simulation)
+* [x] Custom Tonemapping and Gamma Correction Pipeline
+* [/] Integrating VMA into the project
+* [ ] Passing camera parameters to the compute shader via UBO.
+* [ ] **Milestone Result:** A smooth 3D sphere rendered on screen that can be fully navigated with a free camera.
 
 ---
 
-## Next Steps | Milestone 3
-* Pass camera parameters (position, view vector, transformation matrices) into the Compute Shader.
-* Implement a ray generation algorithm for each screen pixel.
-* Write a core Ray Marching loop to intersect rays with basic analytical shapes (sphere, plane) via Signed Distance Functions (SDF).
-* Implement simple Lambertian (diffuse) lighting to visualize the shape and depth.
-* Milestone Result: A smooth 3D sphere rendered on screen that can be fully navigated with a free camera.
+## 🛠️ Next Steps
+* Finalize VMA pipeline integration for buffers/images.
+* Implement basic abstractions and tools for UBO management.
