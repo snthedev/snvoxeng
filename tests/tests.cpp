@@ -353,14 +353,18 @@ int main()
 		while (!glfwWindowShouldClose(pWindow))
 		{
 			glfwPollEvents();
-			if (is_swapchain_recreate_needeed && renderer.recreateSwapchainKHR())
+			if (is_swapchain_recreate_needeed)
 			{
-				is_swapchain_recreate_needeed = false;
-				descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
-				push_constants.resolution = {
-					static_cast<float>(renderer.getCanvasImage().getExtent().width),
-					static_cast<float>(renderer.getCanvasImage().getExtent().height),
-				};
+				if (renderer.recreateSwapchainKHR())
+				{
+					is_swapchain_recreate_needeed = false;
+					descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+					push_constants.resolution = {
+						static_cast<float>(renderer.getCanvasImage().getExtent().width),
+						static_cast<float>(renderer.getCanvasImage().getExtent().height),
+					};
+				}
+				else continue;
 			}
 
 			auto frame_context = renderer.beginFrame();

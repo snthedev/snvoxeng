@@ -101,53 +101,52 @@ struct Renderer::data_t
 	{
 		VkImage currentSwapchainImage = m_swapchainKHR.getImages()[imageIndex].vkHandle();
 
-		VkImageMemoryBarrier barriers[2]{};
-
-		// Canvas Image: Acquire ownership & transition to TRANSFER_SRC
-		barriers[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barriers[0].srcAccessMask = 0;
-		barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-		barriers[0].oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-		barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		barriers[0].srcQueueFamilyIndex = m_computeQueueFamilyIndex;
-		barriers[0].dstQueueFamilyIndex = m_graphicsQueueFamilyIndex;
-		barriers[0].image = m_upFrameResources->canvasImage.vkHandle();
-		barriers[0].subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-		// Swapchain Image: UNDEFINED -> TRANSFER_DST
-		barriers[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barriers[1].srcAccessMask = 0;
-		barriers[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		barriers[1].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		barriers[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barriers[1].image = currentSwapchainImage;
-		barriers[1].subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
+		VkImageMemoryBarrier barriers[]{ {
+				// Canvas Image: Acquire ownership & transition to TRANSFER_SRC
+				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				.srcAccessMask = 0,
+				.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+				.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+				.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+				.srcQueueFamilyIndex = m_computeQueueFamilyIndex,
+				.dstQueueFamilyIndex = m_graphicsQueueFamilyIndex,
+				.image = m_upFrameResources->canvasImage.vkHandle(),
+				.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
+			},{
+				// Swapchain Image: UNDEFINED -> TRANSFER_DST
+				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+				.srcAccessMask = 0,
+				.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+				.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+				.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+				.image = currentSwapchainImage,
+				.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
+			}
+		};
 		graphicsCmd.cmdPipelineBarrier(
 			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
-			0, {}, {}, { barriers, 2 }
+			0, {}, {}, barriers
 		);
 
 		// 2. Copy Image
-		VkImageCopy copyRegion{
+		VkImageCopy copyRegions[]{ {
 			.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 			.srcOffset = { 0, 0, 0 },
 			.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 },
 			.dstOffset = { 0, 0, 0 },
 			.extent = { m_swapchainKHR.getImageExtent().width, m_swapchainKHR.getImageExtent().height, 1u }
-		};
-
+		} };
 		graphicsCmd.cmdCopyImage(
 			m_upFrameResources->canvasImage.vkHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 			currentSwapchainImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			{ &copyRegion, 1 }
+			copyRegions
 		);
 
 		// 3. Swapchain Image -> PRESENT_SRC_KHR
-		VkImageMemoryBarrier presentBarrier{
+		VkImageMemoryBarrier presentBarriers[]{ {
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 			.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
 			.dstAccessMask = 0,
@@ -157,12 +156,11 @@ struct Renderer::data_t
 			.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 			.image = currentSwapchainImage,
 			.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-		};
-
+		} };
 		graphicsCmd.cmdPipelineBarrier(
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-			0, {}, {}, { &presentBarrier, 1 }
+			0, {}, {}, presentBarriers
 		);
 	}
 
@@ -390,10 +388,18 @@ public:
 
 			m_currentFrame = (m_currentFrame + 1u) % MAX_FRAMES_IN_FLIGHT;
 
-			if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR) [[unlikely]]
-				return false;
-			else if (result != VK_SUCCESS) [[unlikely]]
+			switch (result)
+			{
+			[[likely]] case VK_SUCCESS:
+				break;
+
+			case VK_SUBOPTIMAL_KHR:
+			case VK_ERROR_OUT_OF_DATE_KHR:
+				return false; // recreate needed
+
+			[[unlikely]] default:
 				throw std::runtime_error("Failed to present swapchain image.");
+			}
 		}
 
 		return true;
