@@ -17,6 +17,7 @@
 #include <snvoxeng/snvoxeng/vk/Fence.hpp>
 
 #include <memory>
+#include <snassert/snassert.hpp>
 #include <snvoxeng/snvoxeng/utils/dumb_vector.hpp>
 
 using namespace sn::voxeng;
@@ -32,8 +33,21 @@ struct Renderer::data_t
 	uint32_t m_graphicsQueueFamilyIndex;
 	uint32_t m_computeQueueFamilyIndex;
 
+	// --- Canvas ownership/layout tracking (canvas is VK_SHARING_MODE_EXCLUSIVE) ---
+	// true right after creation/recreation: the first writes come from compute.
+	bool m_canvasOwnedByCompute{ true };
+	VkImageLayout m_canvasImageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
+
+	enum class FrameState { Idle, InFrame };
+	FrameState m_frameState{ FrameState::Idle };
+
 	vk::Queue m_computeQueue;
 	vk::Queue m_graphicsQueue;
+
+	bool separateQueueFamilies() const noexcept
+	{
+		return m_computeQueueFamilyIndex != m_graphicsQueueFamilyIndex;
+	}
 
 	// --- Swapchain KHR ---
 	vk::SwapchainKHR m_swapchainKHR;
@@ -97,19 +111,83 @@ struct Renderer::data_t
 	dumb_vector<vk::Semaphore> m_renderFinishedSemaphores;
 	dumb_vector<vk::Fence> m_inFlightFences;
 
-	void recordCopyCanvasToSwapchain(vk::CommandBuffer& graphicsCmd, uint32_t imageIndex) const
+	void recordAcquireCanvasForCompute(vk::CommandBuffer& computeCmd)
+	{
+		// Canvas: take ownership back (graphics -> compute when the families
+		// are separate) and make it writable by the compute shader (GENERAL).
+		const bool needOwnership = separateQueueFamilies() && !m_canvasOwnedByCompute;
+		const VkImage image = m_upFrameResources->canvasImage.vkHandle();
+
+		if (needOwnership)
+		{
+			// 1. Pure ownership acquire. The layouts MUST match the release
+			//    barrier recorded at the end of the previous frame's graphics
+			//    commands (see recordPresentCanvasToSwapchain).
+			VkImageMemoryBarrier acquire_barriers[]{ {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+					.srcAccessMask = 0,
+					.dstAccessMask = 0,
+					.oldLayout = m_canvasImageLayout,
+					.newLayout = m_canvasImageLayout,
+					.srcQueueFamilyIndex = m_graphicsQueueFamilyIndex,
+					.dstQueueFamilyIndex = m_computeQueueFamilyIndex,
+					.image = image,
+					.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+				}
+			};
+			computeCmd.cmdPipelineBarrier(
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				0, {}, {}, acquire_barriers
+			);
+			m_canvasOwnedByCompute = true;
+		}
+
+		if (m_canvasImageLayout != VK_IMAGE_LAYOUT_GENERAL)
+		{
+			// 2. Plain layout transition to GENERAL (image already belongs to
+			//    the compute side here).
+			VkImageMemoryBarrier layout_barriers[]{ {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+					.srcAccessMask = 0,
+					.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+					.oldLayout = m_canvasImageLayout,
+					.newLayout = VK_IMAGE_LAYOUT_GENERAL,
+					.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+					.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+					.image = image,
+					.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+				}
+			};
+			computeCmd.cmdPipelineBarrier(
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				0, {}, {}, layout_barriers
+			);
+			m_canvasImageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		}
+
+		m_canvasOwnedByCompute = true;
+	}
+
+	void recordPresentCanvasToSwapchain(vk::CommandBuffer& graphicsCmd, uint32_t imageIndex) const
 	{
 		VkImage currentSwapchainImage = m_swapchainKHR.getImages()[imageIndex].vkHandle();
 
+		const bool separate = separateQueueFamilies();
+
 		VkImageMemoryBarrier barriers[]{ {
-				// Canvas Image: Acquire ownership & transition to TRANSFER_SRC
+				// Canvas Image: acquire ownership. The layouts must match the
+				// release barrier recorded into the compute command buffer -
+				// this barrier completes the ownership transfer and leaves the
+				// image ready for the copy below.
 				.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 				.srcAccessMask = 0,
 				.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
 				.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
 				.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-				.srcQueueFamilyIndex = m_computeQueueFamilyIndex,
-				.dstQueueFamilyIndex = m_graphicsQueueFamilyIndex,
+				.srcQueueFamilyIndex = separate ? m_computeQueueFamilyIndex : VK_QUEUE_FAMILY_IGNORED,
+				.dstQueueFamilyIndex = separate ? m_graphicsQueueFamilyIndex : VK_QUEUE_FAMILY_IGNORED,
 				.image = m_upFrameResources->canvasImage.vkHandle(),
 				.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 },
 			},{
@@ -145,6 +223,31 @@ struct Renderer::data_t
 			copyRegions
 		);
 
+		// 2.5 Canvas Image: release ownership back to the compute queue family.
+		// Pure ownership barrier: its layouts must match the acquire barrier
+		// recorded at the beginning of the next frame (the layout transition
+		// itself happens on the compute side afterwards).
+		if (separate)
+		{
+			VkImageMemoryBarrier release_back_barriers[]{ {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+					.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
+					.dstAccessMask = 0,
+					.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					.srcQueueFamilyIndex = m_graphicsQueueFamilyIndex,
+					.dstQueueFamilyIndex = m_computeQueueFamilyIndex,
+					.image = m_upFrameResources->canvasImage.vkHandle(),
+					.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+				}
+			};
+			graphicsCmd.cmdPipelineBarrier(
+				VK_PIPELINE_STAGE_TRANSFER_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				0, {}, {}, release_back_barriers
+			);
+		}
+
 		// 3. Swapchain Image -> PRESENT_SRC_KHR
 		VkImageMemoryBarrier presentBarriers[]{ {
 			.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -168,17 +271,15 @@ public:
 	data_t(
 		vk::Device& device,
 		vk::SurfaceKHR& surfaceKHR,
-		uint32_t graphicsQueueFamilyIndex,
-		uint32_t computeQueueFamilyIndex,
-		size_t graphicsQueueIndex,
-		size_t computeQueueIndex
+		vk::Queue graphicsQueue,
+		vk::Queue computeQueue
 	)
 		: m_pDevice(&device)
 		, m_pSurfaceKHR(&surfaceKHR)
-		, m_graphicsQueueFamilyIndex(graphicsQueueFamilyIndex)
-		, m_computeQueueFamilyIndex(computeQueueFamilyIndex)
-		, m_computeQueue(m_pDevice->getQueue(computeQueueIndex))
-		, m_graphicsQueue(m_pDevice->getQueue(graphicsQueueIndex))
+		, m_graphicsQueueFamilyIndex(device.getQueueFamilyIndex(graphicsQueue.getContainerIdx()))
+		, m_computeQueueFamilyIndex(device.getQueueFamilyIndex(computeQueue.getContainerIdx()))
+		, m_computeQueue(computeQueue)
+		, m_graphicsQueue(graphicsQueue)
 		// --- Swapchain KHR ---
 		, m_swapchainKHR(vk::SwapchainKHR::Builder()
 			.withDevice(*m_pDevice)
@@ -264,6 +365,9 @@ public:
 			}
 		}
 
+		m_canvasOwnedByCompute = true;
+		m_canvasImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		m_frameState = data_t::FrameState::Idle;
 		m_currentFrame = 0;
 		return true;
 	}
@@ -271,6 +375,10 @@ public:
 
 	inline std::optional<Renderer::FrameContext> beginFrame()
 	{
+		snassert(m_frameState == FrameState::Idle,
+			"Renderer::beginFrame called while already inside a frame",
+			"submitFrame() must be called before the next beginFrame()");
+
 		auto& inFlightFence = m_inFlightFences[m_currentFrame];
 		if (inFlightFence.wait() != VK_SUCCESS) [[unlikely]]
 			throw std::runtime_error("Failed to wait for fence.");
@@ -302,6 +410,9 @@ public:
 		computeCmd.begin(beginInfo);
 		graphicsCmd.begin(beginInfo);
 
+		recordAcquireCanvasForCompute(computeCmd);
+
+		m_frameState = FrameState::InFrame;
 		return FrameContext{
 			.imageIndex = imageIndex,
 			.frameIndex = m_currentFrame,
@@ -310,12 +421,48 @@ public:
 		};
 	}
 
-	inline bool endFrame(uint32_t imageIndex)
+	inline bool submitFrame(const Renderer::FrameContext& frame)
 	{
+		snassert(m_frameState == FrameState::InFrame,
+			"Renderer::submitFrame called outside of a frame",
+			"submitFrame() must follow a successful beginFrame()");
+		snassert(frame.frameIndex == m_currentFrame,
+			"Stale Renderer::FrameContext",
+			"The frame context does not match the current internal frame slot");
+
 		auto computeCmd = m_computeCommandBuffers[m_currentFrame];
 		auto graphicsCmd = m_graphicsCommandBuffers[m_currentFrame];
+		const uint32_t imageIndex = frame.imageIndex;
 
-		recordCopyCanvasToSwapchain(graphicsCmd, imageIndex);
+		// Canvas: release ownership (compute -> graphics when the families are
+		// separate) and transition GENERAL -> TRANSFER_SRC_OPTIMAL for the copy.
+		// The matching acquire barrier is recorded into the graphics command
+		// buffer by recordPresentCanvasToSwapchain().
+		{
+			const bool separate = separateQueueFamilies();
+
+			VkImageMemoryBarrier release_barriers[]{ {
+					.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+					.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
+					.dstAccessMask = 0,
+					.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
+					.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					.srcQueueFamilyIndex = separate ? m_computeQueueFamilyIndex : VK_QUEUE_FAMILY_IGNORED,
+					.dstQueueFamilyIndex = separate ? m_graphicsQueueFamilyIndex : VK_QUEUE_FAMILY_IGNORED,
+					.image = m_upFrameResources->canvasImage.vkHandle(),
+					.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
+				}
+			};
+			computeCmd.cmdPipelineBarrier(
+				VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				0, {}, {}, release_barriers
+			);
+			m_canvasImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			m_canvasOwnedByCompute = false;
+		}
+
+		recordPresentCanvasToSwapchain(graphicsCmd, frame.imageIndex);
 
 		computeCmd.end();
 		graphicsCmd.end();
@@ -388,6 +535,7 @@ public:
 			VkResult result = m_graphicsQueue.presentKHR(presentInfo);
 
 			m_currentFrame = (m_currentFrame + 1u) % MAX_FRAMES_IN_FLIGHT;
+			m_frameState = FrameState::Idle;
 
 			switch (result)
 			{
@@ -422,18 +570,16 @@ public:
 Renderer::Renderer(
 	vk::Device& device,
 	vk::SurfaceKHR& surfaceKHR,
-	uint32_t graphicsQueueFamilyIndex,
-	uint32_t computeQueueFamilyIndex,
-	size_t graphicsQueueIndex,
-	size_t computeQueueIndex
+	vk::Queue graphicsQueue,
+	vk::Queue computeQueue
 )
-	: m_pData(new data_t{ device, surfaceKHR, graphicsQueueFamilyIndex, computeQueueFamilyIndex, graphicsQueueIndex, computeQueueIndex }) {}
+	: m_pData(new data_t{ device, surfaceKHR, graphicsQueue, computeQueue }) {}
 Renderer::~Renderer() noexcept { delete m_pData; }
 
 bool Renderer::recreateSwapchainKHR() { return m_pData->recreateSwapchainKHR(); }
 
 std::optional<Renderer::FrameContext> Renderer::beginFrame() { return m_pData->beginFrame(); }
-bool Renderer::endFrame(uint32_t imageIndex) { return m_pData->endFrame(imageIndex); }
+bool Renderer::submitFrame(const FrameContext& frame) { return m_pData->submitFrame(frame); }
 
 const size_t Renderer::getMaxFramesInFlight() const noexcept { return m_pData->getMaxFramesInFlight(); }
 

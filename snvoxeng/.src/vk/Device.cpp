@@ -160,6 +160,22 @@ Queue Device::firstQueue() const { return Queue(*this, 0); }
 Queue Device::lastQueue() const { return Queue(*this, countQueue() - 1u); }
 size_t Device::countQueue() const noexcept { return m_pData->vkQueues.size(); }
 
+uint32_t Device::getQueueFamilyIndex(size_t idx) const
+{
+	size_t queueIndex = 0;
+	for (const auto& queueFamilyRequest : m_pData->queueFamilyRequests)
+	{
+		const size_t count = queueFamilyRequest.queuePriorities.size();
+		if (idx < queueIndex + count)
+			return queueFamilyRequest.queueFamilyIndex;
+		queueIndex += count;
+	}
+
+	snassert(false, "Device::getQueueFamilyIndex: queue index out of range",
+		"idx must be less than Device::countQueue()");
+	return VK_QUEUE_FAMILY_IGNORED;
+}
+
 void Device::getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const
 {
 	return vkGetDeviceQueue(m_pData->vkHandle, queueFamilyIndex, queueIndex, pQueue);

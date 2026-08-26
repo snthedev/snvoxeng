@@ -289,10 +289,7 @@ int main()
 
 		// ---
 
-		sn::voxeng::Renderer renderer(
-			device, surface_khr,
-			graphics_family_index, compute_family_index,
-			graphics_queue_index, compute_queue_index);
+		sn::voxeng::Renderer renderer(device, surface_khr, graphics_queue, compute_queue);
 
 		struct UBOData
 		{
@@ -460,25 +457,6 @@ int main()
 			}
 
 			{
-				const VkImageMemoryBarrier acquire_barriers[]{ {
-						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-						.srcAccessMask = 0,
-						.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-						.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-						.newLayout = VK_IMAGE_LAYOUT_GENERAL,
-						.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-						.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-						.image = renderer.getCanvasImage().vkHandle(),
-						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-					}
-				};
-				frame_context->computeCmd.cmdPipelineBarrier(
-					VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-					0, {}, {}, acquire_barriers
-				);
-			}
-			{
 				frame_context->computeCmd.cmdBindPipeline(
 					VK_PIPELINE_BIND_POINT_COMPUTE,
 					compute_pipeline.vkHandle()
@@ -504,28 +482,7 @@ int main()
 				uint32_t group_count_y = (renderer.getCanvasImage().getExtent().height + 15u) / 16u;
 				frame_context->computeCmd.cmdDispatch(group_count_x, group_count_y, 1u);
 			}
-			{
-				const VkImageMemoryBarrier release_barriers[]{ {
-						.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-						.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT,
-						.dstAccessMask = 0,
-						.oldLayout = VK_IMAGE_LAYOUT_GENERAL,
-						.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						.srcQueueFamilyIndex = compute_family_index,
-						.dstQueueFamilyIndex = graphics_family_index,
-						.image = renderer.getCanvasImage().vkHandle(),
-						.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 }
-					}
-				};
-
-				frame_context->computeCmd.cmdPipelineBarrier(
-					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-					VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-					0, {}, {}, release_barriers
-				);
-			}
-
-			if (!renderer.endFrame(frame_context->imageIndex))
+			if (!renderer.submitFrame(*frame_context))
 			{
 				is_swapchain_recreate_needeed = true;
 				continue;

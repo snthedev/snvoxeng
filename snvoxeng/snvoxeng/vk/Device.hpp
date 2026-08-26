@@ -44,6 +44,8 @@ namespace sn::voxeng::vk
 		Queue firstQueue() const;
 		Queue lastQueue() const;
 		size_t countQueue() const noexcept;
+		// Family index of the idx-th queued handle (as returned by getQueue(idx)).
+		uint32_t getQueueFamilyIndex(size_t idx) const;
 
 		void getDeviceQueue(uint32_t queueFamilyIndex, uint32_t queueIndex, VkQueue* pQueue) const;
 

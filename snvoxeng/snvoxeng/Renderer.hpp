@@ -16,6 +16,7 @@ namespace sn::voxeng
         class Image;
         class ImageView;
         class CommandBuffer;
+        class Queue;
     }
 
 	class SNVOXENG_API Renderer
@@ -32,13 +33,14 @@ namespace sn::voxeng
         data_t* m_pData;
 
 	public:
+        // Queues carry their family indices internally: callers never deal
+        // with queue families or synchronization - all canvas ownership
+        // transfers, layout transitions and submission ordering live here.
         Renderer(
             vk::Device& device,
             vk::SurfaceKHR& surfaceKHR,
-            uint32_t graphicsQueueFamilyIndex,
-            uint32_t computeQueueFamilyIndex,
-            size_t graphicsQueueIndex,
-            size_t computeQueueIndex
+            vk::Queue graphicsQueue,
+            vk::Queue computeQueue
             );
         ~Renderer() noexcept;
 
@@ -48,9 +50,15 @@ namespace sn::voxeng
         bool recreateSwapchainKHR();
 
         // std::nullopt means that the swapchain needs to be recreated.
+        // On success the returned compute command buffer is already begun and
+        // primed with the canvas acquire barrier: record the compute workload
+        // right away, then hand the context back to submitFrame().
         std::optional<FrameContext> beginFrame();
-        // false means that the swapchain needs to be recreated.
-        bool endFrame(uint32_t imageIndex);
+        // Records the canvas release/copy/present section, submits both
+        // command buffers and presents. Must follow a successful beginFrame()
+        // with the SAME FrameContext. false means that the swapchain needs to
+        // be recreated.
+        bool submitFrame(const FrameContext& frame);
 
         const size_t getMaxFramesInFlight() const noexcept;
 
