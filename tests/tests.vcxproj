@@ -46,11 +46,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(SolutionDir)build\</OutDir>
     <IntDir>$(sn-intermediate)\$(SolutionName)\$(ProjectName)\</IntDir>
-    <TargetName>$(ProjectName)-d</TargetName>
+    <TargetName>tests-d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(SolutionDir)build\</OutDir>
     <IntDir>$(sn-intermediate)\$(SolutionName)\$(ProjectName)\</IntDir>
+    <TargetName>tests</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -59,7 +60,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;C:\_storage\projects\vscode\cpp\cstrs;C:\_storage\projects\vscode\cpp\snassert</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;C:\_storage\projects\vscode\cpp\cstrs;C:\_storage\projects\vscode\cpp\snassert;thirdparty\googletest\googletest;thirdparty\googletest\googletest\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -80,7 +81,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;C:\_storage\projects\vscode\cpp\cstrs;C:\_storage\projects\vscode\cpp\snassert</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;C:\_storage\projects\vscode\cpp\cstrs;C:\_storage\projects\vscode\cpp\snassert;thirdparty\googletest\googletest;thirdparty\googletest\googletest\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -93,10 +94,9 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="tests.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="tests.cpp" />
+    <ClCompile Include="snvoxeng_tests.cpp" />
+    <ClCompile Include="thirdparty\googletest\googletest\src\gtest-all.cc" />
+    <ClCompile Include="thirdparty\googletest\googletest\src\gtest_main.cc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
