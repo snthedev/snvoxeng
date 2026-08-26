@@ -19,6 +19,13 @@ Custom high-performance Vulkan-based voxel execution and rendering engine built 
 (MSVC v145 toolset), Git, [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
 (the `app` project additionally uses GLFW via vcpkg).
 
+> All commands below assume the repository is cloned and your shell is in its root:
+>
+> ```bat
+> git clone https://github.com/snthedev/snvoxeng.git
+> cd snvoxeng
+> ```
+
 ### One-shot way
 
 ```bat
@@ -48,8 +55,8 @@ $msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere
     -latest -prerelease -products * -requires Microsoft.Component.MSBuild `
     -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
 
-& $msbuild snvoxeng\snvoxeng.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:SolutionDir="$PWD\"
-& $msbuild tests\tests.vcxproj     /p:Configuration=Debug /p:Platform=x64 /p:SolutionDir="$PWD\"
+& $msbuild snvoxeng\snvoxeng.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:SolutionDir="$PWD"
+& $msbuild tests\tests.vcxproj     /p:Configuration=Debug /p:Platform=x64 /p:SolutionDir="$PWD"
 build\tests-d.exe
 ```
 

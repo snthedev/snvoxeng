@@ -44,11 +44,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)build\</OutDir>
+    <OutDir>$(SolutionDir)\build\</OutDir>
     <IntDir>$(sn-intermediate)\$(SolutionName)\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)build\</OutDir>
+    <OutDir>$(SolutionDir)\build\</OutDir>
     <IntDir>$(sn-intermediate)\$(SolutionName)\$(ProjectName)\</IntDir>
     <TargetName>$(ProjectName)-d</TargetName>
   </PropertyGroup>
@@ -68,7 +68,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include;$(SolutionDir)thirdparty\cstrs;$(SolutionDir)thirdparty\snassert</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include;$(SolutionDir)\thirdparty\cstrs;$(SolutionDir)\thirdparty\snassert</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -90,7 +90,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include;$(SolutionDir)thirdparty\cstrs;$(SolutionDir)thirdparty\snassert</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include;$(SolutionDir)\thirdparty\cstrs;$(SolutionDir)\thirdparty\snassert</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>

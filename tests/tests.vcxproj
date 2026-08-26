@@ -44,12 +44,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <OutDir>$(SolutionDir)build\</OutDir>
+    <OutDir>$(SolutionDir)\build\</OutDir>
     <IntDir>$(sn-intermediate)\$(SolutionName)\$(ProjectName)\</IntDir>
     <TargetName>tests-d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <OutDir>$(SolutionDir)build\</OutDir>
+    <OutDir>$(SolutionDir)\build\</OutDir>
     <IntDir>$(sn-intermediate)\$(SolutionName)\$(ProjectName)\</IntDir>
     <TargetName>tests</TargetName>
   </PropertyGroup>
@@ -60,12 +60,12 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;$(SolutionDir)thirdparty\cstrs;$(SolutionDir)thirdparty\snassert;thirdparty\googletest\googletest;thirdparty\googletest\googletest\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;$(SolutionDir)\thirdparty\cstrs;$(SolutionDir)\thirdparty\snassert;thirdparty\googletest\googletest;thirdparty\googletest\googletest\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)build\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)\build\</AdditionalLibraryDirectories>
       <AdditionalDependencies>snvoxeng-d.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
@@ -81,12 +81,12 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;$(SolutionDir)thirdparty\cstrs;$(SolutionDir)thirdparty\snassert;thirdparty\googletest\googletest;thirdparty\googletest\googletest\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;$(SolutionDir)\thirdparty\cstrs;$(SolutionDir)\thirdparty\snassert;thirdparty\googletest\googletest;thirdparty\googletest\googletest\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)build\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)\build\</AdditionalLibraryDirectories>
       <AdditionalDependencies>snvoxeng.lib;$(CoreLibraryDependencies);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>

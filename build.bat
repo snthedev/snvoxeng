@@ -78,13 +78,13 @@ if not defined MSBUILD (
 )
 
 set "SOLUTION_DIR=%ROOT%"
-rem NOTE: passed UNQUOTED on purpose - the trailing backslash is required
-rem ($(SolutionDir)build\ concatenation) and \" inside quotes would break parsing.
-
+rem a trailing backslash would escape quotes inside MSBuild->cl argument passing
+rem (D8038), so it is stripped here; project files use $(SolutionDir)\... form.
+if "%SOLUTION_DIR:~-1%"=="\" set "SOLUTION_DIR=%SOLUTION_DIR:~0,-1%"
 
 rem ---- 3. Build engine library -----------------------------------------------
 echo [build] Engine library...
-"%MSBUILD%" "%ROOT%snvoxeng\snvoxeng.vcxproj" /p:Configuration=%CONFIG% /p:Platform=x64 /p:SolutionDir=%SOLUTION_DIR%\ /m /v:m /nologo
+"%MSBUILD%" "%ROOT%snvoxeng\snvoxeng.vcxproj" /p:Configuration=%CONFIG% /p:Platform=x64 /p:SolutionDir=%SOLUTION_DIR% /m /v:m /nologo
 if errorlevel 1 (
     echo [build] FAILED: engine library.
     exit /b 1
@@ -92,7 +92,7 @@ if errorlevel 1 (
 
 rem ---- 4. Build tests ----------------------------------------------------------
 echo [build] Tests...
-"%MSBUILD%" "%ROOT%tests\tests.vcxproj" /p:Configuration=%CONFIG% /p:Platform=x64 /p:SolutionDir=%SOLUTION_DIR%\ /m /v:m /nologo
+"%MSBUILD%" "%ROOT%tests\tests.vcxproj" /p:Configuration=%CONFIG% /p:Platform=x64 /p:SolutionDir=%SOLUTION_DIR% /m /v:m /nologo
 if errorlevel 1 (
     echo [build] FAILED: tests.
     exit /b 1
