@@ -1,6 +1,8 @@
 ## 🚨 WIP | Read-Only Disclaimer 🚨
 > **Warning**
-> At the moment, this project is in **"look, but don't touch"** mode. Attempting to clone and build this repository right now is guaranteed to trigger an existential crisis in your compiler due to the absence of external private dependencies `snassert` and `cstrs` on GitHub. Building is strictly reserved for the chosen one (me).
+> This project is still in active **"look, but don't touch"** mode: the API is unstable,
+> things break and get redesigned without notice. Feel free to clone and build it —
+> just don't expect a stable release yet.
 
 # WIP | snvoxeng
 
@@ -8,6 +10,64 @@ Custom high-performance Vulkan-based voxel execution and rendering engine built 
 
 ![Current Render View](docs/media/render_record.gif)
 *Current state: Analytic Ray Tracing with Perfect Specular Reflections, Procedural Atmospheric Skybox & Tonemapping (`2/pi * atan(x)` with gamma correction) implemented via Vulkan Compute pipeline.*
+
+---
+
+## Build
+
+**Prerequisites:** Windows, Visual Studio 2022/2026 with the C++ workload
+(MSVC v145 toolset), Git, [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
+(the `app` project additionally uses GLFW via vcpkg).
+
+### One-shot way
+
+```bat
+build.bat
+```
+
+`build.bat [Debug|Release]` does everything:
+
+1. fetches dependencies into local folders on first run (skipped if present):
+   * GoogleTest v1.17.0 → `tests\thirdparty\`
+   * [cstrs](https://github.com/snthedev/cstrs) → `thirdparty\cstrs`
+   * [snassert](https://github.com/snthedev/snassert) → `thirdparty\snassert`
+2. locates MSBuild via `vswhere`;
+3. builds the engine library and the test suite (x64);
+4. runs the tests.
+
+`build.bat fetch` only pulls the dependencies without building.
+
+### Manual equivalent
+
+```powershell
+git clone --depth 1 --branch v1.17.0 https://github.com/google/googletest.git tests\thirdparty\googletest
+git clone https://github.com/snthedev/cstrs.git thirdparty\cstrs
+git clone https://github.com/snthedev/snassert.git thirdparty\snassert
+
+$msbuild = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" `
+    -latest -prerelease -products * -requires Microsoft.Component.MSBuild `
+    -find MSBuild\**\Bin\MSBuild.exe | Select-Object -First 1
+
+& $msbuild snvoxeng\snvoxeng.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:SolutionDir="$PWD\"
+& $msbuild tests\tests.vcxproj     /p:Configuration=Debug /p:Platform=x64 /p:SolutionDir="$PWD\"
+build\tests-d.exe
+```
+
+### Project layout
+
+```
+snvoxeng/
+├── build.bat                  # one-shot deps fetch + engine/tests build + test runner
+├── snvoxeng.slnx              # solution (engine lib, app, tests)
+├── snbcg/bcg.hpp              # vendored xmacro-based builder-codegen core
+├── snvoxeng/
+│   ├── .def/vk/*.h            # declarative Vulkan object definitions (xmacro tables)
+│   ├── .src/vk/*.cpp          # implementations of the generated builders
+│   ├── snvoxeng/vk/*.hpp      # generated fluent Builder classes
+│   └── snvoxeng/Renderer.hpp  # handwritten high-level layer (frame loop, sync)
+├── app/main.cpp               # GLFW demo application (the ray tracing showcase)
+└── tests/                     # headless googletest suite
+```
 
 ---
 
