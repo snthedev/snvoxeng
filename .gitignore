@@ -18,6 +18,10 @@ build/.out/*
 vcpkg_installed/
 snvoxeng/vcpkg_installed/
 tests/vcpkg_installed/
+app/vcpkg_installed/
+
+# Vendored dependencies (fetched by build.bat)
+tests/thirdparty/
 
 # sncodegen
 bcg-ext-vk-config.json
