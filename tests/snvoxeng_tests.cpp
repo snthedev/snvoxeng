@@ -174,7 +174,10 @@ TEST(ShaderCompiler, CompilesGlslToSpirv)
     const fs::path dir = makeTestShaderDir();
 
     const sn::voxeng::ShaderCompiler compiler;
-    auto spirv = compiler.loadFromFile((dir / "trivial.comp").string().c_str());
+    auto result = compiler.loadFromFile((dir / "trivial.comp").string().c_str());
+
+    ASSERT_TRUE(result.isOk()) << "compile failed, error: " << result.error().message;
+    const auto& spirv = result.value();
 
     EXPECT_NE(spirv.getCode(), nullptr);
     EXPECT_GT(spirv.getSize(), 0u);
@@ -191,11 +194,15 @@ TEST(ShaderCompiler, CacheSurvivesReloadAndInvalidatesOnSettings)
     const auto srcPath = (dir / "trivial.comp").string();
 
     sn::voxeng::ShaderCompiler compiler;
-    auto first = compiler.loadFromFile(srcPath.c_str());
+    auto firstResult = compiler.loadFromFile(srcPath.c_str());
+    ASSERT_TRUE(firstResult.isOk());
+    const auto& first = firstResult.value();
     ASSERT_GT(first.getSize(), 0u);
 
     // Same settings + same source: served from the freshly written cache.
-    auto second = compiler.loadFromFile(srcPath.c_str());
+    auto secondResult = compiler.loadFromFile(srcPath.c_str());
+    ASSERT_TRUE(secondResult.isOk());
+    const auto& second = secondResult.value();
     ASSERT_EQ(second.getSize(), first.getSize());
     EXPECT_EQ(0, std::memcmp(first.getCode(), second.getCode(), first.getSize()));
 
@@ -205,13 +212,50 @@ TEST(ShaderCompiler, CacheSurvivesReloadAndInvalidatesOnSettings)
     settings.optLevel = sn::voxeng::ShaderCompiler::settings_t::eOptLevel::eNone;
     compiler.setSettings(settings);
 
-    auto third = compiler.loadFromFile(srcPath.c_str());
-    ASSERT_GT(third.getSize(), 0u);
-    EXPECT_EQ(third.getSize() % 4u, 0u);
+    auto thirdResult = compiler.loadFromFile(srcPath.c_str());
+    ASSERT_TRUE(thirdResult.isOk());
+    ASSERT_GT(thirdResult.value().getSize(), 0u);
+    EXPECT_EQ(thirdResult.value().getSize() % 4u, 0u);
 
     // forceCompile bypasses the cache regardless of validity.
-    auto forced = compiler.loadFromFile(srcPath.c_str(), /*forceCompile=*/true);
-    ASSERT_GT(forced.getSize(), 0u);
+    auto forcedResult = compiler.loadFromFile(srcPath.c_str(), /*forceCompile=*/true);
+    ASSERT_TRUE(forcedResult.isOk());
+    ASSERT_GT(forcedResult.value().getSize(), 0u);
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST(ShaderCompiler, MissingSourceReturnsError)
+{
+    namespace fs = std::filesystem;
+    const fs::path dir = makeTestShaderDir();
+    const auto missingPath = (dir / "definitely_missing.comp").string();
+
+    const sn::voxeng::ShaderCompiler compiler;
+    auto result = compiler.loadFromFile(missingPath.c_str());
+
+    ASSERT_FALSE(result.isOk());
+    EXPECT_EQ(result.error().code, static_cast<uint32_t>(sn::voxeng::CompileError::sourceNotFound));
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST(ShaderCompiler, BrokenGlslReturnsCompilationError)
+{
+    namespace fs = std::filesystem;
+    const fs::path dir = fs::temp_directory_path() / "snvoxeng_gtest_badshader";
+    fs::create_directories(dir);
+
+    std::ofstream file(dir / "broken.comp", std::ios::binary | std::ios::trunc);
+    file << "#version 450\nthis is not valid GLSL\n";
+
+    const sn::voxeng::ShaderCompiler compiler;
+    auto result = compiler.loadFromFile((dir / "broken.comp").string().c_str());
+
+    ASSERT_FALSE(result.isOk());
+    EXPECT_EQ(result.error().code, static_cast<uint32_t>(sn::voxeng::CompileError::compilationFailed));
 
     std::error_code ec;
     fs::remove_all(dir, ec);

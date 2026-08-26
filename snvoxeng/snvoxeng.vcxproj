@@ -119,6 +119,7 @@
     <ClInclude Include="snvoxeng\math\vec2.hpp" />
     <ClInclude Include="snvoxeng\math\vec4.hpp" />
     <ClInclude Include="snvoxeng\Renderer.hpp" />
+    <ClInclude Include="snvoxeng\Result.hpp" />
     <ClInclude Include="snvoxeng\AssertHandler.hpp" />
     <ClInclude Include="snvoxeng\ShaderCompiler.hpp" />
     <ClInclude Include="snvoxeng\ShaderStages.hpp" />

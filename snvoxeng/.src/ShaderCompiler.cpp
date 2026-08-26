@@ -67,31 +67,35 @@ static shaderc_optimization_level getShadercOptLevel(ShaderCompiler::settings_t:
     return optLevelTable[static_cast<size_t>(optLevel)];
 }
 
-static std::string readTextFile(const std::filesystem::path& path)
+static bool tryReadTextFile(const std::filesystem::path& path, std::string& out)
 {
-    snassert(std::filesystem::exists(path), "Shader source file does not exist", path.string().c_str());
-
     std::ifstream file(path, std::ios::in | std::ios::binary);
-    snassert(file.is_open(), "Failed to open shader source file", path.string().c_str());
+    if (!file.is_open())
+        return false;
 
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    return content;
+    out.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return true;
 }
 
-static ShaderCompiler::shader_t readSpvFile(const std::filesystem::path& path)
+static Result<ShaderCompiler::shader_t> readSpvFile(const std::filesystem::path& path)
 {
     std::ifstream file(path, std::ios::ate | std::ios::binary);
-    snassert(file.is_open(), "Failed to open SPV file", path.string().c_str());
+    if (!file.is_open())
+        return Error{ uint32_t(CompileError::sourceReadFailed),
+            "Failed to open SPV file: " + path.string() };
 
     const auto fileSize = static_cast<size_t>(file.tellg());
-    snassert(fileSize >= 4u && fileSize % 4u == 0, "SPV file size is invalid", path.string().c_str());
+    if (fileSize < 4u || fileSize % 4u != 0)
+        return Error{ uint32_t(CompileError::sourceReadFailed),
+            "SPV file size is invalid: " + path.string() };
 
     file.seekg(0);
 
     uint32_t* buffer = new uint32_t[fileSize / 4u];
     file.read(reinterpret_cast<char*>(buffer), static_cast<std::streamsize>(fileSize));
-    snassert(static_cast<size_t>(file.gcount()) == fileSize,
-        "Failed to read the whole SPV file", path.string().c_str());
+    if (static_cast<size_t>(file.gcount()) != fileSize)
+        return Error{ uint32_t(CompileError::sourceReadFailed),
+            "Failed to read the whole SPV file: " + path.string() };
 
     return ShaderCompiler::shader_t{ buffer, fileSize };
 }
@@ -198,7 +202,7 @@ struct ShaderCompiler::data_t
         };
     }
 
-    shader_t loadFromFile(const char* filepath, bool forceCompile) const
+    Result<shader_t> loadFromFile(const char* filepath, bool forceCompile) const
     {
         const std::filesystem::path sourcePath(filepath);
         if (sourcePath.extension() == ".spv")
@@ -211,7 +215,14 @@ struct ShaderCompiler::data_t
             settings = m_settings;
         }
 
-        std::string sourceCode = readTextFile(sourcePath);
+        if (!std::filesystem::exists(sourcePath))
+            return Error{ uint32_t(CompileError::sourceNotFound),
+                "Shader source file does not exist: " + sourcePath.string() };
+
+        std::string sourceCode;
+        if (!tryReadTextFile(sourcePath, sourceCode))
+            return Error{ uint32_t(CompileError::sourceReadFailed),
+                "Failed to read shader source file: " + sourcePath.string() };
 
         CacheHeader expectedHeader{};
         expectedHeader.magic = kCacheMagic;
@@ -245,11 +256,14 @@ struct ShaderCompiler::data_t
             compilerOptions
         );
 
-        snassert(result.GetCompilationStatus() == shaderc_compilation_status_success,
-            "Shader compilation failed!", result.GetErrorMessage().c_str());
+        if (result.GetCompilationStatus() != shaderc_compilation_status_success)
+            return Error{ uint32_t(CompileError::compilationFailed),
+                result.GetErrorMessage() };
 
         const size_t sizeInBytes = std::distance(result.cbegin(), result.cend()) * sizeof(uint32_t);
-        snassert(sizeInBytes > 0, "Shader compilation produced no SPIR-V words", filepath);
+        if (sizeInBytes == 0)
+            return Error{ uint32_t(CompileError::compilationFailed),
+                "Shader compilation produced no SPIR-V words: " + sourcePath.string() };
 
         uint32_t* buffer = new uint32_t[sizeInBytes / 4u];
         std::memcpy(buffer, result.cbegin(), sizeInBytes);
@@ -280,7 +294,7 @@ void ShaderCompiler::setSettings(const settings_t& settings)
     m_pData->m_settings = settings;
 }
 
-ShaderCompiler::shader_t ShaderCompiler::loadFromFile(const char* filepath, bool forceCompile) const
+Result<ShaderCompiler::shader_t> ShaderCompiler::loadFromFile(const char* filepath, bool forceCompile) const
 {
     return m_pData->loadFromFile(filepath, forceCompile);
 }

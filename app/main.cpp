@@ -281,7 +281,14 @@ int main()
 		};
 		const sn::voxeng::ShaderCompiler shader_compiler(compiler_settings);
 		
-		auto compute_shader_spv = shader_compiler.loadFromFile(".res/shaders/test.comp");
+		auto shader_load_result = shader_compiler.loadFromFile(".res/shaders/test.comp");
+		if (!shader_load_result)
+		{
+			const sn::voxeng::Error& err = shader_load_result.error();
+			throw std::runtime_error("Failed to load compute shader (error code "
+				+ std::to_string(err.code) + "): " + err.message);
+		}
+		auto compute_shader_spv = std::move(shader_load_result).take();
 		std::cout << "Shader compiled (" << compute_shader_spv.getSize() << " bytes)\n";
 
 		auto compute_shader = sn::voxeng::vk::ShaderModule::Builder()
