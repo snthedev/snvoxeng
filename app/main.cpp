@@ -335,6 +335,16 @@ int main()
 			.frameCount{ 0u },
 		};
 
+		renderer.setCanvasResizedCallback(
+			[](void* userdata, VkExtent2D newExtent)
+			{
+				auto& pc = *static_cast<PushConstants*>(userdata);
+				pc.resolution = {
+					static_cast<float>(newExtent.width),
+					static_cast<float>(newExtent.height),
+				};
+			}, &push_constants);
+
 		// ---
 
 		auto storage_image_set_layout = sn::voxeng::vk::DescriptorSetLayout::Builder()
@@ -410,7 +420,7 @@ int main()
 		std::cout << "ubos_descriptor_sets_container.count(): " << ubos_descriptor_sets_container.count() << std::endl;
 
 		auto storage_image_descriptor_set = storage_image_descripor_sets_container.get(0u);
-		storage_image_descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+		renderer.attachCanvasImage(storage_image_descriptor_set.vkHandle(), 0u);
 
 		sn::voxeng::dumb_vector<sn::voxeng::vk::DescriptorSet> ubos_descriptor_sets(ubos.capacity());
 		for (size_t i = 0; i < ubos.capacity(); ++i)
@@ -440,11 +450,6 @@ int main()
 				if (renderer.recreateSwapchainKHR())
 				{
 					is_swapchain_recreate_needeed = false;
-					storage_image_descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
-					push_constants.resolution = {
-						static_cast<float>(renderer.getCanvasImage().getExtent().width),
-						static_cast<float>(renderer.getCanvasImage().getExtent().height),
-					};
 				}
 				else continue;
 			}

@@ -60,6 +60,16 @@ namespace sn::voxeng
         // be recreated.
         bool submitFrame(const FrameContext& frame);
 
+        // Descriptor slot types kept in sync with the canvas image view.
+        // When shader reflection lands, the high-level layer will resolve the
+        // canvas binding automatically and feed it through this same API.
+        void attachCanvasImage(VkDescriptorSet set, uint32_t binding, uint32_t arrayElement = 0);
+
+        // Fired after the canvas (and swapchain) have been recreated with a
+        // new extent. Plain function pointer + userdata: stable ABI boundary.
+        using CanvasResizedFn = void (*)(void* userdata, VkExtent2D newExtent);
+        void setCanvasResizedCallback(CanvasResizedFn fn, void* userdata);
+
         const size_t getMaxFramesInFlight() const noexcept;
 
         const vk::SwapchainKHR& getSwapchain() const noexcept;

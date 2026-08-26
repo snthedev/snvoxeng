@@ -17,6 +17,7 @@
 #include <snvoxeng/snvoxeng/vk/Fence.hpp>
 
 #include <memory>
+#include <vector>
 #include <snassert/snassert.hpp>
 #include <snvoxeng/snvoxeng/utils/dumb_vector.hpp>
 
@@ -48,6 +49,12 @@ struct Renderer::data_t
 	{
 		return m_computeQueueFamilyIndex != m_graphicsQueueFamilyIndex;
 	}
+
+	// --- Canvas descriptor slots & resize callback ---
+	struct CanvasImageSlot { VkDescriptorSet set; uint32_t binding; uint32_t arrayElement; };
+	std::vector<CanvasImageSlot> m_canvasImageSlots;
+	Renderer::CanvasResizedFn m_canvasResizedFn{ nullptr };
+	void* m_canvasResizedUserdata{ nullptr };
 
 	// --- Swapchain KHR ---
 	vk::SwapchainKHR m_swapchainKHR;
@@ -384,6 +391,11 @@ public:
 			resolveCanvasFormat()
 			);
 
+		writeCanvasImageSlots();
+
+		if (m_canvasResizedFn) [[unlikely]]
+			m_canvasResizedFn(m_canvasResizedUserdata, m_swapchainKHR.getImageExtent());
+
 		if (c_swapchainKHR_image_count != m_swapchainKHR.getImages().size())
 		{
 			c_swapchainKHR_image_count = m_swapchainKHR.getImages().size();
@@ -401,6 +413,53 @@ public:
 		m_frameState = data_t::FrameState::Idle;
 		m_currentFrame = 0;
 		return true;
+	}
+
+	void writeCanvasImageSlots()
+	{
+		if (m_canvasImageSlots.empty()) [[likely]] return;
+
+		const VkImageView imageView = m_upFrameResources->canvasImageView.vkHandle();
+
+		std::vector<VkDescriptorImageInfo> imageInfos;
+		imageInfos.reserve(m_canvasImageSlots.size());
+		for (const CanvasImageSlot& slot : m_canvasImageSlots)
+			imageInfos.push_back(VkDescriptorImageInfo{
+				.sampler = VK_NULL_HANDLE,
+				.imageView = imageView,
+				.imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+				});
+
+		std::vector<VkWriteDescriptorSet> writes;
+		writes.reserve(m_canvasImageSlots.size());
+		for (size_t i = 0; i < m_canvasImageSlots.size(); ++i)
+		{
+			const CanvasImageSlot& slot = m_canvasImageSlots[i];
+			writes.push_back(VkWriteDescriptorSet{
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.dstSet = slot.set,
+				.dstBinding = slot.binding,
+				.dstArrayElement = slot.arrayElement,
+				.descriptorCount = 1u,
+				.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				.pImageInfo = &imageInfos[i],
+				});
+		}
+
+		m_pDevice->updateDescriptorSets(
+			static_cast<uint32_t>(writes.size()), writes.data(), 0u, nullptr);
+	}
+
+	void attachCanvasImage(VkDescriptorSet set, uint32_t binding, uint32_t arrayElement)
+	{
+		m_canvasImageSlots.push_back(CanvasImageSlot{ set, binding, arrayElement });
+		writeCanvasImageSlots();
+	}
+
+	void setCanvasResizedCallback(Renderer::CanvasResizedFn fn, void* userdata)
+	{
+		m_canvasResizedFn = fn;
+		m_canvasResizedUserdata = userdata;
 	}
 
 
@@ -611,6 +670,9 @@ bool Renderer::recreateSwapchainKHR() { return m_pData->recreateSwapchainKHR(); 
 
 std::optional<Renderer::FrameContext> Renderer::beginFrame() { return m_pData->beginFrame(); }
 bool Renderer::submitFrame(const FrameContext& frame) { return m_pData->submitFrame(frame); }
+
+void Renderer::attachCanvasImage(VkDescriptorSet set, uint32_t binding, uint32_t arrayElement) { m_pData->attachCanvasImage(set, binding, arrayElement); }
+void Renderer::setCanvasResizedCallback(CanvasResizedFn fn, void* userdata) { m_pData->setCanvasResizedCallback(fn, userdata); }
 
 const size_t Renderer::getMaxFramesInFlight() const noexcept { return m_pData->getMaxFramesInFlight(); }
 
