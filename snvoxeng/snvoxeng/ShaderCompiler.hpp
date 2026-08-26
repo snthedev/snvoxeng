@@ -6,10 +6,16 @@
 
 namespace sn::voxeng
 {
+    // Runtime GLSL -> SPIR-V compiler with on-disk caching.
+    //
+    // Instantiable by design (no hidden global state): every instance owns
+    // its settings, and cache entries are keyed by [settings + source content],
+    // so changing optimization level or target API version automatically
+    // invalidates previously cached binaries.
     class SNVOXENG_API ShaderCompiler final
     {
-        class _Impl;
-        static _Impl& get();
+        struct data_t;
+        data_t* m_pData;
 
     public:
         struct settings_t
@@ -44,11 +50,22 @@ namespace sn::voxeng
             size_t getSize() const noexcept;
         };
 
-        ShaderCompiler() = delete;
+        // Default settings: VK_API_VERSION_1_0, eOptLevel::ePerformance.
+        ShaderCompiler();
+        explicit ShaderCompiler(const settings_t& settings);
+        ~ShaderCompiler() noexcept;
 
-        static settings_t getSettings();
-        static void setSettings(const settings_t& settings);
+        ShaderCompiler(const ShaderCompiler&) = delete;
+        ShaderCompiler& operator=(const ShaderCompiler&) = delete;
 
-        static shader_t loadFromFile(const char* filepath, bool forceCompile = false);
+        settings_t getSettings() const;
+        void setSettings(const settings_t& settings);
+
+        // Compiles GLSL into SPIR-V (or serves a matching cache entry).
+        // A file with the '.spv' extension is treated as a precompiled
+        // binary and loaded as-is. Cache misses are written back next to
+        // the source ('<name>.spv'); cache write failures are silently
+        // ignored by design (the compilation result is returned anyway).
+        shader_t loadFromFile(const char* filepath, bool forceCompile = false) const;
     };
 }

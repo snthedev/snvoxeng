@@ -275,11 +275,13 @@ int main()
 		std::cout << "Compute Queue 0x" << std::hex << compute_queue.vkHandle() << std::dec << "\n";
 		std::cout << "Transfer Queue 0x" << std::hex << transfer_queue.vkHandle() << std::dec << "\n";
 
-		auto compiler_settings = sn::voxeng::ShaderCompiler::getSettings();
-		compiler_settings.apiVersion = instance.getApiVersion();
-		sn::voxeng::ShaderCompiler::setSettings(compiler_settings);
+		const sn::voxeng::ShaderCompiler::settings_t compiler_settings{
+			.apiVersion = instance.getApiVersion(),
+			.optLevel = sn::voxeng::ShaderCompiler::settings_t::eOptLevel::ePerformance,
+		};
+		const sn::voxeng::ShaderCompiler shader_compiler(compiler_settings);
 		
-		auto compute_shader_spv = sn::voxeng::ShaderCompiler::loadFromFile(".res/shaders/test.comp");
+		auto compute_shader_spv = shader_compiler.loadFromFile(".res/shaders/test.comp");
 		std::cout << "Shader compiled (" << compute_shader_spv.getSize() << " bytes)\n";
 
 		auto compute_shader = sn::voxeng::vk::ShaderModule::Builder()

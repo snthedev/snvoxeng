@@ -10,6 +10,9 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
 
 // ---------------------------------------------------------------------------
 // dumb_vector
@@ -142,4 +145,74 @@ TEST(Vec, MemberAccess)
     p.x += 1.f;
     EXPECT_EQ(p.x, 6.f);
     EXPECT_EQ(p.y, 6.f);
+}
+
+// ---------------------------------------------------------------------------
+// ShaderCompiler
+// ---------------------------------------------------------------------------
+
+namespace
+{
+    std::filesystem::path makeTestShaderDir()
+    {
+        namespace fs = std::filesystem;
+        const fs::path dir = fs::temp_directory_path() / "snvoxeng_gtest_shaders";
+        fs::create_directories(dir);
+
+        std::ofstream file(dir / "trivial.comp", std::ios::binary | std::ios::trunc);
+        file << "#version 450\n"
+                "layout(local_size_x = 1) in;\n"
+                "layout(set = 0, binding = 0) buffer Data { float values[]; };\n"
+                "void main() { values[0] += 1.0; }\n";
+        return dir;
+    }
+}
+
+TEST(ShaderCompiler, CompilesGlslToSpirv)
+{
+    namespace fs = std::filesystem;
+    const fs::path dir = makeTestShaderDir();
+
+    const sn::voxeng::ShaderCompiler compiler;
+    auto spirv = compiler.loadFromFile((dir / "trivial.comp").string().c_str());
+
+    EXPECT_NE(spirv.getCode(), nullptr);
+    EXPECT_GT(spirv.getSize(), 0u);
+    EXPECT_EQ(spirv.getSize() % 4u, 0u); // SPIR-V is a stream of 32-bit words
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
+}
+
+TEST(ShaderCompiler, CacheSurvivesReloadAndInvalidatesOnSettings)
+{
+    namespace fs = std::filesystem;
+    const fs::path dir = makeTestShaderDir();
+    const auto srcPath = (dir / "trivial.comp").string();
+
+    sn::voxeng::ShaderCompiler compiler;
+    auto first = compiler.loadFromFile(srcPath.c_str());
+    ASSERT_GT(first.getSize(), 0u);
+
+    // Same settings + same source: served from the freshly written cache.
+    auto second = compiler.loadFromFile(srcPath.c_str());
+    ASSERT_EQ(second.getSize(), first.getSize());
+    EXPECT_EQ(0, std::memcmp(first.getCode(), second.getCode(), first.getSize()));
+
+    // Changed optimization level: cache entry must be invalidated and the
+    // shader recompiled (still succeeding).
+    auto settings = compiler.getSettings();
+    settings.optLevel = sn::voxeng::ShaderCompiler::settings_t::eOptLevel::eNone;
+    compiler.setSettings(settings);
+
+    auto third = compiler.loadFromFile(srcPath.c_str());
+    ASSERT_GT(third.getSize(), 0u);
+    EXPECT_EQ(third.getSize() % 4u, 0u);
+
+    // forceCompile bypasses the cache regardless of validity.
+    auto forced = compiler.loadFromFile(srcPath.c_str(), /*forceCompile=*/true);
+    ASSERT_GT(forced.getSize(), 0u);
+
+    std::error_code ec;
+    fs::remove_all(dir, ec);
 }
