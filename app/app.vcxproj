@@ -60,7 +60,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;C:\_storage\projects\vscode\cpp\cstrs;C:\_storage\projects\vscode\cpp\snassert</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;$(SolutionDir)thirdparty\cstrs;$(SolutionDir)thirdparty\snassert</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -81,7 +81,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;C:\_storage\projects\vscode\cpp\cstrs;C:\_storage\projects\vscode\cpp\snassert</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;$(SolutionDir)thirdparty\cstrs;$(SolutionDir)thirdparty\snassert</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

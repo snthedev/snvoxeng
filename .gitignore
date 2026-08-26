@@ -22,6 +22,7 @@ app/vcpkg_installed/
 
 # Vendored dependencies (fetched by build.bat)
 tests/thirdparty/
+thirdparty/
 
 # sncodegen
 bcg-ext-vk-config.json

@@ -11,6 +11,8 @@ rem ============================================================================
 set "ROOT=%~dp0"
 set "GTEST_TAG=v1.17.0"
 set "GTEST_DIR=%ROOT%tests\thirdparty\googletest"
+set "CSTRS_DIR=%ROOT%thirdparty\cstrs"
+set "SNASSERT_DIR=%ROOT%thirdparty\snassert"
 
 set "CONFIG=%~1"
 if "%CONFIG%"=="" set "CONFIG=Debug"
@@ -21,16 +23,39 @@ echo Configuration: %CONFIG%
 rem ---- 1. Dependencies ------------------------------------------------------
 if exist "%GTEST_DIR%\CMakeLists.txt" (
     echo [deps] GoogleTest already present: %GTEST_DIR%
-    goto :msbuild_lookup
+) else (
+    echo [deps] Fetching GoogleTest %GTEST_TAG% ...
+    git clone --depth 1 --branch %GTEST_TAG% https://github.com/google/googletest.git "%GTEST_DIR%"
+    if errorlevel 1 (
+        echo [deps] ERROR: failed to clone googletest. Check your internet connection.
+        exit /b 1
+    )
+    echo [deps] GoogleTest fetched OK.
 )
 
-echo [deps] Fetching GoogleTest %GTEST_TAG% ...
-git clone --depth 1 --branch %GTEST_TAG% https://github.com/google/googletest.git "%GTEST_DIR%"
-if errorlevel 1 (
-    echo [deps] ERROR: failed to clone googletest. Check your internet connection.
-    exit /b 1
+if exist "%CSTRS_DIR%\cstrs\cstrs.hpp" (
+    echo [deps] cstrs already present: %CSTRS_DIR%
+) else (
+    echo [deps] Fetching cstrs ...
+    git clone --depth 1 https://github.com/snthedev/cstrs.git "%CSTRS_DIR%"
+    if errorlevel 1 (
+        echo [deps] ERROR: failed to clone cstrs. Check your internet connection.
+        exit /b 1
+    )
+    echo [deps] cstrs fetched OK.
 )
-echo [deps] GoogleTest fetched OK.
+
+if exist "%SNASSERT_DIR%\snassert\snassert.hpp" (
+    echo [deps] snassert already present: %SNASSERT_DIR%
+) else (
+    echo [deps] Fetching snassert ...
+    git clone --depth 1 https://github.com/snthedev/snassert.git "%SNASSERT_DIR%"
+    if errorlevel 1 (
+        echo [deps] ERROR: failed to clone snassert. Check your internet connection.
+        exit /b 1
+    )
+    echo [deps] snassert fetched OK.
+)
 
 :msbuild_lookup
 if /i "%CONFIG%"=="fetch" exit /b 0
