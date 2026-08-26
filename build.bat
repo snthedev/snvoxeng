@@ -3,7 +3,7 @@ setlocal
 rem ============================================================================
 rem build.bat - one-shot dependency fetch + build + test runner for snvoxeng
 rem Usage:
-rem   build.bat              | fetch deps, build lib + tests (Debug), run tests
+rem   build.bat              | fetch deps, build lib + tests + app (Debug), run tests
 rem   build.bat Release      | same in Release
 rem   build.bat fetch        | only fetch dependencies (googletest)
 rem ============================================================================
@@ -98,7 +98,16 @@ if errorlevel 1 (
     exit /b 1
 )
 
-rem ---- 5. Run tests --------------------------------------------------------------
+rem ---- 5. Build demo application ------------------------------------------------
+rem NOTE: the app is built but NEVER launched from this script.
+echo [build] App...
+"%MSBUILD%" "%ROOT%app\app.vcxproj" /p:Configuration=%CONFIG% /p:Platform=x64 /p:SolutionDir=%SOLUTION_DIR% /m /v:m /nologo
+if errorlevel 1 (
+    echo [build] FAILED: app.
+    exit /b 1
+)
+
+rem ---- 6. Run tests --------------------------------------------------------------
 set "EXE=%ROOT%build\tests-d.exe"
 if /i not "%CONFIG%"=="Debug" set "EXE=%ROOT%build\tests.exe"
 

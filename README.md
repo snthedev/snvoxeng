@@ -39,8 +39,12 @@ build.bat
    * [cstrs](https://github.com/snthedev/cstrs) → `thirdparty\cstrs`
    * [snassert](https://github.com/snthedev/snassert) → `thirdparty\snassert`
 2. locates MSBuild via `vswhere`;
-3. builds the engine library and the test suite (x64);
+3. builds the engine library, the test suite **and the demo app** (x64);
 4. runs the tests.
+
+> The demo app (`build\app-d.exe`) is built but never launched by the script.
+> GLFW for the app is restored automatically via the vcpkg manifest
+> (`app\vcpkg.json`) on the first build.
 
 `build.bat fetch` only pulls the dependencies without building.
 
