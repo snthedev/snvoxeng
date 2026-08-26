@@ -11,11 +11,16 @@
 #endif
 #include <GLFW/glfw3native.h>
 
+#undef min
+#undef max
+
 #include <ostream>
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <filesystem>
+
+#include <cstrs/cstrs.hpp>
 
 static sn::voxeng::WindowDescription_t glfw_get_window_descripton(GLFWwindow* window)
 {
@@ -83,7 +88,6 @@ static size_t u2bin(const T& val, char* buf = nullptr)
 	return bits;
 }
 
-#include <cstrs/cstrs.hpp>
 template <typename T>
 static cstrs::cstr u2bin_str(const T& val)
 {
@@ -92,10 +96,10 @@ static cstrs::cstr u2bin_str(const T& val)
 	return buf;
 }
 
-static cstrs::cstr VkQueueFlags2str(VkQueueFlags val)
+static cstrs::cbuf<512> VkQueueFlags2str(VkQueueFlags val)
 {
 	size_t at = 0u;
-	cstrs::cstr buf(512, '\0');
+	cstrs::cbuf<512> buf(512, '\0');
 	at = buf.fill("[ ", at);
 	if ((val & VK_QUEUE_GRAPHICS_BIT) != 0) at = buf.fill("\"GRAPHICS_BIT\", ", at);
 	if ((val & VK_QUEUE_COMPUTE_BIT) != 0) at = buf.fill("\"COMPUTE_BIT\", ", at);
@@ -125,12 +129,12 @@ std::ostream& operator<<(std::ostream& os, const VkExtent3D& val)
 std::ostream& operator<<(std::ostream& os, const VkQueueFamilyProperties& val)
 {
 	return os
-		<< "{"
-		<< " \"queueFlags\": " << VkQueueFlags2str(val.queueFlags)
-		<< ", \"queueCount\": " << val.queueCount
-		<< ", \"timestampValidBits\": " << val.timestampValidBits
-		<< ", \"minImageTransferGranularity\": " << val.minImageTransferGranularity
-		<< "}"
+		<< " {"
+		<< "\n    \"queueFlags\": " << VkQueueFlags2str(val.queueFlags)
+		<< ",\n    \"queueCount\": " << val.queueCount
+		<< ",\n    \"timestampValidBits\": " << val.timestampValidBits
+		<< ",\n    \"minImageTransferGranularity\": " << val.minImageTransferGranularity
+		<< "\n}"
 		;
 }
 
@@ -215,6 +219,16 @@ int main()
 			else gpu = gpus.first();
 		}
 		std::cout << "GPU: " << gpu.getProperties().deviceName << "\n";
+		std::cout << "GPU's Queue Families Properties: [";
+		{
+			bool isFirst{ true };
+			for (const auto& prop : gpu.getQueueFamilyProperties())
+			{
+				std::cout << (isFirst ? "" : ",") << prop;
+				isFirst = false;
+			}
+		}
+		std::cout << "\n]\n";
 
 		uint32_t graphics_family_index = gpu.findQueueFamily({ .flags = VK_QUEUE_GRAPHICS_BIT, .surface = surface_khr.vkHandle() });
 		snassert(graphics_family_index != sn::voxeng::vk::PhysicalDevice::nmatch,
@@ -272,16 +286,35 @@ int main()
 			.withCode(compute_shader_spv)
 			.build();
 
-		auto descriptor_set_layout = sn::voxeng::vk::DescriptorSetLayout::Builder()
-			.withDevice(device)
-			.addBindings(VkDescriptorSetLayoutBinding{
-				.binding = 0,
-				.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-				.descriptorCount = 1u,
-				.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-				.pImmutableSamplers = nullptr,
-				})
-			.build();
+		// ---
+
+		sn::voxeng::Renderer renderer(
+			device, surface_khr,
+			graphics_family_index, compute_family_index,
+			graphics_queue_index, compute_queue_index);
+
+		struct UBOData
+		{
+			uint32_t max_reflections;
+		};
+		// TODO: see gpu.getProperties().limits.minUniformBufferOffsetAlignment;
+		sn::voxeng::dumb_vector<sn::voxeng::vk::Buffer> ubos(renderer.getMaxFramesInFlight());
+		sn::voxeng::dumb_vector<UBOData*> ubos_data(ubos.capacity());
+		for (size_t i = 0; i < ubos.capacity(); ++i)
+		{
+			ubos.emplace_builder(sn::voxeng::vk::Buffer::Builder()
+				.withDevice(device)
+				.withSize(std::max(gpu.getProperties().limits.minUniformBufferOffsetAlignment, sizeof(UBOData)))
+				.withUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
+				.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
+				.withVMAFlags(
+					VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+					| VMA_ALLOCATION_CREATE_MAPPED_BIT)
+			);
+			ubos_data.emplace_back(reinterpret_cast<UBOData*>(ubos.back().vmaHandleInfo().pMappedData));
+		}
+
+		// ---
 
 		static constexpr float PI = 3.14159265f;
 		static constexpr float D2R = PI / 180.f;
@@ -296,19 +329,47 @@ int main()
 		} push_constants{
 			.cameraPos{ 0.f, 0.f, 0.f, 060.f * D2R },
 			.cameraRot{ 0.f * D2R, 0.f * D2R, 0.f * D2R },
-			.resolution{ 0u, 0u },
+			.resolution{
+				static_cast<float>(renderer.getCanvasImage().getExtent().width),
+				static_cast<float>(renderer.getCanvasImage().getExtent().height),
+			},
 			.time{ 0.f },
 			.frameCount{ 0u },
 		};
 
+		// ---
+
+		auto storage_image_set_layout = sn::voxeng::vk::DescriptorSetLayout::Builder()
+			.withDevice(device)
+			.addBindings(VkDescriptorSetLayoutBinding{
+				.binding = 0u,
+				.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+				.descriptorCount = 1u,
+				.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+				.pImmutableSamplers = nullptr,
+			})
+			.build();
+
+		auto ubo_set_layout = sn::voxeng::vk::DescriptorSetLayout::Builder()
+			.withDevice(device)
+			.addBindings({
+				.binding = 0u,
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.descriptorCount = 1u,
+				.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+				.pImmutableSamplers = nullptr,
+			})
+			.build();
+
 		auto pipeline_layout = sn::voxeng::vk::PipelineLayout::Builder()
 			.withDevice(device)
-			.addSetLayouts(descriptor_set_layout.vkHandle())
+			.addSetLayouts(storage_image_set_layout.vkHandle())
+			.addSetLayouts(ubo_set_layout.vkHandle())
 			.addPushConstantRanges(VkPushConstantRange{
-					.stageFlags{ VK_SHADER_STAGE_COMPUTE_BIT },
-					.offset{ 0 },
-					.size{ sizeof(PushConstants) },
-				})
+				.stageFlags{ VK_SHADER_STAGE_COMPUTE_BIT },
+				.offset{ 0 },
+				.size{ sizeof(PushConstants) },
+			})
 			.build();
 
 		auto compute_pipeline = sn::voxeng::vk::ComputePipeline::Builder()
@@ -318,35 +379,58 @@ int main()
 				.stage = VK_SHADER_STAGE_COMPUTE_BIT,
 				.module = compute_shader.vkHandle(),
 				.pName = "main",
-				})
+			})
 			.build();
 		std::cout << "Compute Pipeline 0x " << std::hex << compute_pipeline.vkHandle() << std::dec << "\n";
 
-		sn::voxeng::Renderer renderer(
-			device, surface_khr,
-			graphics_family_index, compute_family_index,
-			graphics_queue_index, compute_queue_index);
-		push_constants.resolution = {
-			static_cast<float>(renderer.getCanvasImage().getExtent().width),
-			static_cast<float>(renderer.getCanvasImage().getExtent().height),
-		};
+		// ---
 
 		auto descriptor_pool = sn::voxeng::vk::DescriptorPool::Builder()
 			.withDevice(device)
-			.withMaxSets(1u)
+			.withMaxSets(1u + static_cast<uint32_t>(ubos.capacity()))
 			.addPoolSizes(VkDescriptorPoolSize{
 				.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 				.descriptorCount = 1u
 				})
+			.addPoolSizes(VkDescriptorPoolSize{
+				.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.descriptorCount = static_cast<uint32_t>(ubos.capacity())
+				})
 			.build();
 
-		auto descripor_sets = sn::voxeng::vk::DescriptorSetsContainer::Builder()
+		auto storage_image_descripor_sets_container = sn::voxeng::vk::DescriptorSetsContainer::Builder()
 			.withDescriptorPool(descriptor_pool)
-			.addSetLayouts(descriptor_set_layout.vkHandle())
+			.addSetLayouts(storage_image_set_layout.vkHandle())
 			.build();
 
-		auto descriptor_set = descripor_sets.get(0u);
-		descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+		auto ubos_descriptor_sets_container = sn::voxeng::vk::DescriptorSetsContainer::Builder()
+			.withDescriptorPool(descriptor_pool)
+			.addSetLayouts(std::vector<VkDescriptorSetLayout>(ubos.capacity(), ubo_set_layout.vkHandle()))
+			.build();
+
+		std::cout << "storage_image_descripor_sets_container.count(): " << storage_image_descripor_sets_container.count() << std::endl;
+		std::cout << "ubos_descriptor_sets_container.count(): " << ubos_descriptor_sets_container.count() << std::endl;
+
+		auto storage_image_descriptor_set = storage_image_descripor_sets_container.get(0u);
+		storage_image_descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+
+		sn::voxeng::dumb_vector<sn::voxeng::vk::DescriptorSet> ubos_descriptor_sets(ubos.capacity());
+		for (size_t i = 0; i < ubos.capacity(); ++i)
+		{
+			ubos_descriptor_sets.emplace_back(ubos_descriptor_sets_container.get(i));
+			VkDescriptorBufferInfo bufferInfo{
+				.buffer = ubos[i].vkHandle(),
+				.offset = 0u,
+				.range = VK_WHOLE_SIZE,
+			};
+			ubos_descriptor_sets.back().write({
+				.dstBinding = 0u,
+				.dstArrayElement = 0u,
+				.descriptorCount = 1u,
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.pBufferInfo = &bufferInfo,
+			});
+		}
 
 		// Main cycle
 		bool is_swapchain_recreate_needeed{ false };
@@ -358,7 +442,7 @@ int main()
 				if (renderer.recreateSwapchainKHR())
 				{
 					is_swapchain_recreate_needeed = false;
-					descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
+					storage_image_descriptor_set.updateStorageImage(0u, renderer.getCanvasImageView().vkHandle(), VK_IMAGE_LAYOUT_GENERAL);
 					push_constants.resolution = {
 						static_cast<float>(renderer.getCanvasImage().getExtent().width),
 						static_cast<float>(renderer.getCanvasImage().getExtent().height),
@@ -398,7 +482,11 @@ int main()
 					VK_PIPELINE_BIND_POINT_COMPUTE,
 					compute_pipeline.vkHandle()
 				);
-				const VkDescriptorSet descriptor_sets[] = { descriptor_set.vkHandle() };
+				ubos_data[frame_context->frameIndex]->max_reflections = (push_constants.frameCount / 60u) % 16u;
+				VkDescriptorSet descriptor_sets[2u] {
+					storage_image_descriptor_set.vkHandle(),
+					ubos_descriptor_sets[frame_context->frameIndex].vkHandle(),
+				};
 				frame_context->computeCmd.cmdBindDescriptorSets(
 					VK_PIPELINE_BIND_POINT_COMPUTE,
 					compute_pipeline.getLayout(),
