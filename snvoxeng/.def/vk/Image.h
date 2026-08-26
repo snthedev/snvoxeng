@@ -54,10 +54,10 @@ static constexpr auto Flags = 0u;
 static constexpr auto Allocator = nullptr;
 
 static constexpr auto DeferredMemoryAllocation = false;
-static constexpr auto VMAAllocationCreateFlags = 0u;
-static constexpr auto VMAMemoryUsage = VMA_MEMORY_USAGE_AUTO;
-static constexpr auto VMAMemoryRequiredFlags = 0u;
-static constexpr auto VMAMemoryPreferredFlags = 0u;
+static constexpr auto VMAFlags = 0u;
+static constexpr auto VMAUsage = VMA_MEMORY_USAGE_AUTO;
+static constexpr auto VMARequiredFlags = 0u;
+static constexpr auto VMAPreferredFlags = 0u;
 static constexpr auto VMAMemoryTypeBits = 0u;
 static constexpr auto VMAPool = nullptr;
 static constexpr auto VMAUserData = nullptr;
@@ -137,10 +137,10 @@ SNBCG_THIS(VkImageCreateFlags, VkImageCreateFlags, vkCreateInfo., flags, Flags, 
 SNBCG_THIS(const VkAllocationCallbacks*, const VkAllocationCallbacks*, , vkPAllocator, Allocator, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 
 SNBCG_THIS(bool, bool, , isMemoryAllocationDeferred, DeferredMemoryAllocation, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
-SNBCG_THIS(VmaAllocationCreateFlags, VmaAllocationCreateFlags, vmaCreateInfo., flags, VMAAllocationCreateFlags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
-SNBCG_THIS(VmaMemoryUsage, VmaMemoryUsage, vmaCreateInfo., usage, VMAMemoryUsage, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
-SNBCG_THIS(VkMemoryPropertyFlags, VkMemoryPropertyFlags, vmaCreateInfo., requiredFlags, VMAMemoryRequiredFlags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
-SNBCG_THIS(VkMemoryPropertyFlags, VkMemoryPropertyFlags, vmaCreateInfo., preferredFlags, VMAMemoryPreferredFlags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+SNBCG_THIS(VmaAllocationCreateFlags, VmaAllocationCreateFlags, vmaCreateInfo., flags, VMAFlags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+SNBCG_THIS(VmaMemoryUsage, VmaMemoryUsage, vmaCreateInfo., usage, VMAUsage, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+SNBCG_THIS(VkMemoryPropertyFlags, VkMemoryPropertyFlags, vmaCreateInfo., requiredFlags, VMARequiredFlags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
+SNBCG_THIS(VkMemoryPropertyFlags, VkMemoryPropertyFlags, vmaCreateInfo., preferredFlags, VMAPreferredFlags, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 SNBCG_THIS(uint32_t, uint32_t, vmaCreateInfo., memoryTypeBits, VMAMemoryTypeBits, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 SNBCG_THIS(VmaPool, VmaPool, vmaCreateInfo., pool, VMAPool, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
 SNBCG_THIS(void*, void*, vmaCreateInfo., pUserData, VMAUserData, SNBCG_POLICY_RETURN_COPY, SNBCG_POLICY_STORE_COPY)
