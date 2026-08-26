@@ -3,6 +3,9 @@
     <Platform Name="x64" />
   </Configurations>
   <Project Path="snvoxeng/snvoxeng.vcxproj" Id="f0897e85-f3a9-4f56-9cc0-0a0a4c72aa46" />
+  <Project Path="app/app.vcxproj" Id="b0ceaf11-d953-4ae0-b5fa-46c243c3d13f">
+    <BuildDependency Project="snvoxeng/snvoxeng.vcxproj" />
+  </Project>
   <Project Path="tests/tests.vcxproj" Id="6091b089-9b66-4620-8e53-aa143045b379">
     <BuildDependency Project="snvoxeng/snvoxeng.vcxproj" />
   </Project>
