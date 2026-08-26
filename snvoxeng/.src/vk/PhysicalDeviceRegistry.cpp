@@ -155,13 +155,13 @@ PhysicalDevice PhysicalDeviceRegistry::first() const { return PhysicalDevice(*th
 PhysicalDevice PhysicalDeviceRegistry::last() const { return PhysicalDevice(*this, m_pData->physicalDevices.size() - 1u); }
 size_t PhysicalDeviceRegistry::count() const noexcept { return m_pData->physicalDevices.size(); }
 
-SNVOXENG_API_POD bool fPhysicalDeviseSelectors::fDeviceType(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data)
+SNVOXENG_API_POD bool fPhysicalDeviceSelectors::fDeviceType(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data)
 {
     auto* data = reinterpret_cast<fDeviceType_user_data_t*>(user_data);
     snassert(data != nullptr, "user_data is null", "Provide fDeviceType_user_data_t");
     return registry.getProperties(idx).deviceType == data->deviceType;
 }
-SNVOXENG_API_POD bool fPhysicalDeviseSelectors::fExtensions(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data)
+SNVOXENG_API_POD bool fPhysicalDeviceSelectors::fExtensions(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data)
 {
     auto* data = reinterpret_cast<fExtensions_user_data_t*>(user_data);
     snassert(data != nullptr, "user_data is null", "Provide fExtensions_user_data_t");
@@ -172,7 +172,7 @@ SNVOXENG_API_POD bool fPhysicalDeviseSelectors::fExtensions(size_t idx, const Ph
     }
     return true;
 }
-SNVOXENG_API_POD bool fPhysicalDeviseSelectors::fQueueSupport(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data)
+SNVOXENG_API_POD bool fPhysicalDeviceSelectors::fQueueSupport(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data)
 {
     auto* data = reinterpret_cast<fQueueSupport_user_data_t*>(user_data);
     snassert(data != nullptr, "user_data is null", "Provide fQueueSupport_user_data_t");
@@ -193,7 +193,7 @@ SNVOXENG_API_POD bool fPhysicalDeviseSelectors::fQueueSupport(size_t idx, const 
 
     return requiredFlagsAnd_satisfied && ((accumulatedFlags & data->requiredFlagsOr) == data->requiredFlagsOr);
 }
-SNVOXENG_API_POD bool fPhysicalDeviseSelectors::fSurfaceSupport(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data)
+SNVOXENG_API_POD bool fPhysicalDeviceSelectors::fSurfaceSupport(size_t idx, const PhysicalDeviceRegistry& registry, void* user_data)
 {
     auto* data = reinterpret_cast<fSurfaceSupport_user_data_t*>(user_data);
     snassert(data != nullptr, "user_data is null", "Provide fSurfaceSupport_user_data_t");

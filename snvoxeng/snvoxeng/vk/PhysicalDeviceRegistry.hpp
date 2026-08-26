@@ -49,7 +49,7 @@ namespace sn::voxeng::vk
 	};
 }
 
-namespace sn::voxeng::vk::fPhysicalDeviseSelectors
+namespace sn::voxeng::vk::fPhysicalDeviceSelectors
 {
 	struct fDeviceType_user_data_t {
 		VkPhysicalDeviceType deviceType;

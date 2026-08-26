@@ -23,7 +23,7 @@
 
 #include <snvoxeng/snvoxeng.hpp>
 
-static sn::voxeng::WindowDescription_t glfw_get_window_descripton(GLFWwindow* window)
+static sn::voxeng::WindowDescription_t glfw_get_window_description(GLFWwindow* window)
 {
 	sn::voxeng::WindowDescription_t desc;
 	{
@@ -157,7 +157,7 @@ int main()
 
 	try
 	{
-		auto window_description = glfw_get_window_descripton(pWindow);
+		auto window_description = glfw_get_window_description(pWindow);
 
 		std::vector<const char*> instance_extensions = {};
 		{
@@ -188,7 +188,7 @@ int main()
 
 		sn::voxeng::vk::PhysicalDevice gpu = physical_device_registry.first();
 		{
-			using namespace sn::voxeng::vk::fPhysicalDeviseSelectors;
+			using namespace sn::voxeng::vk::fPhysicalDeviceSelectors;
 
 			std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 			fExtensions_user_data_t fExtensions_user_data{
@@ -408,7 +408,7 @@ int main()
 				})
 			.build();
 
-		auto storage_image_descripor_sets_container = sn::voxeng::vk::DescriptorSetsContainer::Builder()
+		auto storage_image_descriptor_sets_container = sn::voxeng::vk::DescriptorSetsContainer::Builder()
 			.withDescriptorPool(descriptor_pool)
 			.addSetLayouts(storage_image_set_layout.vkHandle())
 			.build();
@@ -418,10 +418,10 @@ int main()
 			.addSetLayouts(std::vector<VkDescriptorSetLayout>(ubos.capacity(), ubo_set_layout.vkHandle()))
 			.build();
 
-		std::cout << "storage_image_descripor_sets_container.count(): " << storage_image_descripor_sets_container.count() << std::endl;
+		std::cout << "storage_image_descriptor_sets_container.count(): " << storage_image_descriptor_sets_container.count() << std::endl;
 		std::cout << "ubos_descriptor_sets_container.count(): " << ubos_descriptor_sets_container.count() << std::endl;
 
-		auto storage_image_descriptor_set = storage_image_descripor_sets_container.get(0u);
+		auto storage_image_descriptor_set = storage_image_descriptor_sets_container.get(0u);
 		renderer.attachCanvasImage(storage_image_descriptor_set.vkHandle(), 0u);
 
 		sn::voxeng::dumb_vector<sn::voxeng::vk::DescriptorSet> ubos_descriptor_sets(ubos.capacity());
@@ -443,15 +443,15 @@ int main()
 		}
 
 		// Main cycle
-		bool is_swapchain_recreate_needeed{ false };
+		bool is_swapchain_recreate_needed{ false };
 		while (!glfwWindowShouldClose(pWindow))
 		{
 			glfwPollEvents();
-			if (is_swapchain_recreate_needeed)
+			if (is_swapchain_recreate_needed)
 			{
 				if (renderer.recreateSwapchainKHR())
 				{
-					is_swapchain_recreate_needeed = false;
+					is_swapchain_recreate_needed = false;
 				}
 				else continue;
 			}
@@ -459,7 +459,7 @@ int main()
 			auto frame_context = renderer.beginFrame();
 			if (!frame_context.has_value())
 			{
-				is_swapchain_recreate_needeed = true;
+				is_swapchain_recreate_needed = true;
 				continue;
 			}
 
@@ -491,7 +491,7 @@ int main()
 			}
 			if (!renderer.submitFrame(*frame_context))
 			{
-				is_swapchain_recreate_needeed = true;
+				is_swapchain_recreate_needed = true;
 				continue;
 			}
 
