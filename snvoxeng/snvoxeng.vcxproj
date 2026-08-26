@@ -128,6 +128,7 @@
     <ClInclude Include="snvoxeng\math\vec2.hpp" />
     <ClInclude Include="snvoxeng\math\vec4.hpp" />
     <ClInclude Include="snvoxeng\Renderer.hpp" />
+    <ClInclude Include="snvoxeng\AssertHandler.hpp" />
     <ClInclude Include="snvoxeng\ShaderCompiler.hpp" />
     <ClInclude Include="snvoxeng\ShaderStages.hpp" />
     <ClInclude Include="snvoxeng\utils\dumb_vector.hpp" />
@@ -163,6 +164,7 @@
   <ItemGroup>
     <ClCompile Include=".src\Renderer.cpp" />
     <ClCompile Include=".src\ShaderCompiler.cpp" />
+    <ClCompile Include=".src\utils\AssertHandler.cpp" />
     <ClCompile Include=".src\utils\VMA-impl.cpp" />
     <ClCompile Include=".src\vk\Buffer.cpp" />
     <ClCompile Include=".src\vk\CommandBuffer.cpp" />

@@ -53,17 +53,46 @@ struct Renderer::data_t
 	vk::SwapchainKHR m_swapchainKHR;
 	size_t c_swapchainKHR_image_count;
 
+	VkFormat resolveCanvasFormat() const
+	{
+		// Prefer the swapchain format: an identical format guarantees a
+		// lossless vkCmdCopyImage and keeps the storage-image writes
+		// consistent with what ends up on screen (no channel reordering).
+		// Fall back to R8G8B8A8_UNORM when the swapchain format cannot serve
+		// as a storage/transfer-source image on this device.
+		const VkFormat candidates[]{
+			m_swapchainKHR.getImageFormat(),
+			VK_FORMAT_R8G8B8A8_UNORM,
+		};
+
+		constexpr auto requiredFeatures =
+			VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT | VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
+
+		const VkPhysicalDevice physicalDevice = m_pDevice->getPhysicalDevice().vkHandle();
+		for (const VkFormat candidate : candidates)
+		{
+			VkFormatProperties properties{};
+			vkGetPhysicalDeviceFormatProperties(physicalDevice, candidate, &properties);
+			if ((properties.optimalTilingFeatures & requiredFeatures) == requiredFeatures)
+				return candidate;
+		}
+
+		snassert(false, "No suitable canvas image format found",
+			"The swapchain format and R8G8B8A8_UNORM both lack STORAGE_IMAGE | TRANSFER_SRC support");
+		return candidates[1];
+	}
+
 	// --- Frame Resources ---
 	struct FrameResources
 	{
 		vk::Image canvasImage;
 		vk::ImageView canvasImageView;
 
-		FrameResources(const vk::Device& device, VkExtent3D extent)
+		FrameResources(const vk::Device& device, VkExtent3D extent, VkFormat format)
 			: canvasImage(vk::Image::Builder()
 				.withDevice(device)
 				.withImageType(VK_IMAGE_TYPE_2D)
-				.withFormat(VK_FORMAT_R8G8B8A8_UNORM)
+				.withFormat(format)
 				.withExtent(extent)
 				.withMipLevels(1u)
 				.withArrayLayers(1u)
@@ -290,7 +319,8 @@ public:
 		, c_swapchainKHR_image_count(m_swapchainKHR.getImages().size())
 		// --- Frame Resources ---
 		, m_upFrameResources(std::make_unique<FrameResources>(
-			*m_pDevice, VkExtent3D{ m_swapchainKHR.getImageExtent().width, m_swapchainKHR.getImageExtent().height, 1u }
+			*m_pDevice, VkExtent3D{ m_swapchainKHR.getImageExtent().width, m_swapchainKHR.getImageExtent().height, 1u },
+			resolveCanvasFormat()
 		))
 		// --- Command Pools & Buffers ---
 		, m_computeCommandPool(vk::CommandPool::Builder()
@@ -350,7 +380,8 @@ public:
 		if (!m_swapchainKHR.recreate()) return false;
 
 		m_upFrameResources = std::make_unique<FrameResources>(
-			*m_pDevice, VkExtent3D{ m_swapchainKHR.getImageExtent().width, m_swapchainKHR.getImageExtent().height, 1u }
+			*m_pDevice, VkExtent3D{ m_swapchainKHR.getImageExtent().width, m_swapchainKHR.getImageExtent().height, 1u },
+			resolveCanvasFormat()
 			);
 
 		if (c_swapchainKHR_image_count != m_swapchainKHR.getImages().size())
