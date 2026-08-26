@@ -45,7 +45,7 @@ struct DescriptorSetsContainer::data_t
 #include <snvoxeng/.def/vk/DescriptorSetsContainer.h>
 	}
 
-	std::vector<VkDescriptorSet> vkHandle{ VK_NULL_HANDLE };
+	std::vector<VkDescriptorSet> vkHandle{};
 };
 
 void DescriptorSetsContainer::onCreate(data_t& data)
@@ -124,6 +124,7 @@ void Builder::finalize(data_t& data)
 	data.vkAllocateInfo.descriptorPool = data.pDescriptorPool->vkHandle();
 	data.vkAllocateInfo.descriptorSetCount = static_cast<uint32_t>(data.setLayouts.size());
 	data.vkAllocateInfo.pSetLayouts = data.setLayouts.data();
+	data.vkHandle.resize(data.setLayouts.size(), VK_NULL_HANDLE);
 }
 
 #ifdef DETAIL_SNBCG_DEBUG
