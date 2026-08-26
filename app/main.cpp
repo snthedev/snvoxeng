@@ -297,14 +297,16 @@ int main()
 		{
 			uint32_t max_reflections;
 		};
-		// TODO: see gpu.getProperties().limits.minUniformBufferOffsetAlignment;
+		// UBO size is rounded up to the required alignment multiple.
 		sn::voxeng::dumb_vector<sn::voxeng::vk::Buffer> ubos(renderer.getMaxFramesInFlight());
 		sn::voxeng::dumb_vector<UBOData*> ubos_data(ubos.capacity());
+		const VkDeviceSize ubo_alignment = gpu.getProperties().limits.minUniformBufferOffsetAlignment;
+		const VkDeviceSize ubo_size = (sizeof(UBOData) + ubo_alignment - 1) / ubo_alignment * ubo_alignment;
 		for (size_t i = 0; i < ubos.capacity(); ++i)
 		{
 			ubos.emplace_builder(sn::voxeng::vk::Buffer::Builder()
 				.withDevice(device)
-				.withSize(std::max(gpu.getProperties().limits.minUniformBufferOffsetAlignment, sizeof(UBOData)))
+				.withSize(ubo_size)
 				.withUsage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)
 				.withSharingMode(VK_SHARING_MODE_EXCLUSIVE)
 				.withVMAFlags(
