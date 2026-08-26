@@ -3,7 +3,7 @@
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
 #include <snvoxeng/snvoxeng/vk/VkMinimal.hpp>
 
-#include <ThirdParty/snbcg/bcg.hpp>
+#include <snbcg/bcg.hpp>
 
 #define SNBCG_HEADER_INCLUDE
 #include <snvoxeng/.def/vk/DescriptorPool.h>
