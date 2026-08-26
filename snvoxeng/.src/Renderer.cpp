@@ -304,6 +304,7 @@ public:
 
 		return FrameContext{
 			.imageIndex = imageIndex,
+			.frameIndex = m_currentFrame,
 			.computeCmd = computeCmd,
 			.graphicsCmd = graphicsCmd
 		};
@@ -407,6 +408,8 @@ public:
 
 
 
+	inline const size_t getMaxFramesInFlight() const noexcept { return MAX_FRAMES_IN_FLIGHT; }
+
 	inline const vk::SwapchainKHR& getSwapchain() const noexcept { return m_swapchainKHR; }
 	inline const vk::Image& getCanvasImage() const noexcept { return m_upFrameResources->canvasImage; }
 	inline const vk::ImageView& getCanvasImageView() const noexcept { return m_upFrameResources->canvasImageView; }
@@ -431,6 +434,8 @@ bool Renderer::recreateSwapchainKHR() { return m_pData->recreateSwapchainKHR(); 
 
 std::optional<Renderer::FrameContext> Renderer::beginFrame() { return m_pData->beginFrame(); }
 bool Renderer::endFrame(uint32_t imageIndex) { return m_pData->endFrame(imageIndex); }
+
+const size_t Renderer::getMaxFramesInFlight() const noexcept { return m_pData->getMaxFramesInFlight(); }
 
 const vk::SwapchainKHR& Renderer::getSwapchain() const noexcept { return m_pData->getSwapchain(); }
 const vk::Image& Renderer::getCanvasImage() const noexcept { return m_pData->getCanvasImage(); }

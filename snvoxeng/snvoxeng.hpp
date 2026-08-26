@@ -42,3 +42,4 @@
 #include <snvoxeng/snvoxeng/Renderer.hpp>
 
 #include <snvoxeng/snvoxeng/math/vec.hpp>
+#include <snvoxeng/snvoxeng/utils/dumb_vector.hpp>

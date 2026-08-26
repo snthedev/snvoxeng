@@ -23,6 +23,7 @@ namespace sn::voxeng
         struct FrameContext
         {
             uint32_t imageIndex;
+            size_t frameIndex;
             vk::CommandBuffer computeCmd;
             vk::CommandBuffer graphicsCmd;
         };
@@ -50,6 +51,8 @@ namespace sn::voxeng
         std::optional<FrameContext> beginFrame();
         // false means that the swapchain needs to be recreated.
         bool endFrame(uint32_t imageIndex);
+
+        const size_t getMaxFramesInFlight() const noexcept;
 
         const vk::SwapchainKHR& getSwapchain() const noexcept;
         const vk::Image& getCanvasImage() const noexcept;
