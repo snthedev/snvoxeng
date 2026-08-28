@@ -1,21 +1,12 @@
 #pragma once
 
 #include <snvoxeng/snvoxeng/dll-defines.hpp>
-#include <snvoxeng/snvoxeng/Result.hpp>
 
+#include <filesystem>
 #include <cstdint>
 
 namespace sn::voxeng
 {
-    // Recoverable shader loading/compilation failures (see the project
-    // error-handling policy: these belong to Result, not to snassert).
-    enum class CompileError : uint32_t
-    {
-        sourceNotFound = 1,
-        sourceReadFailed = 2,
-        compilationFailed = 3,
-    };
-
     // Runtime GLSL -> SPIR-V compiler with on-disk caching.
     //
     // Instantiable by design (no hidden global state): every instance owns
@@ -42,11 +33,11 @@ namespace sn::voxeng
 
         class SNVOXENG_API shader_t
         {
-            const uint32_t* m_pCode;
+            uint32_t* m_pCode;
             size_t m_sizeInBytes;
 
         public:
-            shader_t(const uint32_t* pCode, size_t sizeInBytes);
+            shader_t(const uint32_t* pCode, size_t size);
             ~shader_t() noexcept;
 
             shader_t(const shader_t&) = delete;
@@ -76,6 +67,6 @@ namespace sn::voxeng
         // binary and loaded as-is. Cache misses are written back next to
         // the source ('<name>.spv'); cache write failures are silently
         // ignored by design (the compilation result is returned anyway).
-        Result<shader_t> loadFromFile(const char* filepath, bool forceCompile = false) const;
+        shader_t loadFromFile(const std::filesystem::path& filepath, bool forceCompile = false) const;
     };
 }

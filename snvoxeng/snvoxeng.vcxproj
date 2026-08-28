@@ -58,7 +58,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;SNVOXENG_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include;$(SolutionDir)\thirdparty\cstrs;$(SolutionDir)\thirdparty\snassert</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -80,7 +80,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;SNVOXENG_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include;$(SolutionDir)\thirdparty\cstrs;$(SolutionDir)\thirdparty\snassert</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -95,6 +95,7 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include=".def\ShaderStages.h" />
     <ClInclude Include=".def\vk\Buffer.h" />
     <ClInclude Include=".def\vk\CommandBuffersContainer.h" />
     <ClInclude Include=".def\vk\CommandPool.h" />
@@ -119,11 +120,14 @@
     <ClInclude Include="snvoxeng\math\vec2.hpp" />
     <ClInclude Include="snvoxeng\math\vec4.hpp" />
     <ClInclude Include="snvoxeng\Renderer.hpp" />
-    <ClInclude Include="snvoxeng\Result.hpp" />
     <ClInclude Include="snvoxeng\AssertHandler.hpp" />
     <ClInclude Include="snvoxeng\ShaderCompiler.hpp" />
     <ClInclude Include="snvoxeng\ShaderStages.hpp" />
     <ClInclude Include="snvoxeng\utils\dumb_vector.hpp" />
+    <ClInclude Include="snvoxeng\utils\IO\BinaryFile\BFHandle.hpp" />
+    <ClInclude Include="snvoxeng\utils\IO\BinaryFile\BFMap.hpp" />
+    <ClInclude Include="snvoxeng\utils\IO\BinaryFile\BFView.hpp" />
+    <ClInclude Include="snvoxeng\utils\LeTypes.hpp" />
     <ClInclude Include="snvoxeng\utils\vk-getSType.hpp" />
     <ClInclude Include="snvoxeng\vk\Buffer.hpp" />
     <ClInclude Include="snvoxeng\vk\CommandBuffer.hpp" />
@@ -156,7 +160,12 @@
   <ItemGroup>
     <ClCompile Include=".src\Renderer.cpp" />
     <ClCompile Include=".src\ShaderCompiler.cpp" />
+    <ClCompile Include=".src\ShaderStages.cpp" />
     <ClCompile Include=".src\utils\AssertHandler.cpp" />
+    <ClCompile Include=".src\utils\IO\BinaryFile\BFHandle.cpp" />
+    <ClCompile Include=".src\utils\IO\BinaryFile\BFMap.cpp" />
+    <ClCompile Include=".src\utils\IO\BinaryFile\BFMapRO.cpp" />
+    <ClCompile Include=".src\utils\IO\BinaryFile\BFMapRW.cpp" />
     <ClCompile Include=".src\utils\VMA-impl.cpp" />
     <ClCompile Include=".src\vk\Buffer.cpp" />
     <ClCompile Include=".src\vk\CommandBuffer.cpp" />

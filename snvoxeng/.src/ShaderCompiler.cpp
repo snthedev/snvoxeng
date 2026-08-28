@@ -1,6 +1,8 @@
 #include <snvoxeng/snvoxeng/ShaderCompiler.hpp>
 #include <snvoxeng/snvoxeng/ShaderStages.hpp>
 
+#include <snvoxeng/snvoxeng/utils/IO/BinaryFile/BFHandle.hpp>
+
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
 #include <snassert/snassert.hpp>
@@ -11,9 +13,13 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <span>
 
 using namespace sn::voxeng;
 
+// === utils ===
+
+// Cache Header
 namespace
 {
 	constexpr uint32_t kCacheMagic = 0x53504331;   // 'SPC1'
@@ -33,9 +39,59 @@ namespace
 		uint64_t sourceSize;
 		uint64_t sourceHash; // FNV-1a 64 over the source bytes
 		uint64_t spvSize;
+
+        void read(io::BFViewRO map)
+        {
+            magic = map.read_front<decltype(magic)>();
+            version = map.read_front<decltype(version)>();
+            apiVersion = map.read_front<decltype(apiVersion)>();
+            optLevel = map.read_front<decltype(optLevel)>();
+            sourceSize = map.read_front<decltype(sourceSize)>();
+            sourceHash = map.read_front<decltype(sourceHash)>();
+            spvSize = map.read_front<decltype(spvSize)>();
+        }
+
+        void write(io::BFViewRW map) const
+        {
+            map.write_front(magic);
+            map.write_front(version);
+            map.write_front(apiVersion);
+            map.write_front(optLevel);
+            map.write_front(sourceSize);
+            map.write_front(sourceHash);
+            map.write_front(spvSize);
+        }
+
+        bool isSourceSame(const CacheHeader& other) const noexcept
+        {
+            return
+                magic == other.magic
+                && version == other.version
+                && apiVersion == other.apiVersion
+                && optLevel == other.optLevel
+                && sourceSize == other.sourceSize
+                && sourceHash == other.sourceHash
+                ;
+        }
+
+        bool operator==(const CacheHeader& other) noexcept
+        {
+            return
+                magic == other.magic
+                && version == other.version
+                && apiVersion == other.apiVersion
+                && optLevel == other.optLevel
+                && sourceSize == other.sourceSize
+                && sourceHash == other.sourceHash
+                && spvSize == other.spvSize
+                ;
+        }
+        bool operator!=(const CacheHeader& other) noexcept { return !(*this == other); }
 	};
 #pragma pack(pop)
 	static_assert(sizeof(CacheHeader) == 40u);
+    static_assert(sizeof(CacheHeader) % alignof(uint32_t) == 0,
+        "CacheHeader size must be a multiple of uint32_t alignment");
 
 	constexpr uint64_t kFnv1aOffsetBasis = 0xcbf29ce484222325ull;
 	constexpr uint64_t kFnv1aPrime = 0x100000001b3ull;
@@ -52,6 +108,7 @@ namespace
 	}
 }
 
+// Shaderc
 static shaderc_optimization_level getShadercOptLevel(ShaderCompiler::settings_t::eOptLevel optLevel)
 {
     constexpr static shaderc_optimization_level optLevelTable[]{
@@ -67,114 +124,99 @@ static shaderc_optimization_level getShadercOptLevel(ShaderCompiler::settings_t:
     return optLevelTable[static_cast<size_t>(optLevel)];
 }
 
-static bool tryReadTextFile(const std::filesystem::path& path, std::string& out)
+// Entire File Read
+static std::string readTextFile(const std::filesystem::path& path)
 {
+    if (!std::filesystem::exists(path))
+        throw std::runtime_error("File does not exist.");
+
     std::ifstream file(path, std::ios::in | std::ios::binary);
     if (!file.is_open())
-        return false;
+        throw std::runtime_error("Failed to open file.");
 
-    out.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    return true;
+    return std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 }
-
-static Result<ShaderCompiler::shader_t> readSpvFile(const std::filesystem::path& path)
+static ShaderCompiler::shader_t readSpvFile(const std::filesystem::path& path)
 {
-    std::ifstream file(path, std::ios::ate | std::ios::binary);
-    if (!file.is_open())
-        return Error{ uint32_t(CompileError::sourceReadFailed),
-            "Failed to open SPV file: " + path.string() };
+    io::BFHandle file(path, io::BFHandle::eNotFoundBehaviour::eThrow);
+    auto map = file.map_ro();
+    auto view = map.viewRO();
 
-    const auto fileSize = static_cast<size_t>(file.tellg());
-    if (fileSize < 4u || fileSize % 4u != 0)
-        return Error{ uint32_t(CompileError::sourceReadFailed),
-            "SPV file size is invalid: " + path.string() };
+    if (view.size() % sizeof(uint32_t) != 0)
+        throw std::runtime_error("Corrupted .spv file.");
 
-    file.seekg(0);
-
-    uint32_t* buffer = new uint32_t[fileSize / 4u];
-    file.read(reinterpret_cast<char*>(buffer), static_cast<std::streamsize>(fileSize));
-    if (static_cast<size_t>(file.gcount()) != fileSize)
-        return Error{ uint32_t(CompileError::sourceReadFailed),
-            "Failed to read the whole SPV file: " + path.string() };
-
-    return ShaderCompiler::shader_t{ buffer, fileSize };
+    return ShaderCompiler::shader_t{ reinterpret_cast<const uint32_t*>(view.data()), view.size() / sizeof(uint32_t) };
 }
 
-// Returns false when the cache is missing, corrupt, or stale (any identity
-// field mismatch against the expected compilation context).
-static bool tryReadCache(
-    const std::filesystem::path& path,
-    const CacheHeader& expected,
-    std::vector<uint32_t>& out)
+// Cache Read
+static const uint32_t* tryReadCache(
+    const io::BFMapRO& map,
+    const CacheHeader& expectedHeader,
+    size_t& outWordsCount)
 {
-    std::ifstream file(path, std::ios::binary);
-    if (!file.is_open())
-        return false;
+    auto view = map.viewRO();
+    if (view.size() < sizeof(CacheHeader)) return nullptr;
 
-    CacheHeader header{};
-    if (!file.read(reinterpret_cast<char*>(&header), sizeof(header)))
-        return false;
+    CacheHeader actualHeader;
+    actualHeader.read(view.subview(0, sizeof(CacheHeader)));
 
-    // Compare identity fields only: spvSize describes the payload, it is
-    // validated below rather than matched against 'expected'.
-    if (header.magic != expected.magic ||
-        header.version != expected.version ||
-        header.apiVersion != expected.apiVersion ||
-        header.optLevel != expected.optLevel ||
-        header.sourceSize != expected.sourceSize ||
-        header.sourceHash != expected.sourceHash)
-        return false;
+    if (!actualHeader.isSourceSame(expectedHeader)) return nullptr;
+    if (actualHeader.spvSize == 0 || (actualHeader.spvSize % sizeof(uint32_t)) != 0) return nullptr;
 
-    if (header.spvSize == 0 || header.spvSize % 4u != 0)
-        return false;
+    const size_t payloadBytes = actualHeader.spvSize;
+    if (view.size() < sizeof(CacheHeader) + payloadBytes) return nullptr;
 
-    out.resize(static_cast<size_t>(header.spvSize / 4u));
-    if (!file.read(
-        reinterpret_cast<char*>(out.data()),
-        static_cast<std::streamsize>(header.spvSize)))
-        return false;
-
-    return true;
+    outWordsCount = payloadBytes / sizeof(uint32_t);
+    return reinterpret_cast<const uint32_t*>(view.data() + sizeof(CacheHeader));
 }
 
-// Best-effort by design: a missing or unwritable cache never breaks the
-// actual compilation result.
+// Cache Write
 static void writeCache(
-    const std::filesystem::path& path,
+    io::BFHandle& file,
     const CacheHeader& header,
     const uint32_t* code,
-    size_t sizeInBytes)
+    size_t sizeInBytes
+)
 {
-    std::ofstream file(path, std::ios::binary | std::ios::trunc);
-    if (!file.is_open())
-        return;
+    file.resize(sizeof(CacheHeader) + sizeInBytes);
+    auto map = file.map_rw();
 
-    file.write(reinterpret_cast<const char*>(&header), sizeof(header));
-    file.write(reinterpret_cast<const char*>(code), static_cast<std::streamsize>(sizeInBytes));
+    auto view = map.viewRW();
+    {
+        auto header_view = view.subview(0, sizeof(CacheHeader));
+        header.write(header_view);
+    }
+    {
+        auto data_view = view.subview(sizeof(CacheHeader), sizeInBytes);
+        std::memcpy(data_view.data(), code, sizeInBytes);
+    }
+
+    map.sync();
 }
 
-// ShaderCompiler::shader_t
+// === ShaderCompiler::shader_t ===
 
-ShaderCompiler::shader_t::shader_t(const uint32_t* pCode, size_t sizeInBytes)
-    : m_pCode(pCode)
-    , m_sizeInBytes(sizeInBytes)
+ShaderCompiler::shader_t::shader_t(const uint32_t* pCode, size_t size)
+    : m_pCode(new uint32_t[size])
+    , m_sizeInBytes(size * sizeof(uint32_t))
 {
+    std::memcpy(m_pCode, pCode, m_sizeInBytes);
 }
 ShaderCompiler::shader_t::~shader_t() { if (m_pCode) delete[] m_pCode; }
 
 ShaderCompiler::shader_t::shader_t(shader_t&& other) noexcept
-    : m_pCode(other.m_pCode)
-    , m_sizeInBytes(other.m_sizeInBytes)
+    : m_pCode(std::exchange(other.m_pCode, nullptr))
+    , m_sizeInBytes(std::exchange(other.m_sizeInBytes, 0u))
 {
-    other.m_pCode = nullptr;
 }
 ShaderCompiler::shader_t& ShaderCompiler::shader_t::operator=(shader_t&& other) noexcept
 {
     if (this != &other) [[likely]]
     {
-        m_pCode = other.m_pCode;
-        m_sizeInBytes = other.m_sizeInBytes;
-        other.m_pCode = nullptr;
+        if (m_pCode) delete[] m_pCode;
+
+        m_pCode = std::exchange(other.m_pCode, nullptr);
+        m_sizeInBytes = std::exchange(other.m_sizeInBytes, 0u);
     }
     return *this;
 }
@@ -182,7 +224,7 @@ ShaderCompiler::shader_t& ShaderCompiler::shader_t::operator=(shader_t&& other) 
 const uint32_t* ShaderCompiler::shader_t::getCode() const noexcept { return m_pCode; }
 size_t ShaderCompiler::shader_t::getSize() const noexcept { return m_sizeInBytes; }
 
-// ShaderCompiler::data_t
+// === ShaderCompiler::data_t ===
 
 struct ShaderCompiler::data_t
 {
@@ -202,11 +244,10 @@ struct ShaderCompiler::data_t
         };
     }
 
-    Result<shader_t> loadFromFile(const char* filepath, bool forceCompile) const
+    shader_t loadFromFile(const std::filesystem::path& filepath, bool forceCompile) const
     {
-        const std::filesystem::path sourcePath(filepath);
-        if (sourcePath.extension() == ".spv")
-            return readSpvFile(sourcePath);
+        if (filepath.extension() == ".spv")
+            return readSpvFile(filepath);
 
         // Snapshot the settings so compilation never races with setSettings().
         settings_t settings;
@@ -215,34 +256,36 @@ struct ShaderCompiler::data_t
             settings = m_settings;
         }
 
-        if (!std::filesystem::exists(sourcePath))
-            return Error{ uint32_t(CompileError::sourceNotFound),
-                "Shader source file does not exist: " + sourcePath.string() };
+        std::string sourceCode = readTextFile(filepath);
 
-        std::string sourceCode;
-        if (!tryReadTextFile(sourcePath, sourceCode))
-            return Error{ uint32_t(CompileError::sourceReadFailed),
-                "Failed to read shader source file: " + sourcePath.string() };
+        CacheHeader header{
+            .magic = kCacheMagic,
+            .version = kCacheVersion,
+            .apiVersion = settings.apiVersion,
+            .optLevel = static_cast<uint32_t>(settings.optLevel),
+            .sourceSize = static_cast<uint64_t>(sourceCode.size()),
+            .sourceHash = fnv1a64(sourceCode.data(), sourceCode.size()),
+        };
+        
+        // Cache read
 
-        CacheHeader expectedHeader{};
-        expectedHeader.magic = kCacheMagic;
-        expectedHeader.version = kCacheVersion;
-        expectedHeader.apiVersion = settings.apiVersion;
-        expectedHeader.optLevel = static_cast<uint32_t>(settings.optLevel);
-        expectedHeader.sourceSize = static_cast<uint64_t>(sourceCode.size());
-        expectedHeader.sourceHash = fnv1a64(sourceCode.data(), sourceCode.size());
-
-        const std::filesystem::path cachePath = sourcePath.string() + ".spv";
-
-        std::vector<uint32_t> cachedSpirv;
-        if (!forceCompile && tryReadCache(cachePath, expectedHeader, cachedSpirv))
+        const std::filesystem::path cachePath = std::filesystem::path(filepath) += ".spvs";
+        if (!forceCompile)
         {
-            uint32_t* buffer = new uint32_t[cachedSpirv.size()];
-            std::memcpy(buffer, cachedSpirv.data(), cachedSpirv.size() * sizeof(uint32_t));
-            return shader_t{ buffer, cachedSpirv.size() * sizeof(uint32_t) };
+            try
+            {
+                io::BFHandle cache_ifile(cachePath, io::BFHandle::eNotFoundBehaviour::eThrow);
+
+                auto map = cache_ifile.map_ro();
+                const uint32_t* pData /* mapped RO file-data */ = tryReadCache(map, header, header.spvSize);
+                if (header.spvSize != 0) return shader_t{ pData /* copy entire data */, header.spvSize};
+            }
+            catch (...) { /* cache read error is not a critical failure */ }
         }
 
-        auto shader_stage_info = sn::voxeng::ShaderStages::fromFilename(filepath);
+        // Compiling
+
+        sn::voxeng::ShaderStageInfo shader_stage_info(filepath);
 
         shaderc::CompileOptions compilerOptions;
         compilerOptions.SetOptimizationLevel(getShadercOptLevel(settings.optLevel));
@@ -251,31 +294,40 @@ struct ShaderCompiler::data_t
         shaderc::Compiler compiler;
         auto result = compiler.CompileGlslToSpv(
             sourceCode,
-            shader_stage_info.shadercType,
-            sourcePath.filename().string().c_str(),
+            shader_stage_info.getShadercType(),
+            filepath.filename().string().c_str(),
             compilerOptions
         );
 
         if (result.GetCompilationStatus() != shaderc_compilation_status_success)
-            return Error{ uint32_t(CompileError::compilationFailed),
-                result.GetErrorMessage() };
+        {
+            snassert(false, "Failed to compile shader " + filepath.string() + ".", result.GetErrorMessage().c_str());
+            throw std::runtime_error("Failed to compile shader.");
+        }
 
-        const size_t sizeInBytes = std::distance(result.cbegin(), result.cend()) * sizeof(uint32_t);
-        if (sizeInBytes == 0)
-            return Error{ uint32_t(CompileError::compilationFailed),
-                "Shader compilation produced no SPIR-V words: " + sourcePath.string() };
+        const size_t size = std::distance(result.cbegin(), result.cend());
+        const size_t sizeInBytes = size * sizeof(uint32_t);
+        if (size == 0)
+        {
+            snassert(false, "Shader compilation produced no SPIR-V words.", filepath.string());
+            throw std::runtime_error("Shader compilation produced no SPIR-V words.");
+        }
+        
+        // Cache write
 
-        uint32_t* buffer = new uint32_t[sizeInBytes / 4u];
-        std::memcpy(buffer, result.cbegin(), sizeInBytes);
+        header.spvSize = static_cast<uint64_t>(sizeInBytes);
+        try
+        {
+            io::BFHandle cache_ofile(cachePath, io::BFHandle::eNotFoundBehaviour::eCreatePathAndFile);
+            writeCache(cache_ofile, header, result.cbegin(), sizeInBytes);
+        }
+        catch (...) { /* cache write error is not a critical failure */ }
 
-        expectedHeader.spvSize = static_cast<uint64_t>(sizeInBytes);
-        writeCache(cachePath, expectedHeader, buffer, sizeInBytes);
-
-        return shader_t{ buffer, sizeInBytes };
+        return shader_t{ result.cbegin(), size };
     }
 };
 
-// ShaderCompiler
+// === ShaderCompiler ===
 
 ShaderCompiler::ShaderCompiler()
     : m_pData(new data_t{ data_t::defaultSettings() }) {}
@@ -294,7 +346,7 @@ void ShaderCompiler::setSettings(const settings_t& settings)
     m_pData->m_settings = settings;
 }
 
-Result<ShaderCompiler::shader_t> ShaderCompiler::loadFromFile(const char* filepath, bool forceCompile) const
+ShaderCompiler::shader_t ShaderCompiler::loadFromFile(const std::filesystem::path& filepath, bool forceCompile) const
 {
     return m_pData->loadFromFile(filepath, forceCompile);
 }

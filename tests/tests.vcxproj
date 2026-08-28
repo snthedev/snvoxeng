@@ -59,7 +59,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;$(SolutionDir)\thirdparty\cstrs;$(SolutionDir)\thirdparty\snassert;thirdparty\googletest\googletest;thirdparty\googletest\googletest\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -80,7 +80,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpp23</LanguageStandard>
       <AdditionalIncludeDirectories>$(SolutionDir);$(VULKAN_SDK)\Include\;$(SolutionDir)\thirdparty\cstrs;$(SolutionDir)\thirdparty\snassert;thirdparty\googletest\googletest;thirdparty\googletest\googletest\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -94,9 +94,21 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="snvoxeng_tests.cpp" />
+    <ClCompile Include=".src\dumb_vector.cpp" />
+    <ClCompile Include=".src\ShaderCompiler.cpp" />
+    <ClCompile Include=".src\ShaderStages.cpp" />
+    <ClCompile Include=".src\vec.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="thirdparty\googletest\googletest\src\gtest-all.cc" />
-    <ClCompile Include="thirdparty\googletest\googletest\src\gtest_main.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tests.hpp" />
+    <ClInclude Include="tests\dumb_vector.hpp" />
+    <ClInclude Include="tests\ShaderCompiler.hpp" />
+    <ClInclude Include="tests\vec.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="tests\ShaderStages.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
